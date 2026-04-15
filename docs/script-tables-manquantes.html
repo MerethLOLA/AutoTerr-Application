@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Script SQL - Tables manquantes SunuPark</title>
+    <style>
+        body {
+            font-family: Consolas, "Courier New", monospace;
+            margin: 32px;
+            color: #111;
+            background: #fff;
+            line-height: 1.5;
+        }
+        h1, p {
+            font-family: Arial, sans-serif;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            border: 1px solid #ccc;
+            padding: 16px;
+            border-radius: 8px;
+            background: #f8f8f8;
+        }
+    </style>
+</head>
+<body>
+    <h1>Script SQL - Tables manquantes SunuPark</h1>
+    <p>Copie imprimable du script SQL pour les tables manquantes.</p>
+    <pre>USE `sunupark_db`;
+
+CREATE TABLE `tickets_sav` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `reference_ticket` VARCHAR(255) NOT NULL,
+    `id_client` BIGINT UNSIGNED NOT NULL,
+    `id_voiture` BIGINT UNSIGNED NOT NULL,
+    `id_responsable` BIGINT UNSIGNED NOT NULL,
+    `id_garantie` BIGINT UNSIGNED NULL,
+    `objet` VARCHAR(255) NOT NULL,
+    `description` TEXT NULL,
+    `statut` VARCHAR(255) NOT NULL DEFAULT 'ouvert',
+    `priorite` VARCHAR(255) NOT NULL DEFAULT 'normale',
+    `date_ouverture` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `date_resolution` TIMESTAMP NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `tickets_sav_reference_ticket_unique` (`reference_ticket`),
+    KEY `tickets_sav_statut_index` (`statut`),
+    KEY `tickets_sav_id_client_foreign` (`id_client`),
+    KEY `tickets_sav_id_voiture_foreign` (`id_voiture`),
+    KEY `tickets_sav_id_responsable_foreign` (`id_responsable`),
+    KEY `tickets_sav_id_garantie_foreign` (`id_garantie`),
+    CONSTRAINT `tickets_sav_id_client_foreign`
+        FOREIGN KEY (`id_client`) REFERENCES `clients` (`id`)
+        ON DELETE CASCADE,
+    CONSTRAINT `tickets_sav_id_voiture_foreign`
+        FOREIGN KEY (`id_voiture`) REFERENCES `voitures` (`id`)
+        ON DELETE CASCADE,
+    CONSTRAINT `tickets_sav_id_responsable_foreign`
+        FOREIGN KEY (`id_responsable`) REFERENCES `employes` (`id`)
+        ON DELETE RESTRICT,
+    CONSTRAINT `tickets_sav_id_garantie_foreign`
+        FOREIGN KEY (`id_garantie`) REFERENCES `garanties` (`id`)
+        ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `interventions_sav` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `id_ticket_sav` BIGINT UNSIGNED NOT NULL,
+    `id_employe` BIGINT UNSIGNED NULL,
+    `description` TEXT NOT NULL,
+    `statut` VARCHAR(255) NOT NULL DEFAULT 'en_cours',
+    `temps_passe_minutes` INT UNSIGNED NOT NULL DEFAULT 0,
+    `date_intervention` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `interventions_sav_id_ticket_sav_foreign` (`id_ticket_sav`),
+    KEY `interventions_sav_id_employe_foreign` (`id_employe`),
+    KEY `interventions_sav_statut_index` (`statut`),
+    CONSTRAINT `interventions_sav_id_ticket_sav_foreign`
+        FOREIGN KEY (`id_ticket_sav`) REFERENCES `tickets_sav` (`id`)
+        ON DELETE CASCADE,
+    CONSTRAINT `interventions_sav_id_employe_foreign`
+        FOREIGN KEY (`id_employe`) REFERENCES `employes` (`id`)
+        ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `pieces_stock` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `reference` VARCHAR(255) NOT NULL,
+    `designation` VARCHAR(255) NOT NULL,
+    `description` TEXT NULL,
+    `prix_unitaire` DECIMAL(15,2) NOT NULL,
+    `quantite_stock` INT UNSIGNED NOT NULL DEFAULT 0,
+    `seuil_alerte` INT UNSIGNED NOT NULL DEFAULT 0,
+    `id_fournisseur` BIGINT UNSIGNED NULL,
+    `statut` VARCHAR(255) NOT NULL DEFAULT 'actif',
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `pieces_stock_reference_unique` (`reference`),
+    KEY `pieces_stock_id_fournisseur_foreign` (`id_fournisseur`),
+    KEY `pieces_stock_statut_index` (`statut`),
+    CONSTRAINT `pieces_stock_id_fournisseur_foreign`
+        FOREIGN KEY (`id_fournisseur`) REFERENCES `fournisseurs` (`id`)
+        ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `mouvements_stock` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `id_piece_stock` BIGINT UNSIGNED NOT NULL,
+    `type_mouvement` VARCHAR(255) NOT NULL,
+    `quantite` INT UNSIGNED NOT NULL,
+    `source_mouvement` VARCHAR(255) NULL,
+    `reference_source` VARCHAR(255) NULL,
+    `observations` TEXT NULL,
+    `date_mouvement` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `mouvements_stock_id_piece_stock_foreign` (`id_piece_stock`),
+    KEY `mouvements_stock_type_mouvement_index` (`type_mouvement`),
+    KEY `mouvements_stock_date_mouvement_index` (`date_mouvement`),
+    CONSTRAINT `mouvements_stock_id_piece_stock_foreign`
+        FOREIGN KEY (`id_piece_stock`) REFERENCES `pieces_stock` (`id`)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `ordres_travail` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `reference_ot` VARCHAR(255) NOT NULL,
+    `id_voiture` BIGINT UNSIGNED NOT NULL,
+    `id_ticket_sav` BIGINT UNSIGNED NULL,
+    `description` TEXT NOT NULL,
+    `priorite` VARCHAR(255) NOT NULL DEFAULT 'normale',
+    `deadline` TIMESTAMP NULL DEFAULT NULL,
+    `statut` VARCHAR(255) NOT NULL DEFAULT 'ouvert',
+    `id_technicien` BIGINT UNSIGNED NULL,
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `ordres_travail_reference_ot_unique` (`reference_ot`),
+    KEY `ordres_travail_id_voiture_foreign` (`id_voiture`),
+    KEY `ordres_travail_id_ticket_sav_foreign` (`id_ticket_sav`),
+    KEY `ordres_travail_priorite_index` (`priorite`),
+    KEY `ordres_travail_deadline_index` (`deadline`),
+    KEY `ordres_travail_statut_index` (`statut`),
+    KEY `ordres_travail_id_technicien_foreign` (`id_technicien`),
+    CONSTRAINT `ordres_travail_id_voiture_foreign`
+        FOREIGN KEY (`id_voiture`) REFERENCES `voitures` (`id`)
+        ON DELETE CASCADE,
+    CONSTRAINT `ordres_travail_id_ticket_sav_foreign`
+        FOREIGN KEY (`id_ticket_sav`) REFERENCES `tickets_sav` (`id`)
+        ON DELETE SET NULL,
+    CONSTRAINT `ordres_travail_id_technicien_foreign`
+        FOREIGN KEY (`id_technicien`) REFERENCES `employes` (`id`)
+        ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `taches_atelier` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `id_ordre_travail` BIGINT UNSIGNED NOT NULL,
+    `description` TEXT NOT NULL,
+    `statut` VARCHAR(255) NOT NULL DEFAULT 'a_faire',
+    `temps_passe_minutes` INT UNSIGNED NOT NULL DEFAULT 0,
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `taches_atelier_id_ordre_travail_foreign` (`id_ordre_travail`),
+    KEY `taches_atelier_statut_index` (`statut`),
+    CONSTRAINT `taches_atelier_id_ordre_travail_foreign`
+        FOREIGN KEY (`id_ordre_travail`) REFERENCES `ordres_travail` (`id`)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `consommations_pieces` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `id_ordre_travail` BIGINT UNSIGNED NOT NULL,
+    `id_piece_stock` BIGINT UNSIGNED NOT NULL,
+    `quantite` INT UNSIGNED NOT NULL,
+    `date_consommation` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `consommations_pieces_id_ordre_travail_foreign` (`id_ordre_travail`),
+    KEY `consommations_pieces_id_piece_stock_foreign` (`id_piece_stock`),
+    CONSTRAINT `consommations_pieces_id_ordre_travail_foreign`
+        FOREIGN KEY (`id_ordre_travail`) REFERENCES `ordres_travail` (`id`)
+        ON DELETE CASCADE,
+    CONSTRAINT `consommations_pieces_id_piece_stock_foreign`
+        FOREIGN KEY (`id_piece_stock`) REFERENCES `pieces_stock` (`id`)
+        ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `locations` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `reference_location` VARCHAR(255) NOT NULL,
+    `id_client` BIGINT UNSIGNED NOT NULL,
+    `id_voiture` BIGINT UNSIGNED NOT NULL,
+    `date_debut` TIMESTAMP NOT NULL,
+    `date_fin_prevue` TIMESTAMP NOT NULL,
+    `date_fin_reelle` TIMESTAMP NULL DEFAULT NULL,
+    `montant_journalier` DECIMAL(15,2) NOT NULL,
+    `caution` DECIMAL(15,2) NULL DEFAULT NULL,
+    `kilometrage_depart` INT UNSIGNED NOT NULL DEFAULT 0,
+    `kilometrage_retour` INT UNSIGNED NULL DEFAULT NULL,
+    `statut` VARCHAR(255) NOT NULL DEFAULT 'en_cours',
+    `observations` TEXT NULL,
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `locations_reference_location_unique` (`reference_location`),
+    KEY `locations_id_client_foreign` (`id_client`),
+    KEY `locations_id_voiture_foreign` (`id_voiture`),
+    KEY `locations_statut_index` (`statut`),
+    CONSTRAINT `locations_id_client_foreign`
+        FOREIGN KEY (`id_client`) REFERENCES `clients` (`id`)
+        ON DELETE CASCADE,
+    CONSTRAINT `locations_id_voiture_foreign`
+        FOREIGN KEY (`id_voiture`) REFERENCES `voitures` (`id`)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `etats_lieux_locations` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `id_location` BIGINT UNSIGNED NOT NULL,
+    `type_etat_lieu` VARCHAR(255) NOT NULL,
+    `kilometrage` INT UNSIGNED NOT NULL DEFAULT 0,
+    `niveau_carburant` VARCHAR(255) NULL,
+    `etat_general` TEXT NULL,
+    `observations` TEXT NULL,
+    `date_etat_lieu` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `etats_lieux_locations_id_location_foreign` (`id_location`),
+    KEY `etats_lieux_locations_type_etat_lieu_index` (`type_etat_lieu`),
+    CONSTRAINT `etats_lieux_locations_id_location_foreign`
+        FOREIGN KEY (`id_location`) REFERENCES `locations` (`id`)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;</pre>
+</body>
+</html>

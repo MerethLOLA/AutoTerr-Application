@@ -1,0 +1,373 @@
+PROJET DE FIN D'ÉTUDES
+  CAHIER DES CHARGES
+Spécification Fonctionnelle et Technique
+Étude et Réalisation d'un Système de Gestion
+d'un Parc Automobile Moderne
+Application Web — Laravel 12 + MySQL
+Dakar, Sénégal — 2026
+
+ 
+1. Présentation du Projet	1
+1.1 Intitulé	1
+1.2 Contexte et Problématique	1
+1.3 Contexte Sénégalais en 2026	1
+2. Objectifs du Projet	1
+2.1 Objectif Général	1
+2.2 Objectifs Spécifiques	1
+3. Périmètre Fonctionnel	1
+3.1 Modules de l'Application	1
+4. Analyse du Diagramme de Base de Données	1
+4.1 Entités Principales Identifiées	1
+4.1.1 Domaine Identité & Accès	1
+4.1.2 Domaine Catalogue Véhicules	1
+4.1.3 Domaine Commercial	1
+4.1.4 Domaine Juridique & Documents	1
+4.2 Relations Clés Identifiées	1
+5. Besoins Spécifiques au Marché Sénégalais 2026	1
+5.1 Besoins Fonctionnels Identifiés	1
+5.1.1 Gestion Multi-Devises et Fiscalité Locale	1
+5.1.2 Gestion des Véhicules d'Importation	1
+5.1.3 Paiements Mobiles et Fractionnés	1
+5.1.4 Interface Mobile-First	1
+5.1.5 Gestion de la Clientèle Locale	1
+6. Utilisateurs et Rôles du Système	1
+7. Tableau de Bord Analytique	1
+7.1 Indicateurs Clés de Performance (KPIs)	1
+8. Spécifications Détaillées des Modules Principaux	1
+8.1 Module Gestion des Véhicules	1
+8.1.1 Fonctionnalités	1
+8.2 Module Ventes	1
+8.2.1 Workflow de Vente	1
+8.2.2 Contraintes	1
+8.3 Module Facturation & Paiements	1
+8.4 Module SAV (Service Après-Vente)	1
+8.5 Module Atelier	1
+8.6 Module Location	1
+8.7 Module Stock	1
+9. Architecture Technique	1
+9.1 Architecture MVC	1
+10. Contraintes et Exigences	1
+10.1 Contraintes Fonctionnelles	1
+10.2 Contraintes de Sécurité	1
+10.3 Contraintes de Performance	1
+11. Planning de Réalisation Proposé	1
+12. Conclusion	1
+
+ 
+1. Présentation du Projet
+
+1.1 Intitulé
+Étude et réalisation d'un système de gestion pour une entreprise de vente de voitures au Sénégal. L'application vise à numériser et centraliser la gestion complète d'un parc automobile moderne, en répondant aux spécificités du marché automobile sénégalais en 2026.
+
+1.2 Contexte et Problématique
+Le secteur automobile sénégalais connaît une croissance soutenue depuis plusieurs années. Les entreprises de vente et de gestion de véhicules font face à des défis de taille :
+•	Gestion dispersée sur papier, tableurs ou logiciels non intégrés
+•	Absence de traçabilité sur les stocks de véhicules et les interventions SAV
+•	Difficulté à produire des rapports financiers en temps réel
+•	Manque d'outils adaptés au marché local (CFA, TVA sénégalaise, clientèle locale)
+•	Besoin croissant de digitalisation pour rester compétitif face à la concurrence internationale
+
+Ce projet répond à ce besoin en proposant une plateforme web intégrée, développée avec Laravel 12 et MySQL, couvrant l'ensemble du cycle de vie d'un véhicule au sein de la structure : de l'acquisition auprès du fournisseur jusqu'à la vente, en passant par la location, le SAV et le suivi du stock.
+
+1.3 Contexte Sénégalais en 2026
+
+Spécificités du marché automobile sénégalais
+• Monnaie : Franc CFA (XOF) — les montants doivent être gérés en XOF
+• TVA applicable : 18 % (taux en vigueur au Sénégal)
+• Forte présence de véhicules d'occasion importés (France, Japon, Dubaï)
+• Émergence des véhicules électriques et hybrides dans les flottes d'entreprises
+• Usage mobile dominant : l'interface doit être responsive (Tailwind CSS)
+• Paiements mixtes : espèces, virement, Wave, Orange Money
+• Besoin de documents en français : factures, contrats, garanties
+• Marché en forte croissance autour de Dakar, Thiès, Saint-Louis
+
+2. Objectifs du Projet
+
+2.1 Objectif Général
+Mettre en place une application web de gestion de parc automobile permettant à une entreprise sénégalaise de piloter l'intégralité de ses opérations depuis une interface unique, sécurisée et accessible depuis n'importe quel appareil connecté.
+
+2.2 Objectifs Spécifiques
+•	Centraliser les données des véhicules, clients, fournisseurs et employés
+•	Automatiser le processus de vente : sélection du véhicule, création du client, génération de la facture
+•	Gérer les contrats de location avec suivi des échéances et retards
+•	Suivre les interventions SAV avec tickets et historique par véhicule
+•	Piloter l'atelier mécanique : ordres de travail, affectation, temps passé
+•	Contrôler le stock de pièces de rechange avec alertes de seuils
+•	Produire des rapports analytiques : CA mensuel, modèle le plus vendu, classement vendeurs
+•	Sécuriser l'accès par un système de rôles et permissions granulaires
+
+3. Périmètre Fonctionnel
+
+3.1 Modules de l'Application
+
+Module	Fonctions Principales	Tables BD Concernées
+Authentification	Connexion, déconnexion, gestion des sessions	User, Session
+Tableau de Bord	KPIs temps réel, statistiques, graphiques	Toutes les tables
+Voitures	CRUD véhicules, images, catégories, origines	Voitures, ImageVoiture, TypesVehicules, OrigineMarque
+Clients	Gestion des fiches clients, historique	Clients
+Fournisseurs	Gestion des fournisseurs de véhicules	Fournisseur
+Ventes	Processus de vente, référence, statut	Ventes, Clients, Voitures, Employees
+Facturation	Génération et suivi des factures	Facturation, Ventes
+Paiements	Enregistrement et suivi des règlements	Paiement, Facturation
+Garanties	Gestion des garanties par véhicule	Garantie, Voitures
+Documents	Stockage des documents liés aux ventes	Document, Ventes
+SAV	Tickets de réclamation, suivi interventions	Données métier SAV
+Atelier	Ordres de travail, tâches, temps	Données métier Atelier
+Location	Contrats, états des lieux, échéances	Données métier Location
+Stock	Pièces de rechange, mouvements, seuils	Données métier Stock
+Utilisateurs & Rôles	Gestion des accès et permissions	User, Permission, RolePermission, Employees
+
+4. Analyse du Diagramme de Base de Données
+
+4.1 Entités Principales Identifiées
+Le diagramme entité-relation fourni révèle une architecture de base de données cohérente et bien structurée, organisée autour de l'entité centrale Voitures. Les tables identifiées sont regroupées ci-dessous par domaine fonctionnel.
+
+4.1.1 Domaine Identité & Accès
+
+Table	Champs Clés	Rôle
+User	id, username, email, password, role, token_expiration	Compte de connexion de chaque utilisateur
+Session	id, FK user_id, ip_active, payload_at	Suivi des sessions actives
+Employees	id, nom, prenom, adresse, date, salaire, contrat, poste	Profil RH des employés liés aux users
+Permission	id, description, type / nom	Droits d'accès nommés
+RolePermission	id, role, FK permissions_id	Association rôle ↔ permissions
+
+4.1.2 Domaine Catalogue Véhicules
+
+Table	Champs Clés	Rôle
+Voitures	id, marque, model, annee, couleur, prix, kilometrage, numero_chassis (UNIQUE), date_acquisition, statut, FK categorie, FK fournisseur	Inventaire central des véhicules
+ImageVoiture	id, FK voiture, chemin, profil_gauche, profil_droit, avant, arriere, interieur, description, largeur, hauteur, taille, FK client, legible, hauteur2	Galerie photos multi-vues par véhicule
+TypesVehicules	id, type_gasoil, type_boite, date_debut, lifeuse, Book, Diesel, Essence, Electrique, Hybride, Utilitaire	Catégories et motorisations
+OrigineMarque	id, nom (UNIQUE), description	Pays ou zone d'origine de la marque
+
+4.1.3 Domaine Commercial
+
+Table	Champs Clés	Rôle
+Clients	id, prenom, nom, adresse, telephone, email, numero_piece, classe, date_naissance, numero_piece2	Fichier clients complet
+Fournisseur	id, nom, adresse, telephone, contact, lien, adresse_bureau	Fournisseurs de véhicules
+Ventes	id, reference_vente (UNIQUE), date, FK client, FK voiture, prix_final, mode_paiement, FK employe	Transaction de vente finalisée
+Facturation	id, numero_facture, mode_livraison, FK vente, montant, remise, montant_ht, montant_ttc, date_echeance, date_production	Factures générées par vente
+Paiement	id, date, mode_paiement, FK vente, FK facture, FK client, montant, reste	Suivi des règlements
+
+4.1.4 Domaine Juridique & Documents
+
+Table	Champs Clés	Rôle
+Garantie	id, duree_garantie, type_garantie, date_debut, date_fin, FK voiture	Garanties associées aux véhicules vendus
+Document	id, type_document, FK vente, date_document, FK employe, data_production (UNIQUE), FK client	Pièces administratives liées aux ventes
+
+4.2 Relations Clés Identifiées
+L'analyse du diagramme révèle les cardinalités et contraintes suivantes :
+•	Une Voiture peut apparaître dans plusieurs ImageVoiture (1,N) — gestion multi-photos
+•	Une Voiture appartient à un TypesVehicules et une OrigineMarque (N,1)
+•	Une Voiture est liée à un Fournisseur (N,1) — traçabilité de l'approvisionnement
+•	Une Vente lie un Client, une Voiture et un Employé — contrainte d'unicité sur la voiture
+•	Une Facturation est générée pour une Vente (1,1) avec montants HT et TTC
+•	Un Paiement est lié à une Vente, une Facturation et un Client — gestion du solde restant
+•	Une Garantie est associée à une Voiture — suivi post-vente
+•	Un Document est rattaché à une Vente et un Client
+•	Un User est lié à un Employee (1,1) — séparation authentification / profil métier
+•	Les permissions sont gérées via la table RolePermission (rôle + permission)
+
+5. Besoins Spécifiques au Marché Sénégalais 2026
+
+5.1 Besoins Fonctionnels Identifiés
+
+Analyse des besoins du marché sénégalais en 2026
+Le secteur automobile sénégalais se modernise rapidement. Voici les besoins prioritaires identifiés :
+
+5.1.1 Gestion Multi-Devises et Fiscalité Locale
+•	Saisie et affichage des prix en Francs CFA (XOF)
+•	Calcul automatique de la TVA à 18 % (taux sénégalais)
+•	Génération de factures conformes aux exigences de la Direction Générale des Impôts (DGI)
+•	Numéros NINEA et RCCM intégrés dans les en-têtes de factures
+
+5.1.2 Gestion des Véhicules d'Importation
+•	Suivi de l'origine du véhicule (France, Japon, Dubaï, Chine) via la table OrigineMarque
+•	Gestion du dédouanement : date d'acquisition, numéro de chassis unique
+•	Distinction entre véhicules neufs et d'occasion dans le catalogue
+•	Support des véhicules électriques et hybrides (TypesVehicules étendu)
+
+5.1.3 Paiements Mobiles et Fractionnés
+•	Modes de paiement : Espèces, Virement bancaire, Wave, Orange Money, Chèque
+•	Gestion du paiement fractionné avec suivi du montant restant (table Paiement.reste)
+•	Alertes automatiques pour les paiements en retard
+•	Reçus de paiement générables en PDF
+
+5.1.4 Interface Mobile-First
+•	Design responsive avec Tailwind CSS — priorité à l'usage sur smartphone
+•	Tableau de bord adaptatif avec KPIs lisibles sur mobile
+•	Formulaires optimisés pour la saisie tactile
+
+5.1.5 Gestion de la Clientèle Locale
+•	Champs spécifiques : numéro CNI/passeport, numéro de permis (numero_piece, numero_piece2)
+•	Classification des clients : particuliers, entreprises, diplomates, ONG
+•	Historique complet par client : achats, locations, SAV, garanties
+•	Support multilingue français / wolof dans les communications clients
+
+6. Utilisateurs et Rôles du Système
+
+Le système de permissions s'appuie sur les tables User, Permission et RolePermission. Les rôles identifiés et leurs accès sont les suivants :
+
+Rôle	Modules Accessibles	Permissions Clés
+Administrateur	Tous les modules	Gestion complète : CRUD, rapports, configuration
+Vendeur	Voitures, Clients, Ventes, Facturation, Paiements, Documents	create_vente, manage_ventes, view_clients
+Responsable SAV	SAV, Véhicules (lecture), Clients (lecture)	manage_sav, view_ventes, create_ticket
+Chef d'Atelier	Atelier, Stock pièces, SAV (lecture)	manage_atelier, view_stock, assign_taches
+Agent de Stock	Stock pièces, Fournisseurs (lecture)	manage_stock, view_fournisseurs
+Agent de Recouvrement	Paiements, Facturation, Clients (lecture)	view_paiements, manage_recouvrement
+Responsable Location	Location, Véhicules (lecture), Clients	manage_location, view_voitures
+
+7. Tableau de Bord Analytique
+
+Le tableau de bord constitue la vitrine de l'application. Il centralise les indicateurs de performance en temps réel, calculés via Eloquent et Query Builder sur la base de données MySQL.
+
+7.1 Indicateurs Clés de Performance (KPIs)
+
+Indicateur	Description	Source de Données
+Ventes du mois	Nombre de ventes réalisées sur le mois courant	Table Ventes (date)
+Chiffre d'affaires	Somme des prix_final des ventes du mois en XOF	Table Ventes (prix_final)
+Véhicules disponibles	Nombre de voitures avec statut = 'disponible'	Table Voitures (statut)
+Véhicules avec photos	Nombre de voitures ayant au moins une ImageVoiture	Tables Voitures + ImageVoiture
+Modèle le plus vendu	Marque/modèle le plus fréquent dans les ventes	Tables Ventes + Voitures
+Classement vendeurs	Ranking des employés par volume de ventes	Tables Ventes + Employees
+Répartition par origine	Statistiques par zone géographique de la marque	Tables Voitures + OrigineMarque
+Répartition par type	Essence / Diesel / Électrique / Hybride	Tables Voitures + TypesVehicules
+Paiements en attente	Montant restant dû sur les factures en cours	Table Paiement (reste)
+Tickets SAV ouverts	Nombre de tickets SAV non résolus	Table SAV (statut)
+Stock critique	Pièces en dessous du seuil d'alerte	Table Stock (seuil)
+Contrats location actifs	Contrats en cours avec échéance proche	Table Location (date_fin)
+
+8. Spécifications Détaillées des Modules Principaux
+
+8.1 Module Gestion des Véhicules
+Ce module est le cœur du système. Il gère le catalogue complet des véhicules, leur disponibilité et leur documentation photographique.
+
+8.1.1 Fonctionnalités
+•	Création d'une fiche véhicule complète (marque, modèle, année, couleur, prix en XOF, kilométrage)
+•	Numéro de châssis unique avec validation d'unicité en base
+•	Rattachement à un fournisseur (traçabilité de l'approvisionnement)
+•	Sélection du type (Essence, Diesel, Électrique, Hybride, Utilitaire) via TypesVehicules
+•	Sélection de l'origine (OrigineMarque : France, Japon, Dubaï, etc.)
+•	Gestion du statut : disponible / vendu / en location / en atelier / réservé
+•	Upload multi-photos avec 6 vues : profil gauche, profil droit, avant, arrière, intérieur, autre (table ImageVoiture)
+•	Recherche et filtres avancés : marque, prix, type, origine, statut, année
+
+8.2 Module Ventes
+Le processus de vente suit un workflow guidé en plusieurs étapes pour garantir la cohérence des données.
+
+8.2.1 Workflow de Vente
+•	Étape 1 — Sélection du client : client existant ou création rapide à la volée
+•	Étape 2 — Sélection du véhicule : uniquement les voitures au statut 'disponible'
+•	Étape 3 — Paramètres financiers : prix final (modifiable), mode de paiement, remise éventuelle
+•	Étape 4 — Validation : génération automatique d'une référence de vente unique
+•	Étape 5 — Génération automatique de la facture (table Facturation) avec montants HT et TTC
+•	Étape 6 — Mise à jour du statut du véhicule à 'vendu'
+
+8.2.2 Contraintes
+•	Un véhicule déjà vendu ne peut pas être resélectionné (vérification statut)
+•	Le numéro de facture est généré automatiquement selon un format normalisé
+•	L'accès est conditionné aux permissions : manage_ventes, create_vente, view_ventes
+
+8.3 Module Facturation & Paiements
+•	Génération de factures PDF avec en-tête entreprise (NINEA, RCCM, adresse Dakar)
+•	Calcul automatique : montant HT, TVA 18%, montant TTC, remise
+•	Enregistrement des paiements avec gestion du solde restant (Paiement.reste)
+•	Modes de paiement supportés : Espèces, Virement, Wave, Orange Money, Chèque
+•	Relances automatiques pour les factures échues
+
+8.4 Module SAV (Service Après-Vente)
+•	Ouverture de tickets SAV liés à un client, un véhicule et un responsable
+•	Suivi des étapes : Ouvert → En cours → Résolu → Fermé
+•	Historique complet des interventions par véhicule
+•	Association ticket ↔ garantie pour les interventions sous garantie
+
+8.5 Module Atelier
+•	Création d'ordres de travail (OT) avec description, priorité, deadline
+•	Affectation des OT aux techniciens (Employees avec poste atelier)
+•	Suivi du temps passé par tâche
+•	Consommation de pièces depuis le stock avec déstockage automatique
+
+8.6 Module Location
+•	Création de contrats de location avec date de début, date de fin, tarif journalier en XOF
+•	État des lieux d'entrée et de sortie avec photos
+•	Alertes automatiques : contrats expirant sous 48h, retards de restitution
+•	Blocage du véhicule loué dans le module ventes
+
+8.7 Module Stock
+•	Catalogue des pièces de rechange avec référence, désignation, prix unitaire en XOF
+•	Seuil d'alerte personnalisable par référence avec notification tableau de bord
+•	Historique des mouvements : entrées (commandes fournisseur), sorties (consommation atelier)
+•	Valorisation du stock en temps réel
+
+9. Architecture Technique
+
+Couche	Technologie	Version / Détail
+Framework Back-end	Laravel	12.x — Architecture MVC
+Langage	PHP	8.2+ — Type hinting, Enums, Fibers
+Base de données	MySQL	8.0+ — InnoDB, contraintes FK, index
+ORM / Query Builder	Eloquent + Laravel DB	Relations, scopes, mutators
+Front-end	Next.js	Vite 5 — Mobile-first, dark mode ready
+Authentification	Laravel Breeze	Sessions sécurisées, middleware auth
+Génération PDF	DomPDF / Barryvdh	Factures, contrats, reçus en PDF
+Stockage fichiers	Laravel Storage	Images véhicules, documents
+Environnement local	Laragon	PHP + MySQL + Nginx packagé
+Gestion dépendances	Composer + npm	Packages PHP et JS
+
+9.1 Architecture MVC
+•	Models : Voiture, Client, Fournisseur, Vente, Facturation, Paiement, Garantie, Document, User, Employee, Permission
+•	Controllers : un controller par module avec méthodes index, create, store, edit, update, destroy
+•	Middleware : auth (protection globale), permission (vérification granulaire par action)
+•	Policies : vérification des droits au niveau des ressources Eloquent
+•	Requests : Form Requests dédiées pour la validation des données
+•	Resources : API Resources pour les réponses JSON du tableau de bord
+
+10. Contraintes et Exigences
+
+10.1 Contraintes Fonctionnelles
+•	Toutes les pages sont protégées par le middleware auth
+•	Chaque action sensible vérifie la permission métier correspondante
+•	Un véhicule ne peut être vendu ou loué que s'il est au statut 'disponible'
+•	Le numéro de châssis est unique en base (UNIQUE constraint MySQL)
+•	La référence de vente est générée automatiquement et non modifiable
+•	Les montants sont stockés en DECIMAL(15,2) pour éviter les erreurs d'arrondi en XOF
+
+10.2 Contraintes de Sécurité
+•	Hashage des mots de passe avec Bcrypt (Laravel Hash::make)
+•	Protection CSRF sur tous les formulaires
+•	Validation stricte des données en entrée (Form Requests)
+•	Logs des actions sensibles : ventes, modifications de prix, suppression de données
+•	Expiration des sessions (token_expiration dans la table User)
+
+10.3 Contraintes de Performance
+•	Index MySQL sur les colonnes de recherche fréquente : statut, date, FK
+•	Pagination des listes (15 éléments par page minimum)
+•	Lazy loading des images pour la galerie véhicules
+•	Cache des indicateurs du tableau de bord (rafraîchissement toutes les 5 minutes)
+
+11. Planning de Réalisation Proposé
+
+Phase	Contenu	Durée Estimée
+Phase 1 — Setup	Installation Laravel, configuration MySQL, authentification Breeze, système de permissions	1 semaine
+Phase 2 — Catalogue	Module Voitures, TypesVehicules, OrigineMarque, ImageVoiture, CRUD complet	1,5 semaines
+Phase 3 — Commercial	Modules Clients, Fournisseurs, Ventes, Facturation, Paiements, génération PDF	2 semaines
+Phase 4 — Support	Modules SAV, Atelier, Garanties, Documents	1,5 semaines
+Phase 5 — Exploitation	Modules Location, Stock, Recouvrement	1,5 semaines
+Phase 6 — Tableau de bord	KPIs, graphiques (Chart.js ou ApexCharts), rapports exportables	1 semaine
+Phase 7 — Tests & Recette	Tests unitaires (PHPUnit), tests fonctionnels, corrections	1 semaine
+Phase 8 — Documentation	Documentation technique, guide utilisateur, rapport de mémoire	0,5 semaine
+
+12. Conclusion
+
+Ce cahier des charges définit un système de gestion de parc automobile moderne, complet et adapté aux réalités du marché sénégalais en 2026. L'architecture proposée, fondée sur Laravel 12 et MySQL, garantit une base technique solide, maintenable et évolutive.
+
+Le diagramme de base de données fourni constitue une fondation robuste pour le projet : les entités couvrent l'ensemble du cycle de vie d'un véhicule, depuis l'approvisionnement auprès du fournisseur jusqu'à la vente, la garantie, le SAV et le suivi des paiements. Les relations entre tables sont cohérentes et les contraintes d'unicité (numéro de châssis, référence de vente) garantissent l'intégrité des données.
+
+Les spécificités locales — franc CFA, TVA sénégalaise, paiements mobiles (Wave, Orange Money), clientèle locale, marché de l'occasion — ont été intégrées dès la conception pour produire un outil directement utilisable par une entreprise automobile au Sénégal, et non pas un simple projet académique déconnecté de la réalité terrain.
+
+Valeur ajoutée du projet
+✓ Couverture complète du cycle automobile : achat → vente → location → SAV → atelier → stock
+✓ Adapté au contexte sénégalais : XOF, TVA 18%, paiements mobiles, clientèle locale
+✓ Architecture professionnelle : MVC, permissions granulaires, génération PDF
+✓ Tableau de bord analytique avec KPIs en temps réel
+✓ Base de données normalisée et cohérente avec contraintes d'intégrité
+✓ Interface responsive mobile-first avec Tailwind CSS
+

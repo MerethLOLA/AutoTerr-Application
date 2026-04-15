@@ -1,0 +1,79 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Client;
+use App\Models\Location;
+use App\Models\Voiture;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+
+class CustomerPortalController extends Controller
+{
+    public function index(Request $request): View
+    {
+        abort_unless($request->user()?->role === 'client', 403);
+
+        $client = Client::query()->firstWhere('email', $request->user()->email);
+        $reservations = collect();
+
+        if ($client) {
+            $reservations = Location::query()
+                ->with('voiture:id,marque,modele,prix')
+                ->where('id_client', $client->id)
+                ->where('statut', 'planifiee')
+                ->latest('date_debut')
+                ->get();
+        }
+
+        $voitures = Voiture::query()
+            ->select(['id', 'marque', 'modele', 'annee', 'prix', 'energie'])
+            ->disponibles()
+            ->latest()
+            ->take(12)
+            ->get();
+
+        return view('customer.portal', compact('client', 'reservations', 'voitures'));
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()?->role === 'client', 403);
+
+        $data = $request->validate([
+            'id_voiture' => ['required', 'exists:voitures,id'],
+            'date_debut' => ['required', 'date', 'after_or_equal:today'],
+            'date_fin' => ['required', 'date', 'after_or_equal:date_debut'],
+            'observations' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $client = Client::query()->firstOrCreate(
+            ['email' => $request->user()->email],
+            [
+                'nom' => $request->user()->name ?: $request->user()->username,
+                'prenom' => null,
+                'telephone' => null,
+                'contact' => $request->user()->name ?: $request->user()->username,
+                'type_client' => 'particulier',
+            ]
+        );
+
+        $voiture = Voiture::query()->findOrFail($data['id_voiture']);
+        abort_if($voiture->statut !== 'disponible', 422, 'Le vehicule selectionne n\'est plus disponible.');
+
+        Location::query()->create([
+            'reference_location' => 'RES-'.now()->format('YmdHis'),
+            'id_client' => $client->id,
+            'id_voiture' => $voiture->id,
+            'date_debut' => $data['date_debut'],
+            'date_fin' => $data['date_fin'],
+            'tarif_journalier' => 0,
+            'statut' => 'planifiee',
+            'caution' => 0,
+            'observations' => $data['observations'] ?? 'Reservation client depuis l\'espace public.',
+        ]);
+
+        return redirect()->route('customer.portal')->with('success', 'Reservation enregistree. Notre equipe vous recontactera.');
+    }
+}

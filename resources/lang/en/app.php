@@ -1,0 +1,20 @@
+<?php
+return [
+    'dashboard'   => 'Dashboard',
+    'voitures'    => 'Vehicles',
+    'clients'     => 'Clients',
+    'ventes'      => 'Sales',
+    'facturation' => 'Invoicing',
+    'location'    => 'Rental',
+    'atelier'     => 'Workshop',
+    'stock'       => 'Stock',
+    'sav'         => 'After-Sales',
+    'documents'   => 'Documents',
+    'parametres'  => 'Settings',
+    'profil'      => 'My profile',
+    'deconnexion' => 'Logout',
+    'langue'      => 'Language',
+    'mode_sombre' => 'Dark mode',
+    'mode_clair'  => 'Light mode',
+    'en_savoir'   => 'About',
+];

@@ -1,0 +1,20 @@
+<?php
+return [
+    'dashboard'   => 'Tableau de bord',
+    'voitures'    => 'Voitures',
+    'clients'     => 'Clients',
+    'ventes'      => 'Ventes',
+    'facturation' => 'Facturation',
+    'location'    => 'Location',
+    'atelier'     => 'Atelier',
+    'stock'       => 'Stock',
+    'sav'         => 'SAV',
+    'documents'   => 'Documents',
+    'parametres'  => 'Paramètres',
+    'profil'      => 'Mon profil',
+    'deconnexion' => 'Déconnexion',
+    'langue'      => 'Langue',
+    'mode_sombre' => 'Mode sombre',
+    'mode_clair'  => 'Mode clair',
+    'en_savoir'   => 'En savoir plus',
+];

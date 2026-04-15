@@ -1,0 +1,117 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\DocumentRequest;
+use App\Models\Client;
+use App\Models\Document;
+use App\Models\Employe;
+use App\Models\Vente;
+use App\Models\Voiture;
+use Illuminate\Http\Request;
+
+class DocumentController extends Controller
+{
+    public function create(Request $request)
+    {
+        $this->ensurePermission('manage_ventes');
+
+        return view('documents.create', [
+            'document' => new Document([
+                'date_document' => now()->toDateString(),
+                'date_production' => now()->toDateString(),
+                'id_vente' => $request->integer('vente'),
+                'id_client' => $request->integer('client'),
+                'id_voiture' => $request->integer('voiture'),
+            ]),
+            'ventes' => Vente::query()->with(['client', 'voiture'])->orderByDesc('date_vente')->get(),
+            'clients' => Client::query()->orderBy('nom')->get(['id', 'nom', 'prenom', 'raison_sociale']),
+            'employes' => Employe::query()->orderBy('nom')->get(['id', 'nom', 'prenom']),
+            'voitures' => Voiture::query()->orderBy('marque')->get(['id', 'marque', 'modele']),
+            'isEdit' => false,
+        ]);
+    }
+
+    public function index(Request $request)
+    {
+        $this->ensurePermission('manage_ventes');
+
+        $documents = Document::query()
+            ->with(['vente', 'client', 'employe', 'voiture'])
+            ->when($request->filled('type_document'), fn ($query) => $query->where('type_document', $request->string('type_document')->toString()))
+            ->latest('date_production')
+            ->paginate(15);
+
+        if ($request->wantsJson()) {
+            return response()->json($documents);
+        }
+
+        return view('documents.index', compact('documents'));
+    }
+
+    public function store(DocumentRequest $request)
+    {
+        $this->ensurePermission('manage_ventes');
+        $document = Document::query()->create($request->validated());
+        $this->logAction('create', 'document', $document, $request->validated(), $request);
+
+        $document->load(['vente', 'client', 'employe', 'voiture']);
+
+        if ($request->wantsJson()) {
+            return response()->json($document, 201);
+        }
+
+        return redirect()->route('documents.show', $document)->with('success', 'Document enregistre.');
+    }
+
+    public function show(Document $document)
+    {
+        $this->ensurePermission('manage_ventes');
+
+        $document->load(['vente', 'client', 'employe', 'voiture']);
+
+        if (request()->wantsJson()) {
+            return response()->json($document);
+        }
+
+        return view('documents.show', compact('document'));
+    }
+
+    public function edit(Document $document)
+    {
+        $this->ensurePermission('manage_ventes');
+
+        return view('documents.edit', [
+            'document' => $document,
+            'ventes' => Vente::query()->with(['client', 'voiture'])->orderByDesc('date_vente')->get(),
+            'clients' => Client::query()->orderBy('nom')->get(['id', 'nom', 'prenom', 'raison_sociale']),
+            'employes' => Employe::query()->orderBy('nom')->get(['id', 'nom', 'prenom']),
+            'voitures' => Voiture::query()->orderBy('marque')->get(['id', 'marque', 'modele']),
+            'isEdit' => true,
+        ]);
+    }
+
+    public function update(DocumentRequest $request, Document $document)
+    {
+        $this->ensurePermission('manage_ventes');
+        $document->update($request->validated());
+        $this->logAction('update', 'document', $document, $request->validated(), $request);
+
+        $document = $document->fresh()->load(['vente', 'client', 'employe', 'voiture']);
+
+        if ($request->wantsJson()) {
+            return response()->json($document);
+        }
+
+        return redirect()->route('documents.show', $document)->with('success', 'Document mis a jour.');
+    }
+
+    public function destroy(Document $document)
+    {
+        $this->ensurePermission('manage_ventes');
+        $this->logAction('delete', 'document', $document, [], request());
+        $document->delete();
+
+        return response()->json([], 204);
+    }
+}
