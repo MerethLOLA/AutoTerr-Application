@@ -38,7 +38,7 @@ class PaiementController extends Controller
             ->paginate(15);
 
         if ($request->wantsJson()) {
-            return response()->json($paiements);
+            return $this->apiCollection($paiements);
         }
 
         return view('paiements.index', compact('paiements'));
@@ -55,6 +55,7 @@ class PaiementController extends Controller
                 : null;
 
             if ($facture) {
+                abort_if((float) $data['montant'] > (float) $facture->reste_a_payer, 422, 'Le montant depasse le reste a payer.');
                 $data['id_vente'] = $facture->id_vente;
                 $data['id_client'] = $facture->vente->id_client;
                 $reste = max((float) $facture->reste_a_payer - (float) $data['montant'], 0);
@@ -77,7 +78,9 @@ class PaiementController extends Controller
         $paiement->load(['client', 'vente', 'facturation']);
 
         if ($request->wantsJson()) {
-            return response()->json($paiement, 201);
+            return $this->apiItem($paiement, 201, [
+                'message' => 'Paiement enregistre',
+            ]);
         }
 
         return redirect()->route('paiements.show', $paiement)->with('success', 'Paiement enregistre.');
@@ -90,7 +93,7 @@ class PaiementController extends Controller
         $paiement->load(['client', 'vente', 'facturation']);
 
         if (request()->wantsJson()) {
-            return response()->json($paiement);
+            return $this->apiItem($paiement);
         }
 
         return view('paiements.show', compact('paiement'));
@@ -122,6 +125,8 @@ class PaiementController extends Controller
 
             if ($facture) {
                 $autresPaiements = (float) $facture->paiements()->whereKeyNot($paiement->id)->sum('montant');
+                $resteDisponible = max((float) $facture->montant_ttc - $autresPaiements, 0);
+                abort_if((float) $data['montant'] > $resteDisponible, 422, 'Le montant depasse le reste a payer.');
                 $reste = max((float) $facture->montant_ttc - $autresPaiements - (float) $data['montant'], 0);
                 $data['id_vente'] = $facture->id_vente;
                 $data['id_client'] = $facture->vente->id_client;
@@ -142,7 +147,9 @@ class PaiementController extends Controller
         $paiement = $paiement->fresh()->load(['client', 'vente', 'facturation']);
 
         if ($request->wantsJson()) {
-            return response()->json($paiement);
+            return $this->apiItem($paiement, 200, [
+                'message' => 'Paiement mis a jour',
+            ]);
         }
 
         return redirect()->route('paiements.show', $paiement)->with('success', 'Paiement mis a jour.');
@@ -167,7 +174,7 @@ class PaiementController extends Controller
         $this->logAction('delete', 'paiement', $paiement, [], request());
         $this->resetDashboardCache();
 
-        return response()->json([], 204);
+        return $this->apiDeleted();
     }
 
     public function export(Paiement $paiement, DocumentExportService $exportService)

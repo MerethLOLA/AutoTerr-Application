@@ -27,7 +27,7 @@ class OrdreTravailController extends Controller
             ->paginate(15);
 
         if ($request->wantsJson()) {
-            return response()->json($ordres);
+            return $this->apiCollection($ordres);
         }
 
         return view('ordres-travail.index', compact('ordres'));
@@ -63,7 +63,9 @@ class OrdreTravailController extends Controller
             return redirect()->route('ordres-travail.show', $ordre)->with('success', 'Ordre de travail cree.');
         }
 
-        return response()->json($ordre->load(['voiture', 'ticketSav', 'technicien']), 201);
+        return $this->apiItem($ordre->load(['voiture', 'ticketSav', 'technicien']), 201, [
+            'message' => 'Ordre de travail cree',
+        ]);
     }
 
     public function show(Request $request, OrdreTravail $ordreTravail)
@@ -73,7 +75,7 @@ class OrdreTravailController extends Controller
         $ordreTravail->load(['voiture', 'ticketSav', 'technicien', 'taches', 'consommations.piece']);
 
         if ($request->wantsJson()) {
-            return response()->json($ordreTravail);
+            return $this->apiItem($ordreTravail);
         }
 
         return view('ordres-travail.show', compact('ordreTravail'));
@@ -102,7 +104,9 @@ class OrdreTravailController extends Controller
             return redirect()->route('ordres-travail.show', $ordreTravail)->with('success', 'Ordre de travail mis a jour.');
         }
 
-        return response()->json($ordreTravail->fresh()->load(['voiture', 'ticketSav', 'technicien', 'taches', 'consommations']));
+        return $this->apiItem($ordreTravail->fresh()->load(['voiture', 'ticketSav', 'technicien', 'taches', 'consommations']), 200, [
+            'message' => 'Ordre de travail mis a jour',
+        ]);
     }
 
     public function destroy(OrdreTravail $ordreTravail)
@@ -115,7 +119,7 @@ class OrdreTravailController extends Controller
             return redirect()->route('ordres-travail.index')->with('success', 'Ordre de travail supprime.');
         }
 
-        return response()->json([], 204);
+        return $this->apiDeleted();
     }
 
     public function consommerPiece(Request $request, OrdreTravail $ordreTravail)
@@ -158,6 +162,8 @@ class OrdreTravailController extends Controller
             return redirect()->route('ordres-travail.show', $ordreTravail)->with('success', 'Piece consommee depuis le stock.');
         }
 
-        return response()->json($result, 201);
+        return $this->apiItem($result, 201, [
+            'message' => 'Piece consommee depuis le stock',
+        ]);
     }
 }

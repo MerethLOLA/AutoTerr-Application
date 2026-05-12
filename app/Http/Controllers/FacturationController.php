@@ -38,7 +38,7 @@ class FacturationController extends Controller
             ->paginate(15);
 
         if ($request->wantsJson()) {
-            return response()->json($factures);
+            return $this->apiCollection($factures);
         }
 
         return view('facturations.index', compact('factures'));
@@ -56,7 +56,9 @@ class FacturationController extends Controller
         $facture->load(['vente', 'paiements']);
 
         if ($request->wantsJson()) {
-            return response()->json($facture, 201);
+            return $this->apiItem($facture, 201, [
+                'message' => 'Facture creee',
+            ]);
         }
 
         return redirect()->route('facturations.show', $facture)->with('success', 'Facture enregistree.');
@@ -69,7 +71,7 @@ class FacturationController extends Controller
         $facturation->load(['vente.client', 'vente.voiture', 'paiements']);
 
         if ($request->wantsJson()) {
-            return response()->json($facturation);
+            return $this->apiItem($facturation);
         }
 
         return view('facturations.show', compact('facturation'));
@@ -98,7 +100,9 @@ class FacturationController extends Controller
         $facturation = $facturation->fresh()->load(['vente', 'paiements']);
 
         if ($request->wantsJson()) {
-            return response()->json($facturation);
+            return $this->apiItem($facturation, 200, [
+                'message' => 'Facture mise a jour',
+            ]);
         }
 
         return redirect()->route('facturations.show', $facturation)->with('success', 'Facture mise a jour.');
@@ -111,7 +115,7 @@ class FacturationController extends Controller
         $facturation->delete();
         $this->resetDashboardCache();
 
-        return response()->json([], 204);
+        return $this->apiDeleted();
     }
 
     public function export(Facturation $facturation, DocumentExportService $exportService)

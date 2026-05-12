@@ -1,172 +1,200 @@
 'use client';
 
-import EdgeLayout from '@/components/EdgeLayout';
-import { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useRouter } from 'next/navigation';
+import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
+import type { UserProfile } from '@/lib/types';
+import { useEffect, useMemo, useState } from 'react';
 
-interface UserProfile {
-  id: number;
-  nom: string;
-  email: string;
-  telephone?: string;
-  adresse?: string;
-  photo_profil?: string;
-  role: string;
+type AccountSection = 'general' | 'compte' | 'confidentialite';
+
+function formatDate(value: Date) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(value);
+}
+
+function sessionRows() {
+  const now = new Date();
+
+  return [
+    {
+      appareil: 'Chrome Windows',
+      emplacement: 'Dakar, Dakar, SN',
+      createdAt: formatDate(new Date(now.getTime() - 1000 * 60 * 45)),
+      updatedAt: formatDate(new Date(now.getTime() - 1000 * 60 * 10)),
+      current: true,
+    },
+    {
+      appareil: 'Desktop App',
+      emplacement: 'Dakar, Dakar, SN',
+      createdAt: formatDate(new Date(now.getTime() - 1000 * 60 * 60 * 24 * 8)),
+      updatedAt: formatDate(new Date(now.getTime() - 1000 * 60 * 60 * 3)),
+      current: false,
+    },
+  ];
 }
 
 export default function ProfilePage() {
-  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const [formData, setFormData] = useState<Partial<UserProfile>>({});
+  const [error, setError] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<AccountSection>('compte');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login/employee');
-      return;
-    }
-    fetchProfile();
-  }, [router]);
+    let mounted = true;
+    apiClient.getMe()
+      .then((response) => {
+        if (mounted) setProfile(response.user);
+      })
+      .catch(() => {
+        if (mounted) setError('Impossible de charger le compte');
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
 
-  const fetchProfile = async () => {
-    try {
-      const response = await apiClient.getMe();
-      const payload = response.user;
-      const normalizedProfile = {
-        id: payload.id,
-        nom: payload.name,
-        email: payload.email,
-        role: payload.role,
-        photo_profil: payload.profile_photo_url,
-      };
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-      setProfile(normalizedProfile);
-      setFormData(normalizedProfile);
-    } catch (error) {
-      console.error('Erreur:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    setProfile((current) => current ? { ...current, ...formData } as UserProfile : current);
-    setEditing(false);
-  };
-
-  if (loading) {
-    return (
-      <EdgeLayout>
-        <div className="text-center py-12">Chargement...</div>
-      </EdgeLayout>
-    );
-  }
+  const organizationId = useMemo(() => {
+    if (!profile) return 'SP-0000-0000-0000';
+    return `SP-${profile.id.toString().padStart(4, '0')}-${(profile.username || 'USER').slice(0, 4).toUpperCase()}-${(profile.role || 'ROLE').slice(0, 4).toUpperCase()}`;
+  }, [profile]);
 
   return (
-    <EdgeLayout>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Mon Profil</h1>
-        <p className="text-slate-500 text-sm mt-1">Gérez vos informations personnelles</p>
-      </div>
-
-      {profile && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          {/* Header with Avatar */}
-          <div className="h-32 bg-gradient-to-r from-teal-500 to-cyan-500"></div>
-
-          <div className="px-8 py-6">
-            {/* Profile Info */}
-            <div className="flex items-end gap-6 mb-8 -mt-16 relative z-10">
-              <div className="w-32 h-32 rounded-2xl bg-slate-200 border-4 border-white shadow-lg flex items-center justify-center text-5xl">
-                {profile.photo_profil ? '📸' : '👤'}
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">{profile.nom}</h2>
-                <p className="text-slate-500 text-sm mt-1">
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-700">
-                    {profile.role}
-                  </span>
-                </p>
-              </div>
+    <DashboardLayout>
+      <div className="space-y-8">
+        <section className="hero-panel">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="mb-3 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100">
+                Compte
+              </p>
+              <h1 className="text-3xl font-black">Compte</h1>
             </div>
+            <p className="text-sm text-slate-200">Gestion du compte, des sessions actives et des informations utilisateur.</p>
+          </div>
+        </section>
 
-            {/* Edit Button */}
-            {!editing && (
-              <button
-                onClick={() => setEditing(true)}
-                className="mb-8 px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white font-bold rounded-lg hover:from-teal-600 hover:to-cyan-600 transition-all"
-              >
-                Modifier le Profil
-              </button>
-            )}
+        {error && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-700">
+            {error}
+          </div>
+        )}
 
-            {/* Form */}
-            {editing ? (
-              <div className="space-y-6">
-                {[
-                  { label: 'Nom Complet', key: 'nom' as const },
-                  { label: 'Email', key: 'email' as const },
-                  { label: 'Téléphone', key: 'telephone' as const },
-                  { label: 'Adresse', key: 'adresse' as const },
-                ].map((field) => (
-                  <div key={field.key}>
-                    <label className="block text-sm font-semibold text-slate-900 mb-2">
-                      {field.label}
-                    </label>
-                    <input
-                      type="text"
-                      value={formData[field.key] || ''}
-                      onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400"
-                    />
+        <div className="grid gap-6">
+          <section className="surface-panel p-6 lg:p-8">
+            {loading ? (
+              <div className="space-y-4">
+                <div className="h-8 w-40 animate-pulse rounded bg-slate-200"></div>
+                <div className="h-20 animate-pulse rounded-2xl bg-slate-100"></div>
+                <div className="h-20 animate-pulse rounded-2xl bg-slate-100"></div>
+                <div className="h-64 animate-pulse rounded-2xl bg-slate-100"></div>
+              </div>
+            ) : activeSection === 'compte' ? (
+              <div className="space-y-8">
+                <div>
+                  <p className="metric-label">Compte</p>
+                  <h2 className="mt-2 text-3xl font-black text-slate-900">Gestion du compte</h2>
+                </div>
+
+                <div className="space-y-0 overflow-hidden rounded-3xl border border-slate-200">
+                  <div className="flex items-center justify-between gap-6 border-b border-slate-200 bg-white px-6 py-5">
+                    <div>
+                      <p className="text-xl font-semibold text-slate-900">Se deconnecter de tous les appareils</p>
+                    </div>
+                    <button className="btn-secondary" type="button">
+                      Se deconnecter
+                    </button>
                   </div>
-                ))}
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={handleSave}
-                    className="px-6 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition-all"
-                  >
-                    Enregistrer
-                  </button>
-                  <button
-                    onClick={() => setEditing(false)}
-                    className="px-6 py-2 bg-slate-300 text-slate-900 font-bold rounded-lg hover:bg-slate-400 transition-all"
-                  >
-                    Annuler
-                  </button>
+
+                  <div className="flex items-center justify-between gap-6 border-b border-slate-200 bg-white px-6 py-5">
+                    <div>
+                      <p className="text-xl font-semibold text-slate-900">Supprimer votre compte</p>
+                    </div>
+                    <button className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800" type="button">
+                      Supprimer le compte
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-6 bg-white px-6 py-5">
+                    <div>
+                      <p className="text-xl font-semibold text-slate-900">ID d organisation</p>
+                    </div>
+                    <div className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
+                      {organizationId}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900">Sessions actives</h3>
+                  <div className="mt-5 overflow-hidden rounded-3xl border border-slate-200 bg-white">
+                    <div className="grid grid-cols-[1.3fr_1fr_1fr_1fr_40px] gap-4 border-b border-slate-200 px-6 py-4 text-sm font-bold text-slate-500">
+                      <div>Appareil</div>
+                      <div>Emplacement</div>
+                      <div>Cree</div>
+                      <div>Mis a jour</div>
+                      <div></div>
+                    </div>
+
+                    {sessionRows().map((session) => (
+                      <div key={`${session.appareil}-${session.createdAt}`} className="grid grid-cols-[1.3fr_1fr_1fr_1fr_40px] gap-4 border-b border-slate-100 px-6 py-5 text-sm last:border-b-0">
+                        <div className="flex items-center gap-3">
+                          <span className="truncate font-semibold text-slate-900">{session.appareil}</span>
+                          {session.current && (
+                            <span className="rounded-xl bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">Actuel</span>
+                          )}
+                        </div>
+                        <div className="text-slate-600">{session.emplacement}</div>
+                        <div className="text-slate-600">{session.createdAt}</div>
+                        <div className="text-slate-600">{session.updatedAt}</div>
+                        <div className="text-right text-xl text-slate-400">⋮</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  {[
+                    { label: 'Nom', value: profile?.name || '-' },
+                    { label: 'Email', value: profile?.email || '-' },
+                    { label: 'Role', value: profile?.role || '-' },
+                    { label: 'Langue', value: profile?.locale || 'fr' },
+                  ].map((item) => (
+                    <div key={item.label} className="surface-muted p-4">
+                      <p className="metric-label">{item.label}</p>
+                      <p className="mt-2 text-lg font-black text-slate-900">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : activeSection === 'general' ? (
+              <div className="space-y-4">
+                <p className="metric-label">General</p>
+                <h2 className="text-3xl font-black text-slate-900">General</h2>
+                <div className="surface-muted p-6">
+                  <p className="text-sm text-slate-600">Les reglages generaux sont centralises dans la page Parametres.</p>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[
-                  { label: 'Nom', value: profile.nom },
-                  { label: 'Email', value: profile.email },
-                  { label: 'Téléphone', value: profile.telephone },
-                  { label: 'Adresse', value: profile.adresse },
-                  { label: 'Rôle', value: profile.role },
-                ].map((item, idx) => (
-                  <div key={idx}>
-                    <p className="text-slate-500 text-sm font-medium">{item.label}</p>
-                    <p className="text-lg font-semibold text-slate-900 mt-1">{item.value}</p>
-                  </div>
-                ))}
+              <div className="space-y-4">
+                <p className="metric-label">Confidentialite</p>
+                <h2 className="text-3xl font-black text-slate-900">Confidentialite</h2>
+                <div className="surface-muted p-6">
+                  <p className="text-sm text-slate-600">Les options detaillees de confidentialite sont gerees dans Parametres.</p>
+                </div>
               </div>
             )}
-          </div>
+          </section>
         </div>
-      )}
-
-      {/* Security Section */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 mt-6">
-        <h3 className="text-lg font-bold text-slate-900 mb-6">Sécurité</h3>
-        <button className="px-6 py-2 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600 transition-all">
-          Changer le Mot de Passe
-        </button>
       </div>
-    </EdgeLayout>
+    </DashboardLayout>
   );
 }

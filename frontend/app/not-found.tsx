@@ -14,10 +14,10 @@ export default function NotFound() {
           La page que vous recherchez n'existe pas ou a été déplacée.
         </p>
         <Link
-          href="/catalogue"
+          href="/dashboard"
           className="inline-block px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white font-bold rounded-lg hover:from-teal-600 hover:to-cyan-600 transition-all"
         >
-          Retour à l'accueil
+          Retour au tableau de bord
         </Link>
       </div>
     </div>

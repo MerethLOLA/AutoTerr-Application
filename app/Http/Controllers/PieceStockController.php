@@ -27,7 +27,7 @@ class PieceStockController extends Controller
             ->paginate(15);
 
         if ($request->wantsJson()) {
-            return response()->json($pieces);
+            return $this->apiCollection($pieces);
         }
 
         return view('pieces-stock.index', compact('pieces'));
@@ -59,7 +59,9 @@ class PieceStockController extends Controller
             return redirect()->route('pieces-stock.show', $piece)->with('success', 'Piece de stock creee.');
         }
 
-        return response()->json($piece->load('fournisseur'), 201);
+        return $this->apiItem($piece->load('fournisseur'), 201, [
+            'message' => 'Piece de stock creee',
+        ]);
     }
 
     public function show(Request $request, PieceStock $pieceStock)
@@ -72,7 +74,7 @@ class PieceStockController extends Controller
         ]);
 
         if ($request->wantsJson()) {
-            return response()->json($pieceStock);
+            return $this->apiItem($pieceStock);
         }
 
         return view('pieces-stock.show', compact('pieceStock'));
@@ -100,7 +102,9 @@ class PieceStockController extends Controller
             return redirect()->route('pieces-stock.show', $pieceStock)->with('success', 'Piece de stock mise a jour.');
         }
 
-        return response()->json($pieceStock->fresh()->load('fournisseur'));
+        return $this->apiItem($pieceStock->fresh()->load('fournisseur'), 200, [
+            'message' => 'Piece de stock mise a jour',
+        ]);
     }
 
     public function destroy(PieceStock $pieceStock)
@@ -114,7 +118,7 @@ class PieceStockController extends Controller
             return redirect()->route('pieces-stock.index')->with('success', 'Piece de stock supprimee.');
         }
 
-        return response()->json([], 204);
+        return $this->apiDeleted();
     }
 
     public function approvisionner(Request $request, PieceStock $pieceStock)
@@ -147,6 +151,8 @@ class PieceStockController extends Controller
             return redirect()->route('pieces-stock.show', $pieceStock)->with('success', 'Approvisionnement enregistre.');
         }
 
-        return response()->json($pieceStock->fresh());
+        return $this->apiItem($pieceStock->fresh(), 200, [
+            'message' => 'Approvisionnement enregistre',
+        ]);
     }
 }

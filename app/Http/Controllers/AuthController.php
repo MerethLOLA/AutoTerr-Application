@@ -43,8 +43,7 @@ class AuthController extends Controller
         $user->tokens()->delete();
         $token = $user->createToken('frontend')->plainTextToken;
 
-        return response()->json([
-            'message' => 'Connexion reussie',
+        return $this->apiItem([
             'token' => $token,
             'user' => [
                 'id' => $user->id,
@@ -56,6 +55,8 @@ class AuthController extends Controller
                 'locale' => $user->locale,
                 'profile_photo_url' => $user->profilePhotoUrl(),
             ],
+        ], 200, [
+            'message' => 'Connexion reussie',
         ]);
     }
 
@@ -78,7 +79,7 @@ class AuthController extends Controller
             ], 401);
         }
 
-        return response()->json([
+        return $this->apiItem([
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,

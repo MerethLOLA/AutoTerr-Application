@@ -26,7 +26,7 @@ export default function DataTable<T extends Record<string, any>>({
   onRowClick,
   onEdit,
   onDelete,
-  emptyMessage = "Aucune donnée trouvée"
+  emptyMessage = 'Aucune donnee trouvee',
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -53,9 +53,9 @@ export default function DataTable<T extends Record<string, any>>({
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
         <div className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
           <p className="text-slate-600 dark:text-slate-400">Chargement...</p>
         </div>
       </div>
@@ -63,26 +63,24 @@ export default function DataTable<T extends Record<string, any>>({
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+          <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
             <tr>
               {columns.map((column) => (
                 <th
                   key={String(column.key)}
-                  className="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300"
                 >
                   {column.sortable ? (
                     <button
                       onClick={() => handleSort(String(column.key))}
-                      className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors"
+                      className="flex items-center gap-1 transition-colors hover:text-slate-900 dark:hover:text-white"
                     >
                       {column.header}
                       {sortColumn === column.key && (
-                        <span className="text-xs">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
+                        <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                       )}
                     </button>
                   ) : (
@@ -91,7 +89,7 @@ export default function DataTable<T extends Record<string, any>>({
                 </th>
               ))}
               {(onEdit || onDelete) && (
-                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                   Actions
                 </th>
               )}
@@ -111,30 +109,27 @@ export default function DataTable<T extends Record<string, any>>({
               sortedData.map((item, index) => (
                 <tr
                   key={index}
-                  className={`${
-                    onRowClick ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors' : ''
-                  }`}
+                  className={onRowClick ? 'cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800' : ''}
                   onClick={() => onRowClick?.(item)}
                 >
                   {columns.map((column) => (
                     <td key={String(column.key)} className="px-6 py-4 text-slate-900 dark:text-white">
                       {column.render
                         ? column.render(item[column.key as keyof T], item)
-                        : String(item[column.key as keyof T] || '')
-                      }
+                        : String(item[column.key as keyof T] ?? '')}
                     </td>
                   ))}
                   {(onEdit || onDelete) && (
-                    <td className="px-6 py-4 text-right space-x-2">
+                    <td className="space-x-2 px-6 py-4 text-right">
                       {onEdit && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onEdit(item);
                           }}
-                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                          className="transition-colors text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                         >
-                          ✏️
+                          Editer
                         </button>
                       )}
                       {onDelete && (
@@ -143,9 +138,9 @@ export default function DataTable<T extends Record<string, any>>({
                             e.stopPropagation();
                             onDelete(item);
                           }}
-                          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                          className="transition-colors text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                         >
-                          🗑️
+                          Supprimer
                         </button>
                       )}
                     </td>

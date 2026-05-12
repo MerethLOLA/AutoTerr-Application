@@ -43,7 +43,7 @@ class DocumentController extends Controller
             ->paginate(15);
 
         if ($request->wantsJson()) {
-            return response()->json($documents);
+            return $this->apiCollection($documents);
         }
 
         return view('documents.index', compact('documents'));
@@ -58,7 +58,9 @@ class DocumentController extends Controller
         $document->load(['vente', 'client', 'employe', 'voiture']);
 
         if ($request->wantsJson()) {
-            return response()->json($document, 201);
+            return $this->apiItem($document, 201, [
+                'message' => 'Document cree',
+            ]);
         }
 
         return redirect()->route('documents.show', $document)->with('success', 'Document enregistre.');
@@ -71,7 +73,7 @@ class DocumentController extends Controller
         $document->load(['vente', 'client', 'employe', 'voiture']);
 
         if (request()->wantsJson()) {
-            return response()->json($document);
+            return $this->apiItem($document);
         }
 
         return view('documents.show', compact('document'));
@@ -100,7 +102,9 @@ class DocumentController extends Controller
         $document = $document->fresh()->load(['vente', 'client', 'employe', 'voiture']);
 
         if ($request->wantsJson()) {
-            return response()->json($document);
+            return $this->apiItem($document, 200, [
+                'message' => 'Document mis a jour',
+            ]);
         }
 
         return redirect()->route('documents.show', $document)->with('success', 'Document mis a jour.');
@@ -112,6 +116,6 @@ class DocumentController extends Controller
         $this->logAction('delete', 'document', $document, [], request());
         $document->delete();
 
-        return response()->json([], 204);
+        return $this->apiDeleted();
     }
 }

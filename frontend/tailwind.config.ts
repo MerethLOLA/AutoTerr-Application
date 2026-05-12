@@ -10,14 +10,36 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+        sans: ['var(--font-inter)', 'system-ui', ...defaultTheme.fontFamily.sans],
       },
       colors: {
-        primary: '#ff6b35',
-        secondary: '#3b5bdb',
+        primary:    '#ff6b35',
+        'hub-dark': '#253342',
+        'hub-text': '#33475b',
+        'hub-muted':'#516f90',
+        'hub-bdr':  '#dfe3eb',
+        'hub-bg':   '#f5f8fa',
       },
-      transitionProperty: {
-        'theme': 'background-color, border-color, color',
+      borderRadius: {
+        DEFAULT: '3px',
+        sm:  '2px',
+        md:  '4px',
+        lg:  '6px',
+        xl:  '8px',
+        '2xl': '12px',
+        '3xl': '16px',
+        full: '9999px',
+      },
+      fontSize: {
+        '2xs': ['11px', '16px'],
+        xs:    ['12px', '16px'],
+        sm:    ['13px', '20px'],
+        base:  ['14px', '22px'],
+        lg:    ['16px', '24px'],
+        xl:    ['18px', '28px'],
+        '2xl': ['20px', '28px'],
+        '3xl': ['24px', '32px'],
+        '4xl': ['30px', '36px'],
       },
     },
   },

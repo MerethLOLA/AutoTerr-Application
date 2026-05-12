@@ -19,10 +19,7 @@ use App\Http\Controllers\VenteController;
 use App\Http\Controllers\VoitureController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => view('auth.login', ['loginMode' => 'general']))->name('home');
-
-Route::get('/catalogue', [VoitureController::class, 'publicIndex'])->name('catalogue.index');
-Route::get('/catalogue/{voiture}', [VoitureController::class, 'publicShow'])->name('catalogue.show');
+Route::view('/', 'auth.login')->name('home');
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

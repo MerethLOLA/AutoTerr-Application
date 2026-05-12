@@ -24,7 +24,7 @@ class VoitureRequest extends FormRequest
         return [
             'marque' => ['required', 'string', 'max:100'],
             'modele' => ['required', 'string', 'max:100'],
-            'annee' => ['nullable', 'integer', 'min:1900'],
+            'annee' => ['nullable', 'integer', 'min:1900', 'max:' . (now()->year + 1)],
             'couleur' => ['nullable', 'string', 'max:50'],
             'prix' => ['required', 'numeric', 'min:0'],
             'kilometrage' => ['nullable', 'integer', 'min:0'],
@@ -38,6 +38,8 @@ class VoitureRequest extends FormRequest
             'origine_marque_id' => ['nullable', 'integer', 'exists:origines_marques,id'],
             'id_fournisseur' => ['nullable', 'integer', 'exists:fournisseurs,id'],
             'description' => ['nullable', 'string'],
+            'images' => ['nullable', 'array'],
+            'images.*' => ['image', 'mimes:jpeg,png,jpg,gif', 'max:5120'],
         ];
     }
 }

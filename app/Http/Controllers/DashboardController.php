@@ -63,7 +63,8 @@ class DashboardController extends Controller
         $kpis = $this->kpis();
 
         $catalogueVoitures = Voiture::query()
-            ->select(['id', 'marque', 'modele', 'annee', 'energie', 'kilometrage', 'prix', 'statut', 'created_at'])
+            ->select(['id', 'marque', 'modele', 'annee', 'energie', 'kilometrage', 'prix', 'statut', 'image_principale', 'created_at'])
+            ->with('images:id,id_voiture,chemin')
             ->latest()
             ->take(6)
             ->get();

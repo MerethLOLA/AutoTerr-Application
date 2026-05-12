@@ -17,13 +17,13 @@ class MouvementStockController extends Controller
             ->latest('date_mouvement')
             ->paginate(15);
 
-        return response()->json($mouvements);
+        return $this->apiCollection($mouvements);
     }
 
     public function show(MouvementStock $mouvementStock)
     {
         $this->ensurePermission('view_stock');
 
-        return response()->json($mouvementStock->load('piece'));
+        return $this->apiItem($mouvementStock->load('piece'));
     }
 }

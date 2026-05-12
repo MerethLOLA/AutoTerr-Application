@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\Document;
+use App\Models\Facturation;
 use App\Models\Location;
 use App\Models\Voiture;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -75,5 +78,92 @@ class CustomerPortalController extends Controller
         ]);
 
         return redirect()->route('customer.portal')->with('success', 'Reservation enregistree. Notre equipe vous recontactera.');
+    }
+
+    public function summary(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->role === 'client', 403);
+
+        $client = Client::query()->firstWhere('email', $request->user()->email);
+
+        $locations = $client
+            ? Location::query()
+                ->with('voiture:id,marque,modele')
+                ->where('id_client', $client->id)
+                ->latest('date_debut')
+                ->get()
+            : collect();
+
+        $facturations = $client
+            ? Facturation::query()
+                ->with(['vente:id,id_client,id_voiture,reference_vente', 'vente.voiture:id,marque,modele'])
+                ->whereHas('vente', fn ($query) => $query->where('id_client', $client->id))
+                ->latest('date_facture')
+                ->get()
+            : collect();
+
+        $documents = $client
+            ? Document::query()
+                ->with(['voiture:id,marque,modele', 'vente:id,reference_vente'])
+                ->where('id_client', $client->id)
+                ->latest('date_production')
+                ->get()
+            : collect();
+
+        return response()->json([
+            'profile' => [
+                'id' => $request->user()->id,
+                'name' => $request->user()->name,
+                'email' => $request->user()->email,
+                'role' => $request->user()->role,
+                'client_id' => $client?->id,
+            ],
+            'locations' => $locations,
+            'facturations' => $facturations,
+            'documents' => $documents,
+        ]);
+    }
+
+    public function reserve(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->role === 'client', 403);
+
+        $data = $request->validate([
+            'id_voiture' => ['required', 'exists:voitures,id'],
+            'date_debut' => ['required', 'date', 'after_or_equal:today'],
+            'date_fin' => ['required', 'date', 'after_or_equal:date_debut'],
+            'observations' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $client = Client::query()->firstOrCreate(
+            ['email' => $request->user()->email],
+            [
+                'nom' => $request->user()->name ?: $request->user()->username,
+                'prenom' => null,
+                'telephone' => null,
+                'contact' => $request->user()->name ?: $request->user()->username,
+                'type_client' => 'particulier',
+            ]
+        );
+
+        $voiture = Voiture::query()->findOrFail($data['id_voiture']);
+        abort_if($voiture->statut !== 'disponible', 422, 'Le vehicule selectionne n est plus disponible.');
+
+        $reservation = Location::query()->create([
+            'reference_location' => 'RES-'.now()->format('YmdHis'),
+            'id_client' => $client->id,
+            'id_voiture' => $voiture->id,
+            'date_debut' => $data['date_debut'],
+            'date_fin' => $data['date_fin'],
+            'tarif_journalier' => 0,
+            'statut' => 'planifiee',
+            'caution' => 0,
+            'observations' => $data['observations'] ?? 'Reservation client depuis Next.js.',
+        ]);
+
+        return response()->json(
+            $reservation->load('voiture:id,marque,modele'),
+            201
+        );
     }
 }

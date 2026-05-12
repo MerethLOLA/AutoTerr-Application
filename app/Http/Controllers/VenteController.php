@@ -51,7 +51,7 @@ class VenteController extends Controller
             ->paginate(15);
 
         if ($request->wantsJson()) {
-            return response()->json($ventes);
+            return $this->apiCollection($ventes);
         }
 
         return view('ventes.index', compact('ventes'));
@@ -105,7 +105,9 @@ class VenteController extends Controller
         $vente->load(['client', 'voiture', 'employe', 'facturation']);
 
         if ($request->wantsJson()) {
-            return response()->json($vente, 201);
+            return response()->json(array_merge($vente->toArray(), [
+                'message' => 'Vente enregistree avec facture automatique',
+            ]), 201);
         }
 
         return redirect()->route('ventes.show', $vente)->with('success', 'Vente enregistree avec facture automatique.');
@@ -123,7 +125,7 @@ class VenteController extends Controller
         ]);
 
         if ($request->wantsJson()) {
-            return response()->json($vente);
+            return $this->apiItem($vente);
         }
 
         return view('ventes.show', compact('vente'));
@@ -179,7 +181,9 @@ class VenteController extends Controller
         $vente = $vente->fresh()->load(['client', 'voiture', 'employe', 'facturation']);
 
         if ($request->wantsJson()) {
-            return response()->json($vente);
+            return $this->apiItem($vente, 200, [
+                'message' => 'Vente mise a jour',
+            ]);
         }
 
         return redirect()->route('ventes.show', $vente)->with('success', 'Vente mise a jour.');
@@ -192,6 +196,6 @@ class VenteController extends Controller
         $vente->delete();
         $this->resetDashboardCache();
 
-        return response()->json([], 204);
+        return $this->apiDeleted();
     }
 }

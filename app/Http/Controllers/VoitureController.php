@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\VoitureRequest;
 use App\Models\Fournisseur;
+use App\Models\ImageVoiture;
 use App\Models\OrigineMarque;
 use App\Models\TypeVehicule;
-use App\Models\ImageVoiture;
 use App\Models\Voiture;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class VoitureController extends Controller
@@ -16,8 +18,8 @@ class VoitureController extends Controller
     public function publicIndex(Request $request)
     {
         $voitures = Voiture::query()
-            ->select(['id', 'marque', 'modele', 'annee', 'prix', 'kilometrage', 'statut', 'energie', 'created_at'])
-            ->with('images:id,id_voiture,chemin_image')
+            ->select(['id', 'marque', 'modele', 'annee', 'prix', 'kilometrage', 'statut', 'energie', 'image_principale', 'created_at'])
+            ->with('images:id,id_voiture,chemin')
             ->when($request->string('search')->toString(), function ($query, $term) {
                 $query->where(function ($inner) use ($term) {
                     $inner->where('marque', 'like', "%{$term}%")
@@ -75,7 +77,7 @@ class VoitureController extends Controller
         $voitures = Voiture::query()
             ->select([
                 'id', 'marque', 'modele', 'annee', 'prix', 'kilometrage', 'statut',
-                'energie', 'type_vehicule_id', 'origine_marque_id', 'id_fournisseur', 'created_at',
+                'energie', 'image_principale', 'type_vehicule_id', 'origine_marque_id', 'id_fournisseur', 'created_at',
             ])
             ->with([
                 'fournisseur:id,nom',
@@ -98,7 +100,7 @@ class VoitureController extends Controller
             ->paginate(15);
 
         if ($request->wantsJson()) {
-            return response()->json($voitures);
+            return $this->apiCollection($voitures);
         }
 
         $origines = OrigineMarque::query()->orderBy('nom')->get(['id', 'nom']);
@@ -117,8 +119,9 @@ class VoitureController extends Controller
 
         $voiture = Voiture::query()->create($data);
 
-        // ✅ AJOUT IMAGE (corrigé proprement)
         if ($request->hasFile('images')) {
+            $firstImagePath = null;
+
             foreach ($request->file('images') as $image) {
                 $path = $image->store('voitures', 'public');
 
@@ -126,6 +129,14 @@ class VoitureController extends Controller
                     'id_voiture' => $voiture->id,
                     'chemin' => $path,
                 ]);
+
+                if ($firstImagePath === null) {
+                    $firstImagePath = $path;
+                }
+            }
+
+            if ($firstImagePath) {
+                $voiture->update(['image_principale' => $firstImagePath]);
             }
         }
 
@@ -135,7 +146,9 @@ class VoitureController extends Controller
         $voiture->load(['fournisseur', 'typeVehicule', 'origineMarque']);
 
         if ($request->wantsJson()) {
-            return response()->json($voiture, 201);
+            return $this->apiItem($voiture, 201, [
+                'message' => 'Vehicule cree',
+            ]);
         }
 
         return redirect()->route('voitures.show', $voiture)
@@ -157,7 +170,7 @@ class VoitureController extends Controller
         ]);
 
         if ($request->wantsJson()) {
-            return response()->json($voiture);
+            return $this->apiItem($voiture);
         }
 
         return view('voitures.show', compact('voiture'));
@@ -183,6 +196,27 @@ class VoitureController extends Controller
         $voiture->update($request->validated());
         $details = $request->validated();
 
+        if ($request->hasFile('images')) {
+            $firstImagePath = null;
+
+            foreach ($request->file('images') as $image) {
+                $path = $image->store('voitures', 'public');
+
+                ImageVoiture::create([
+                    'id_voiture' => $voiture->id,
+                    'chemin' => $path,
+                ]);
+
+                if ($firstImagePath === null) {
+                    $firstImagePath = $path;
+                }
+            }
+
+            if ($firstImagePath) {
+                $voiture->update(['image_principale' => $firstImagePath]);
+            }
+        }
+
         if (array_key_exists('prix', $details) && (float) $beforePrice !== (float) $details['prix']) {
             $details['ancien_prix'] = $beforePrice;
         }
@@ -193,7 +227,9 @@ class VoitureController extends Controller
         $voiture = $voiture->fresh()->load(['fournisseur', 'typeVehicule', 'origineMarque']);
 
         if ($request->wantsJson()) {
-            return response()->json($voiture);
+            return $this->apiItem($voiture, 200, [
+                'message' => 'Vehicule mis a jour',
+            ]);
         }
 
         return redirect()->route('voitures.show', $voiture)->with('success', 'Vehicule mis a jour.');
@@ -201,12 +237,37 @@ class VoitureController extends Controller
 
     public function destroy(Voiture $voiture)
     {
-        $this->ensurePermission('view_voitures');
+        $this->ensurePermission('delete_voitures');
         $this->logAction('delete', 'voiture', $voiture, [], request());
         $voiture->delete();
         $this->resetDashboardCache();
 
-        return response()->json([], 204);
+        return $this->apiDeleted();
+    }
+
+    public function formOptions(): JsonResponse
+    {
+        return response()->json([
+            'types_vehicules' => TypeVehicule::query()->orderBy('nom')->get(['id', 'nom']),
+            'origines_marques' => OrigineMarque::query()->orderBy('nom')->get(['id', 'nom']),
+            'fournisseurs' => Fournisseur::query()->orderBy('nom')->get(['id', 'nom']),
+        ]);
+    }
+
+    public function deleteImage(Voiture $voiture, ImageVoiture $image): JsonResponse
+    {
+        $this->ensurePermission('view_voitures');
+
+        Storage::disk('public')->delete($image->chemin);
+
+        if ($voiture->image_principale === $image->chemin) {
+            $next = $voiture->images()->where('id', '!=', $image->id)->first();
+            $voiture->update(['image_principale' => $next?->chemin]);
+        }
+
+        $image->delete();
+
+        return $this->apiDeleted();
     }
 
     private function generateNumeroChassis(): string

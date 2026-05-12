@@ -2,403 +2,532 @@
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
-import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-interface OptionItem {
-  id: number;
-  nom?: string;
-  prenom?: string;
-  marque?: string;
-  modele?: string;
-  prix?: number | string;
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+function imgUrl(p?: string | null) { return p ? `${API_URL}/storage/${p}` : null; }
+function money(v?: number | string | null) {
+  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(v ?? 0));
 }
 
-interface SaleResponse {
-  id: number;
-  reference_vente: string;
-  prix_final: number | string;
-  statut: string;
-  client?: OptionItem;
-  voiture?: OptionItem;
-  facturation?: {
-    id: number;
-    numero_facture: string;
-    montant_ht: number | string;
-    remise: number | string;
-    montant_ttc: number | string;
-    statut: string;
-  };
+interface Client  { id: number; nom: string; prenom?: string; telephone?: string; email?: string; }
+interface Voiture { id: number; marque: string; modele: string; annee?: number; prix: number; statut: string; energie?: string; image_principale?: string; }
+interface Employe { id: number; nom: string; prenom?: string; }
+
+const STEPS = [
+  { num: 1, label: 'Véhicule' },
+  { num: 2, label: 'Client' },
+  { num: 3, label: 'Conditions' },
+  { num: 4, label: 'Confirmation' },
+];
+
+// ── Indicateur d'étapes ────────────────────────────────────────────────────────
+function Stepper({ current }: { current: number }) {
+  return (
+    <div className="surface-panel p-5">
+      <div className="flex items-center">
+        {STEPS.map((s, i) => (
+          <div key={s.num} className="flex flex-1 items-center">
+            <div className="flex flex-col items-center gap-1.5">
+              <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-black transition-all ${
+                current > s.num  ? 'bg-emerald-500 text-white'
+                : current === s.num ? 'bg-[#ff6b35] text-white shadow-lg shadow-[#ff6b35]/30'
+                : 'bg-slate-100 text-slate-400'
+              }`}>
+                {current > s.num ? (
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : s.num}
+              </div>
+              <span className={`hidden text-[11px] font-bold sm:block ${current === s.num ? 'text-[#ff6b35]' : current > s.num ? 'text-emerald-600' : 'text-slate-400'}`}>
+                {s.label}
+              </span>
+            </div>
+            {i < STEPS.length - 1 && (
+              <div className={`mx-2 h-0.5 flex-1 rounded-full transition-all ${current > s.num ? 'bg-emerald-400' : 'bg-slate-200'}`} />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-function collection(response: any): OptionItem[] {
-  return Array.isArray(response) ? response : response?.data || [];
+// ── Carte véhicule résumée ─────────────────────────────────────────────────────
+function VoitureCard({ v, compact = false }: { v: Voiture; compact?: boolean }) {
+  const photo = imgUrl(v.image_principale);
+  if (compact) {
+    return (
+      <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+        <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+          {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : (
+            <div className="flex h-full items-center justify-center text-slate-300">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14v6H5v-6z" />
+              </svg>
+            </div>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-black text-[#002d54]">{v.marque} {v.modele}</p>
+          <p className="text-xs text-slate-500">{[v.annee, v.energie].filter(Boolean).join(' · ')}</p>
+        </div>
+        <p className="shrink-0 text-sm font-black text-[#002d54]">{money(v.prix)} <span className="text-xs font-normal text-slate-400">XOF</span></p>
+      </div>
+    );
+  }
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="aspect-[16/7] overflow-hidden bg-slate-100">
+        {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : (
+          <div className="flex h-full items-center justify-center text-slate-200">
+            <svg className="h-20 w-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
+                d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5M5 11H3a1 1 0 00-1 1v1a1 1 0 001 1h2m14-2h2a1 1 0 011 1v1a1 1 0 01-1 1h-2" />
+            </svg>
+          </div>
+        )}
+      </div>
+      <div className="p-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{[v.annee, v.energie].filter(Boolean).join(' · ')}</p>
+        <h3 className="mt-1 text-xl font-black text-[#002d54]">{v.marque} {v.modele}</h3>
+        <p className="mt-2 text-2xl font-black text-slate-900">{money(v.prix)} <span className="text-sm font-bold text-slate-400">XOF</span></p>
+      </div>
+    </div>
+  );
 }
 
-function label(item: OptionItem, fallback = 'Element') {
-  const parts = [item.nom, item.prenom].filter(Boolean).join(' ');
-  const vehicle = [item.marque, item.modele].filter(Boolean).join(' ');
-  return parts || vehicle || `${fallback} #${item.id}`;
-}
-
-function money(value: number | string | undefined) {
-  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(value || 0));
-}
-
+// ── Page principale ────────────────────────────────────────────────────────────
 export default function SaleWorkflowPage() {
-  const [clients, setClients] = useState<OptionItem[]>([]);
-  const [voitures, setVoitures] = useState<OptionItem[]>([]);
-  const [employes, setEmployes] = useState<OptionItem[]>([]);
-  const [selectedVoiture, setSelectedVoiture] = useState<OptionItem | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [paying, setPaying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [sale, setSale] = useState<SaleResponse | null>(null);
-  const [paidAmount, setPaidAmount] = useState(0);
-  const [priceInput, setPriceInput] = useState(0);
-  const [discountInput, setDiscountInput] = useState(0);
-  const [confirming, setConfirming] = useState(false);
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  const preVoitureId = searchParams.get('voiture_id');
 
-  const subtotal = Math.max(priceInput - discountInput, 0);
-  const tva = Math.round(subtotal * 0.18);
-  const total = subtotal + tva;
+  const [step, setStep]     = useState(preVoitureId ? 2 : 1);
+  const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [saleId, setSaleId] = useState<number | null>(null);
 
+  const [voitures, setVoitures] = useState<Voiture[]>([]);
+  const [clients, setClients]   = useState<Client[]>([]);
+  const [employes, setEmployes] = useState<Employe[]>([]);
+
+  const [searchV, setSearchV] = useState('');
+  const [searchC, setSearchC] = useState('');
+
+  const [selVoiture, setSelVoiture] = useState<Voiture | null>(null);
+  const [selClient, setSelClient]   = useState<Client | null>(null);
+
+  const [form, setForm] = useState({
+    id_voiture:   preVoitureId ?? '',
+    id_client:    '',
+    id_employe:   '',
+    prix_final:   '',
+    remise:       '0',
+    date_vente:   new Date().toISOString().slice(0, 10),
+    observations: '',
+  });
+
+  function patch(key: string, val: string) {
+    setForm((f) => ({ ...f, [key]: val }));
+  }
+
+  // Chargement des données de référence
   useEffect(() => {
-    let mounted = true;
-
-    async function loadOptions() {
-      const [clientsResponse, voituresResponse, employesResponse] = await Promise.all([
-        apiClient.get('/clients'),
-        apiClient.get('/voitures', { statut: 'disponible' }),
-        apiClient.get('/employes'),
-      ]);
-
-      if (!mounted) return;
-
-      setClients(collection(clientsResponse));
-      setVoitures(collection(voituresResponse));
-      setEmployes(collection(employesResponse));
+    function arr<T>(res: any): T[] {
+      return Array.isArray(res) ? res : (res?.data ?? []);
     }
-
-    loadOptions().catch((err) => setError(err?.message || 'Chargement impossible'));
-
-    return () => {
-      mounted = false;
-    };
+    Promise.all([
+      apiClient.get<any>('/voitures?statut=disponible&per_page=100').then((r) => setVoitures(arr<Voiture>(r))),
+      apiClient.get<any>('/clients?per_page=200').then((r) => setClients(arr<Client>(r))),
+      apiClient.get<any>('/employes?per_page=100').then((r) => setEmployes(arr<Employe>(r))),
+    ]).catch(console.error);
   }, []);
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const formData = new FormData(form);
+  // Si voiture_id dans l'URL → pré-sélectionner
+  useEffect(() => {
+    if (!preVoitureId || voitures.length === 0) return;
+    const found = voitures.find((v) => String(v.id) === preVoitureId);
+    if (found) { setSelVoiture(found); patch('prix_final', String(found.prix)); }
+  }, [preVoitureId, voitures]);
 
-    if (!confirming) {
-      setConfirming(true);
-      setError(null);
-      return;
-    }
+  // Filtres locaux
+  const filteredVoitures = useMemo(() =>
+    voitures.filter((v) =>
+      !searchV || `${v.marque} ${v.modele}`.toLowerCase().includes(searchV.toLowerCase())
+    ), [voitures, searchV]);
 
-    const data = {
-      date_vente: formData.get('date_vente'),
-      id_client: Number(formData.get('id_client')),
-      id_voiture: Number(formData.get('id_voiture')),
-      prix_final: Number(formData.get('prix_final')),
-      remise: Number(formData.get('remise') || 0),
-      mode_paiement: formData.get('mode_paiement'),
-      statut: 'finalisee',
-      id_employe: Number(formData.get('id_employe')),
-      observations: formData.get('observations'),
-    };
+  const filteredClients = useMemo(() =>
+    clients.filter((c) =>
+      !searchC || `${c.nom} ${c.prenom ?? ''} ${c.telephone ?? ''}`.toLowerCase().includes(searchC.toLowerCase())
+    ), [clients, searchC]);
 
-    setSaving(true);
-    setError(null);
+  // Calculs financiers
+  const prixBase = Number(form.prix_final) || 0;
+  const remise   = Number(form.remise) || 0;
+  const montantHT  = Math.max(prixBase - remise, 0);
+  const tva        = 18;
+  const montantTTC = Math.round(montantHT * (1 + tva / 100) * 100) / 100;
+
+  // Soumission
+  async function handleSubmit() {
+    setLoading(true);
+    setSubmitError(null);
     try {
-      const response = await apiClient.post<SaleResponse>('/ventes', data);
-      setSale(response);
-      setPaidAmount(0);
-      setVoitures((current) => current.filter((voiture) => voiture.id !== data.id_voiture));
-      setSelectedVoiture(null);
-      setPriceInput(0);
-      setDiscountInput(0);
-      setConfirming(false);
-      form.reset();
+      const res = await apiClient.post<any>('/ventes', {
+        id_voiture:   Number(form.id_voiture),
+        id_client:    Number(form.id_client),
+        id_employe:   Number(form.id_employe) || undefined,
+        prix_final:   prixBase,
+        remise:       remise,
+        date_vente:   form.date_vente,
+        statut:       'finalisee',
+        observations: form.observations || undefined,
+      });
+      setSaleId(res?.id ?? res?.data?.id ?? null);
+      setStep(5);
     } catch (err: any) {
-      setError(err?.message || 'Creation de vente impossible');
+      setSubmitError(err?.message || 'Une erreur est survenue. Vérifiez les informations.');
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   }
 
-  async function submitPayment(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!sale?.facturation) return;
-
-    const formData = new FormData(event.currentTarget);
-    const amount = Number(formData.get('montant') || 0);
-
-    setPaying(true);
-    setPaymentError(null);
-    try {
-      await apiClient.post('/paiements', {
-        date: formData.get('date'),
-        mode_paiement: formData.get('mode_paiement'),
-        montant: amount,
-        id_facture: sale.facturation.id,
-      });
-      setPaidAmount((current) => current + amount);
-      setSale({
-        ...sale,
-        facturation: {
-          ...sale.facturation,
-          statut: amount + paidAmount >= Number(sale.facturation.montant_ttc) ? 'payee' : 'partiellement_payee',
-        },
-      });
-      event.currentTarget.reset();
-    } catch (err: any) {
-      setPaymentError(err?.message || 'Paiement impossible');
-    } finally {
-      setPaying(false);
-    }
+  // ── Écran de succès ──────────────────────────────────────────────────────────
+  if (step === 5) {
+    return (
+      <DashboardLayout>
+        <div className="mx-auto max-w-lg py-16 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
+            <svg className="h-10 w-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h1 className="mt-6 text-3xl font-black text-[#002d54]">Vente finalisée !</h1>
+          <p className="mt-3 text-slate-500">
+            La vente a été enregistrée avec succès.
+            {selClient && ` Client : ${selClient.nom}${selClient.prenom ? ' ' + selClient.prenom : ''}.`}
+          </p>
+          {selVoiture && (
+            <div className="mt-6">
+              <VoitureCard v={selVoiture} compact />
+            </div>
+          )}
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">Récapitulatif financier</p>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-slate-500">Prix de vente</span><span className="font-bold">{money(prixBase)} XOF</span></div>
+              {remise > 0 && <div className="flex justify-between text-amber-600"><span>Remise</span><span className="font-bold">- {money(remise)} XOF</span></div>}
+              <div className="flex justify-between"><span className="text-slate-500">Montant HT</span><span className="font-bold">{money(montantHT)} XOF</span></div>
+              <div className="flex justify-between border-t border-slate-200 pt-2 text-base"><span className="font-black text-[#002d54]">Total TTC (TVA {tva}%)</span><span className="font-black text-[#002d54]">{money(montantTTC)} XOF</span></div>
+            </div>
+          </div>
+          <div className="mt-8 flex flex-col gap-3">
+            {saleId && (
+              <Link href={`/ventes/${saleId}`} className="btn-primary w-full text-center">
+                Voir la fiche de vente →
+              </Link>
+            )}
+            {saleId && (
+              <Link href={`/facturations`} className="btn-secondary w-full text-center">
+                Accéder aux factures
+              </Link>
+            )}
+            <button onClick={() => { setStep(1); setSelVoiture(null); setSelClient(null); setForm({ id_voiture: '', id_client: '', id_employe: '', prix_final: '', remise: '0', date_vente: new Date().toISOString().slice(0, 10), observations: '' }); setSaleId(null); }}
+              className="text-sm font-bold text-slate-500 hover:text-[#002d54]">
+              Créer une nouvelle vente
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <section className="rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-8 text-white shadow-xl">
-          <p className="mb-3 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.25em] text-emerald-100">
-            Workflow commercial
-          </p>
-          <h1 className="text-4xl font-black tracking-tight">Nouvelle vente</h1>
-          <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-200">
-            Choisir un client, vendre uniquement un vehicule disponible, appliquer une remise, generer la facture et passer le vehicule en vendu.
-          </p>
-        </section>
+      <div className="mx-auto max-w-3xl space-y-6">
 
-        <section className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
-          <form className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" onSubmit={submit}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="text-sm font-semibold text-slate-700">
-                Date vente
-                <input className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2" defaultValue={new Date().toISOString().slice(0, 10)} name="date_vente" required type="date" />
+        {/* En-tête */}
+        <div className="page-header">
+          <div>
+            <p className="eyebrow">Commercial</p>
+            <h1 className="page-title mt-1">Nouvelle vente</h1>
+            <p className="page-subtitle">Sélectionnez le véhicule, le client et finalisez la transaction.</p>
+          </div>
+        </div>
+
+        {/* Stepper */}
+        <Stepper current={step} />
+
+        {/* Récap compact si véhicule déjà sélectionné (étapes 2+) */}
+        {selVoiture && step > 1 && <VoitureCard v={selVoiture} compact />}
+
+        {/* ── Étape 1 : Véhicule ─────────────────────────────────────────── */}
+        {step === 1 && (
+          <div className="surface-panel space-y-5 p-6">
+            <div>
+              <h2 className="section-title">Sélection du véhicule</h2>
+              <p className="mt-1 text-sm text-slate-400">{voitures.length} véhicule{voitures.length !== 1 ? 's' : ''} disponible{voitures.length !== 1 ? 's' : ''}</p>
+            </div>
+
+            {/* Recherche */}
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input type="text" placeholder="Filtrer par marque ou modèle…" className="field-control pl-10"
+                value={searchV} onChange={(e) => setSearchV(e.target.value)} />
+            </div>
+
+            {/* Liste */}
+            <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
+              {filteredVoitures.length === 0 && <p className="py-4 text-center text-sm text-slate-400">Aucun véhicule disponible.</p>}
+              {filteredVoitures.map((v) => {
+                const sel = selVoiture?.id === v.id;
+                const photo = imgUrl(v.image_principale);
+                return (
+                  <button key={v.id} type="button"
+                    onClick={() => { setSelVoiture(v); patch('id_voiture', String(v.id)); patch('prix_final', String(v.prix)); }}
+                    className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
+                      sel ? 'border-[#ff6b35] bg-[#ff6b35]/[0.04] shadow-sm' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}>
+                    <div className="h-12 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                      {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : (
+                        <div className="flex h-full items-center justify-center text-slate-300">
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                              d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14v6H5v-6z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-black text-[#002d54]">{v.marque} {v.modele}</p>
+                      <p className="text-xs text-slate-400">{[v.annee, v.energie].filter(Boolean).join(' · ')}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-black text-slate-800">{money(v.prix)}</p>
+                      <p className="text-xs text-slate-400">XOF</p>
+                    </div>
+                    {sel && (
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#ff6b35]">
+                        <svg className="h-3.5 w-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-end border-t border-slate-100 pt-4">
+              <button type="button" className="btn-primary" onClick={() => setStep(2)} disabled={!selVoiture}>
+                Sélectionner ce véhicule →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Étape 2 : Client ───────────────────────────────────────────── */}
+        {step === 2 && (
+          <div className="surface-panel space-y-5 p-6">
+            <div>
+              <h2 className="section-title">Sélection du client</h2>
+              <p className="mt-1 text-sm text-slate-400">{clients.length} client{clients.length !== 1 ? 's' : ''} enregistré{clients.length !== 1 ? 's' : ''}</p>
+            </div>
+
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input type="text" placeholder="Rechercher par nom, prénom, téléphone…" className="field-control pl-10"
+                value={searchC} onChange={(e) => setSearchC(e.target.value)} />
+            </div>
+
+            <div className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
+              {filteredClients.length === 0 && <p className="py-4 text-center text-sm text-slate-400">Aucun client trouvé.</p>}
+              {filteredClients.map((c) => {
+                const sel = selClient?.id === c.id;
+                const full = `${c.nom}${c.prenom ? ' ' + c.prenom : ''}`;
+                return (
+                  <button key={c.id} type="button"
+                    onClick={() => { setSelClient(c); patch('id_client', String(c.id)); }}
+                    className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
+                      sel ? 'border-[#ff6b35] bg-[#ff6b35]/[0.04]' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}>
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black ${sel ? 'bg-[#ff6b35] text-white' : 'bg-[#002d54] text-white'}`}>
+                      {full.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-bold text-slate-800">{full}</p>
+                      {c.telephone && <p className="text-xs text-slate-400">{c.telephone}</p>}
+                    </div>
+                    {sel && (
+                      <svg className="h-5 w-5 shrink-0 text-[#ff6b35]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+              <Link href="/clients" className="text-sm font-bold text-[#ff6b35] hover:underline">
+                + Créer un nouveau client
+              </Link>
+              <div className="flex gap-3">
+                <button type="button" className="btn-secondary" onClick={() => setStep(1)}>← Retour</button>
+                <button type="button" className="btn-primary" onClick={() => setStep(3)} disabled={!selClient}>
+                  Continuer →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Étape 3 : Conditions ───────────────────────────────────────── */}
+        {step === 3 && (
+          <div className="surface-panel space-y-5 p-6">
+            <h2 className="section-title">Conditions de la vente</h2>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="space-y-1.5 text-sm font-semibold text-slate-700">
+                Prix de vente (XOF) *
+                <input type="number" min={0} className="field-control font-normal"
+                  value={form.prix_final} onChange={(e) => patch('prix_final', e.target.value)} required />
               </label>
-
-              <label className="text-sm font-semibold text-slate-700">
-                Client
-                <select className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2" name="id_client" required>
-                  <option value="">Selectionner un client</option>
-                  {clients.map((client) => <option key={client.id} value={client.id}>{label(client, 'Client')}</option>)}
-                </select>
+              <label className="space-y-1.5 text-sm font-semibold text-slate-700">
+                Remise (XOF)
+                <input type="number" min={0} className="field-control font-normal"
+                  value={form.remise} onChange={(e) => patch('remise', e.target.value)} />
               </label>
-
-              <label className="text-sm font-semibold text-slate-700">
-                Vehicule disponible
-                <select
-                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2"
-                  name="id_voiture"
-                  onChange={(event) => {
-                    const voiture = voitures.find((item) => item.id === Number(event.target.value)) ?? null;
-                    setSelectedVoiture(voiture);
-                    setPriceInput(Number(voiture?.prix || 0));
-                  }}
-                  required
-                >
-                  <option value="">Selectionner un vehicule</option>
-                  {voitures.map((voiture) => (
-                    <option key={voiture.id} value={voiture.id}>
-                      {label(voiture, 'Vehicule')} - {money(voiture.prix)} XOF
-                    </option>
+              <label className="space-y-1.5 text-sm font-semibold text-slate-700">
+                Date de vente *
+                <input type="date" className="field-control font-normal"
+                  value={form.date_vente} onChange={(e) => patch('date_vente', e.target.value)} required />
+              </label>
+              <label className="space-y-1.5 text-sm font-semibold text-slate-700">
+                Vendeur responsable
+                <select className="field-control font-normal" value={form.id_employe}
+                  onChange={(e) => patch('id_employe', e.target.value)}>
+                  <option value="">Sélectionner…</option>
+                  {employes.map((e) => (
+                    <option key={e.id} value={e.id}>{e.nom}{e.prenom ? ' ' + e.prenom : ''}</option>
                   ))}
                 </select>
               </label>
-
-              <label className="text-sm font-semibold text-slate-700">
-                Employe vendeur
-                <select className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2" name="id_employe" required>
-                  <option value="">Selectionner un employe</option>
-                  {employes.map((employe) => <option key={employe.id} value={employe.id}>{label(employe, 'Employe')}</option>)}
-                </select>
-              </label>
-
-              <label className="text-sm font-semibold text-slate-700">
-                Prix final
-                <input
-                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2"
-                  min="0"
-                  name="prix_final"
-                  onChange={(event) => setPriceInput(Number(event.target.value || 0))}
-                  required
-                  type="number"
-                  value={priceInput || ''}
-                />
-              </label>
-
-              <label className="text-sm font-semibold text-slate-700">
-                Remise
-                <input
-                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2"
-                  min="0"
-                  name="remise"
-                  onChange={(event) => setDiscountInput(Number(event.target.value || 0))}
-                  type="number"
-                  value={discountInput || ''}
-                />
-              </label>
-
-              <label className="text-sm font-semibold text-slate-700">
-                Mode de paiement
-                <select className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2" name="mode_paiement">
-                  <option value="especes">Especes</option>
-                  <option value="virement">Virement</option>
-                  <option value="cheque">Cheque</option>
-                  <option value="orange_money">Orange Money</option>
-                  <option value="wave">Wave</option>
-                </select>
-              </label>
-
-              <label className="text-sm font-semibold text-slate-700 md:col-span-2">
-                Observations
-                <textarea className="mt-2 min-h-24 w-full rounded-xl border border-slate-200 px-3 py-2" name="observations" />
-              </label>
             </div>
 
-            {error && <p className="mt-4 text-sm font-semibold text-red-600">{error}</p>}
+            <label className="block space-y-1.5 text-sm font-semibold text-slate-700">
+              Observations
+              <textarea rows={3} className="field-control min-h-20 font-normal"
+                placeholder="Notes internes, conditions particulières…"
+                value={form.observations} onChange={(e) => patch('observations', e.target.value)} />
+            </label>
 
-            <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
-              <h2 className="text-lg font-black text-slate-900">Recapitulatif avant validation</h2>
-              <div className="mt-4 grid gap-3 text-sm md:grid-cols-4">
-                <div>
-                  <p className="text-slate-500">Prix saisi</p>
-                  <p className="font-black text-slate-900">{money(priceInput)} XOF</p>
-                </div>
-                <div>
-                  <p className="text-slate-500">Remise</p>
-                  <p className="font-black text-slate-900">{money(discountInput)} XOF</p>
-                </div>
-                <div>
-                  <p className="text-slate-500">HT apres remise</p>
-                  <p className="font-black text-slate-900">{money(subtotal)} XOF</p>
-                </div>
-                <div>
-                  <p className="text-slate-500">TTC avec TVA 18%</p>
-                  <p className="font-black text-emerald-800">{money(total)} XOF</p>
+            {/* Simulation financière */}
+            {prixBase > 0 && (
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">Simulation financière</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-slate-500">Prix de vente</span><span className="font-bold">{money(prixBase)} XOF</span></div>
+                  {remise > 0 && <div className="flex justify-between text-amber-600"><span>Remise accordée</span><span className="font-bold">- {money(remise)} XOF</span></div>}
+                  <div className="flex justify-between"><span className="text-slate-500">Montant HT</span><span className="font-bold">{money(montantHT)} XOF</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">TVA ({tva}%)</span><span className="font-bold">{money(montantTTC - montantHT)} XOF</span></div>
+                  <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-black text-[#002d54]">
+                    <span>Total TTC</span>
+                    <span>{money(montantTTC)} XOF</span>
+                  </div>
                 </div>
               </div>
-              {discountInput > priceInput && (
-                <p className="mt-3 text-sm font-semibold text-amber-700">
-                  La remise depasse le prix saisi. Laravel forcera le HT a 0.
-                </p>
-              )}
-              {confirming && (
-                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                  Confirme cette operation uniquement si le client, le vehicule, le prix et la remise sont corrects.
-                  Apres validation, le vehicule passera au statut vendu et une facture sera generee.
-                </div>
-              )}
-            </div>
+            )}
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <button
-                className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:bg-slate-400"
-                disabled={saving}
-                type="submit"
-              >
-                {saving ? 'Creation en cours...' : confirming ? 'Confirmer la vente' : 'Verifier avant validation'}
+            <div className="flex justify-between border-t border-slate-100 pt-4">
+              <button type="button" className="btn-secondary" onClick={() => setStep(2)}>← Retour</button>
+              <button type="button" className="btn-primary" onClick={() => setStep(4)}
+                disabled={!form.prix_final || !form.date_vente}>
+                Récapitulatif →
               </button>
-              {confirming && (
-                <button
-                  className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
-                  onClick={() => setConfirming(false)}
-                  type="button"
-                >
-                  Modifier les informations
-                </button>
-              )}
             </div>
-          </form>
+          </div>
+        )}
 
-          <aside className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-black text-slate-900">Resultat du workflow</h2>
-            {!sale ? (
-              <p className="mt-3 text-sm leading-6 text-slate-500">
-                Apres validation, Laravel cree la vente, genere la facture avec TVA 18%, et met le vehicule au statut vendu.
-              </p>
-            ) : (
-              <div className="mt-5 space-y-4 text-sm">
-                <div className="rounded-xl bg-emerald-50 p-4">
-                  <p className="font-bold text-emerald-900">Vente creee : {sale.reference_vente}</p>
-                  <p className="mt-1 text-emerald-800">Statut vehicule : vendu</p>
-                </div>
-                <p><strong>Client :</strong> {sale.client ? label(sale.client, 'Client') : '-'}</p>
-                <p><strong>Vehicule :</strong> {sale.voiture ? label(sale.voiture, 'Vehicule') : '-'}</p>
-                <p><strong>Prix vente :</strong> {money(sale.prix_final)} XOF</p>
-                {sale.facturation && (
-                  <div className="rounded-xl bg-slate-50 p-4">
-                    <p><strong>Facture :</strong> {sale.facturation.numero_facture}</p>
-                    <p><strong>Remise :</strong> {money(sale.facturation.remise)} XOF</p>
-                    <p><strong>HT apres remise :</strong> {money(sale.facturation.montant_ht)} XOF</p>
-                    <p><strong>TTC :</strong> {money(sale.facturation.montant_ttc)} XOF</p>
-                    <p><strong>Paye :</strong> {money(paidAmount)} XOF</p>
-                    <p><strong>Reste :</strong> {money(Math.max(Number(sale.facturation.montant_ttc) - paidAmount, 0))} XOF</p>
-                    <p><strong>Statut facture :</strong> {sale.facturation.statut}</p>
+        {/* ── Étape 4 : Confirmation ────────────────────────────────────── */}
+        {step === 4 && (
+          <div className="space-y-4">
+            <div className="surface-panel p-6">
+              <h2 className="section-title mb-5">Récapitulatif avant finalisation</h2>
+
+              {/* Véhicule */}
+              <div className="mb-4">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Véhicule</p>
+                {selVoiture && <VoitureCard v={selVoiture} compact />}
+              </div>
+
+              {/* Client */}
+              <div className="mb-4">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Client</p>
+                {selClient && (
+                  <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#002d54] text-sm font-black text-white">
+                      {selClient.nom.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800">{selClient.nom}{selClient.prenom ? ' ' + selClient.prenom : ''}</p>
+                      {selClient.telephone && <p className="text-xs text-slate-500">{selClient.telephone}</p>}
+                    </div>
                   </div>
                 )}
               </div>
-            )}
-          </aside>
-        </section>
 
-        {sale?.facturation && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              {/* Financier */}
               <div>
-                <h2 className="text-xl font-black text-slate-900">Paiement immediat</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Enregistrer un acompte ou solder directement la facture {sale.facturation.numero_facture}.
-                </p>
-              </div>
-              <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
-                Reste a payer : {money(Math.max(Number(sale.facturation.montant_ttc) - paidAmount, 0))} XOF
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Conditions financières</p>
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between"><span className="text-slate-500">Prix de vente</span><span className="font-bold">{money(prixBase)} XOF</span></div>
+                    {remise > 0 && <div className="flex justify-between text-amber-600"><span>Remise</span><span className="font-bold">- {money(remise)} XOF</span></div>}
+                    <div className="flex justify-between"><span className="text-slate-500">Montant HT</span><span className="font-bold">{money(montantHT)} XOF</span></div>
+                    <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-black text-[#002d54]">
+                      <span>Total TTC (TVA {tva}%)</span>
+                      <span>{money(montantTTC)} XOF</span>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs text-slate-400">Date : {form.date_vente}</p>
+                  {form.observations && <p className="mt-1 text-xs text-slate-400">Observations : {form.observations}</p>}
+                </div>
               </div>
             </div>
 
-            <form className="mt-6 grid gap-4 md:grid-cols-4" onSubmit={submitPayment}>
-              <label className="text-sm font-semibold text-slate-700">
-                Date
-                <input className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2" defaultValue={new Date().toISOString().slice(0, 10)} name="date" required type="date" />
-              </label>
-
-              <label className="text-sm font-semibold text-slate-700">
-                Mode
-                <select className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2" name="mode_paiement" required>
-                  <option value="especes">Especes</option>
-                  <option value="virement">Virement</option>
-                  <option value="cheque">Cheque</option>
-                  <option value="orange_money">Orange Money</option>
-                  <option value="wave">Wave</option>
-                </select>
-              </label>
-
-              <label className="text-sm font-semibold text-slate-700">
-                Montant
-                <input
-                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2"
-                  defaultValue={Math.max(Number(sale.facturation.montant_ttc) - paidAmount, 0)}
-                  min="0"
-                  name="montant"
-                  required
-                  type="number"
-                />
-              </label>
-
-              <div className="flex items-end">
-                <button className="w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800 disabled:bg-slate-400" disabled={paying} type="submit">
-                  {paying ? 'Paiement...' : 'Enregistrer paiement'}
-                </button>
+            {/* Erreur */}
+            {submitError && (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-700">
+                {submitError}
               </div>
+            )}
 
-              {paymentError && <p className="text-sm font-semibold text-red-600 md:col-span-4">{paymentError}</p>}
-            </form>
-          </section>
+            <div className="flex justify-between">
+              <button type="button" className="btn-secondary" onClick={() => setStep(3)}>← Modifier</button>
+              <button type="button" onClick={handleSubmit} disabled={loading}
+                className="btn-primary min-w-48 disabled:opacity-60">
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Finalisation…
+                  </span>
+                ) : '✓ Finaliser la vente'}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </DashboardLayout>

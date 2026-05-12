@@ -32,6 +32,7 @@ class Voiture extends Model
         'origine_marque_id',
         'id_fournisseur',
         'description',
+        'image_principale',
     ];
 
     protected function casts(): array

@@ -1,37 +1,73 @@
 export type ModuleStatus = 'api-ready' | 'api-needed' | 'frontend-draft';
+export type ModuleKind = 'crud' | 'workflow' | 'analytics' | 'settings';
+
+export interface ModuleColumn {
+  label: string;
+  key: string;
+}
+
+export interface ModuleFormField {
+  label: string;
+  name: string;
+  type?: 'text' | 'email' | 'number' | 'date' | 'textarea' | 'select' | 'file';
+  required?: boolean;
+  multiple?: boolean;
+  accept?: string;
+  optionsEndpoint?: string;
+  optionLabel?: string;
+  optionFormatter?: (option: any) => string;
+  defaultValue?: string | number;
+  readOnly?: boolean;
+  hidden?: boolean;
+}
 
 export interface ModuleDefinition {
   title: string;
   description: string;
   endpoint?: string;
+  kind?: ModuleKind;
   status: ModuleStatus;
   primaryAction: string;
   fields: string[];
-  columns?: Array<{ label: string; key: string }>;
-  formFields?: Array<{
+  columns?: ModuleColumn[];
+  formFields?: ModuleFormField[];
+  detailRoute?: string;
+  exportRoute?: string;  // ex: 'facturations' → /facturations/{id}/export
+  exportFilename?: (item: any) => string;
+  transformOnSubmit?: (data: Record<string, string | number>, context: { isEditing: boolean }) => Record<string, string | number>;
+  // Configuration menu
+  menu?: {
     label: string;
-    name: string;
-    type?: 'text' | 'email' | 'number' | 'date' | 'textarea' | 'select';
-    required?: boolean;
-    optionsEndpoint?: string;
-    optionLabel?: string;
-  }>;
+    icon?: string;
+    badge?: number | { endpoint: string; path: string };
+  };
+  hideFromDynamicMenu?: boolean;
 }
 
+// @ts-ignore
+// @ts-ignore
+// @ts-ignore
+// @ts-ignore
+// @ts-ignore
 export const modules: Record<string, ModuleDefinition> = {
   dashboard: {
     title: 'Tableau de bord',
     description: 'KPIs temps reel, alertes metier et pilotage global du parc automobile.',
-    status: 'frontend-draft',
+    kind: 'analytics',
+    status: 'api-ready',
     primaryAction: 'Actualiser les KPIs',
     fields: ['Ventes du mois', 'Chiffre affaires', 'Vehicules disponibles', 'Stock critique'],
+    menu: { label: 'Tableau de bord' },
+    hideFromDynamicMenu: true,
   },
   voitures: {
     title: 'Vehicules',
-    description: 'CRUD vehicules, statuts, categories, origines et galerie photos.',
+    description: '',
     endpoint: '/voitures',
+    kind: 'crud',
     status: 'api-ready',
-    primaryAction: 'Ajouter un vehicule',
+      detailRoute: 'voitures',
+      primaryAction: 'Ajouter un vehicule',
     fields: ['Marque', 'Modele', 'Annee', 'Prix XOF', 'Statut'],
     columns: [
       { label: 'Marque', key: 'marque' },
@@ -45,16 +81,25 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Modele', name: 'modele', required: true },
       { label: 'Annee', name: 'annee', type: 'number' },
       { label: 'Prix XOF', name: 'prix', type: 'number', required: true },
+      { label: 'Numero chassis', name: 'numero_chassis', required: true },
+      { label: 'Couleur', name: 'couleur' },
       { label: 'Statut', name: 'statut', required: true },
-      { label: 'Fournisseur', name: 'id_fournisseur', type: 'select', optionsEndpoint: '/fournisseurs', optionLabel: 'nom' },
+      { label: 'Fournisseur', name: 'id_fournisseur', type: 'select', optionsEndpoint: '/fournisseurs', optionFormatter: (option) => option?.nom || `Fournisseur #${option?.id}` },
       { label: 'Energie', name: 'energie' },
+      { label: 'Kilometrage', name: 'kilometrage', type: 'number' },
+      { label: 'Etat', name: 'etat' },
+      { label: 'Type boite', name: 'type_boite' },
+      { label: 'Date acquisition', name: 'date_acquisition', type: 'date' },
       { label: 'Description', name: 'description', type: 'textarea' },
+      { label: 'Photos', name: 'images', type: 'file', multiple: true, accept: 'image/*' },
     ],
+    menu: { label: 'Vehicules' },
   },
   clients: {
     title: 'Clients',
-    description: 'Fiches clients, classification locale et historique achats, locations, SAV.',
+    description: '',
     endpoint: '/clients',
+    kind: 'crud',
     status: 'api-ready',
     primaryAction: 'Ajouter un client',
     fields: ['Nom', 'Telephone', 'Email', 'Type client', 'Classe'],
@@ -68,39 +113,53 @@ export const modules: Record<string, ModuleDefinition> = {
     formFields: [
       { label: 'Nom', name: 'nom', required: true },
       { label: 'Prenom', name: 'prenom' },
+      { label: 'Contact', name: 'contact' },
       { label: 'Telephone', name: 'telephone' },
       { label: 'Email', name: 'email', type: 'email' },
+      { label: 'Adresse', name: 'adresse', type: 'textarea' },
+      { label: 'Piece identite', name: 'piece_identite' },
+      { label: 'Numero piece', name: 'numero_piece' },
+      { label: 'Numero piece 2', name: 'numero_piece2' },
       { label: 'Type client', name: 'type_client' },
       { label: 'Classe', name: 'classe' },
+      { label: 'Raison sociale', name: 'raison_sociale' },
+      { label: 'Numero SIRET', name: 'numero_siret' },
+      { label: 'Date naissance', name: 'date_naissance', type: 'date' },
+      { label: 'Vendeur attribue', name: 'id_vendeur_attribue', type: 'select', optionsEndpoint: '/employes', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Employe #${option?.id}` },
     ],
+    menu: { label: 'Clients' },
   },
   fournisseurs: {
     title: 'Fournisseurs',
-    description: 'Fournisseurs de vehicules et tracabilite de l approvisionnement.',
+    description: '',
     endpoint: '/fournisseurs',
+    kind: 'crud',
     status: 'api-ready',
     primaryAction: 'Ajouter un fournisseur',
     fields: ['Nom', 'Contact', 'Pays origine', 'Vehicules fournis'],
     columns: [
       { label: 'Nom', key: 'nom' },
-      { label: 'Contact', key: 'contact' },
       { label: 'Telephone', key: 'telephone' },
       { label: 'Email', key: 'email' },
       { label: 'Pays origine', key: 'pays_origine' },
     ],
     formFields: [
       { label: 'Nom', name: 'nom', required: true },
-      { label: 'Contact', name: 'contact' },
+      { label: 'Adresse', name: 'adresse', type: 'textarea' },
       { label: 'Telephone', name: 'telephone' },
       { label: 'Email', name: 'email', type: 'email' },
+      { label: 'Lien', name: 'lien' },
+      { label: 'Adresse bureau', name: 'adresse_bureau', type: 'textarea' },
       { label: 'Pays origine', name: 'pays_origine' },
       { label: 'Vehicules fournis', name: 'vehicule_fournis', type: 'textarea' },
     ],
+    menu: { label: 'Fournisseurs' },
   },
   ventes: {
     title: 'Ventes',
-    description: 'Workflow de vente avec reference, client, vehicule, prix final et statut.',
+    description: '',
     endpoint: '/ventes',
+    kind: 'workflow',
     status: 'api-ready',
     primaryAction: 'Nouvelle vente',
     fields: ['Reference', 'Client', 'Vehicule', 'Prix final', 'Statut'],
@@ -113,17 +172,19 @@ export const modules: Record<string, ModuleDefinition> = {
     ],
     formFields: [
       { label: 'Date vente', name: 'date_vente', type: 'date', required: true },
-      { label: 'Client', name: 'id_client', type: 'select', required: true, optionsEndpoint: '/clients', optionLabel: 'nom' },
-      { label: 'Vehicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionLabel: 'marque' },
+      { label: 'Client', name: 'id_client', type: 'select', required: true, optionsEndpoint: '/clients', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Client #${option?.id}` },
+      { label: 'Vehicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Vehicule #${option?.id}` },
       { label: 'Prix final', name: 'prix_final', type: 'number', required: true },
       { label: 'Statut', name: 'statut', required: true },
-      { label: 'Employe', name: 'id_employe', type: 'select', required: true, optionsEndpoint: '/employes', optionLabel: 'nom' },
+      { label: 'Employe', name: 'id_employe', type: 'select', required: true, optionsEndpoint: '/employes', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Employe #${option?.id}` },
     ],
+    menu: { label: 'Nouvelle vente' },
   },
   facturations: {
     title: 'Facturation',
-    description: 'Factures, TVA 18%, remises, echeances et exports PDF.',
+    description: '',
     endpoint: '/facturations',
+    kind: 'crud',
     status: 'api-ready',
     primaryAction: 'Creer une facture',
     fields: ['Numero', 'Vente', 'Montant HT', 'Montant TTC', 'Statut'],
@@ -135,20 +196,25 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Statut', key: 'statut' },
     ],
     formFields: [
-      { label: 'Vente', name: 'id_vente', type: 'select', required: true, optionsEndpoint: '/ventes', optionLabel: 'reference_vente' },
+      { label: 'Vente', name: 'id_vente', type: 'select', required: true, optionsEndpoint: '/ventes', optionFormatter: (option) => option?.reference_vente || `Vente #${option?.id}` },
       { label: 'Date facture', name: 'date_facture', type: 'date', required: true },
       { label: 'Montant', name: 'montant', type: 'number' },
       { label: 'Remise', name: 'remise', type: 'number' },
-      { label: 'TVA', name: 'taux_tva', type: 'number' },
+      { label: 'TVA', name: 'taux_tva', type: 'number', defaultValue: 18 },
       { label: 'Statut', name: 'statut' },
+      { label: 'Mode livraison', name: 'mode_livraison' },
       { label: 'Echeance', name: 'date_echeance', type: 'date' },
       { label: 'Observations', name: 'observations', type: 'textarea' },
     ],
+    exportRoute: 'facturations',
+    exportFilename: (item) => `facture-${item.numero_facture ?? item.id}.pdf`,
+    menu: { label: 'Facturation' },
   },
   paiements: {
     title: 'Paiements',
-    description: 'Reglements, paiements fractionnes, modes locaux et soldes restants.',
+    description: '',
     endpoint: '/paiements',
+    kind: 'crud',
     status: 'api-ready',
     primaryAction: 'Enregistrer un paiement',
     fields: ['Date', 'Mode', 'Montant', 'Reste', 'Facture'],
@@ -163,15 +229,25 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Date', name: 'date', type: 'date', required: true },
       { label: 'Mode paiement', name: 'mode_paiement', required: true },
       { label: 'Montant', name: 'montant', type: 'number', required: true },
-      { label: 'Facture', name: 'id_facture', type: 'select', optionsEndpoint: '/facturations', optionLabel: 'numero_facture' },
-      { label: 'Vente', name: 'id_vente', type: 'select', optionsEndpoint: '/ventes', optionLabel: 'reference_vente' },
-      { label: 'Client', name: 'id_client', type: 'select', optionsEndpoint: '/clients', optionLabel: 'nom' },
+      { label: 'Facture', name: 'id_facture', type: 'select', required: true, optionsEndpoint: '/facturations', optionFormatter: (option) => option?.numero_facture || `Facture #${option?.id}` },
+      { label: 'Vente', name: 'id_vente', type: 'select', hidden: true, optionsEndpoint: '/ventes', optionFormatter: (option) => option?.reference_vente || `Vente #${option?.id}` },
+      { label: 'Client', name: 'id_client', type: 'select', hidden: true, optionsEndpoint: '/clients', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Client #${option?.id}` },
     ],
+    transformOnSubmit: (data) => {
+      const next = { ...data };
+      delete next.id_vente;
+      delete next.id_client;
+      return next;
+    },
+    exportRoute: 'paiements',
+    exportFilename: (item) => `recu-paiement-${item.id}.pdf`,
+    menu: { label: 'Paiements' },
   },
   garanties: {
     title: 'Garanties',
-    description: 'Garanties par vehicule, duree, type et dates de couverture.',
+    description: '',
     endpoint: '/garanties',
+    kind: 'crud',
     status: 'api-ready',
     primaryAction: 'Ajouter une garantie',
     fields: ['Vehicule', 'Type', 'Date debut', 'Date fin'],
@@ -180,13 +256,23 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Type', key: 'type_garantie' },
       { label: 'Date debut', key: 'date_debut' },
       { label: 'Date fin', key: 'date_fin' },
-      { label: 'Statut', key: 'statut' },
     ],
+    formFields: [
+      { label: 'Vehicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Vehicule #${option?.id}` },
+      { label: 'Type de garantie', name: 'type_garantie', required: true },
+      { label: 'Duree (jours)', name: 'duree_garantie', type: 'number' },
+      { label: 'Date debut', name: 'date_debut', type: 'date', required: true },
+      { label: 'Date fin', name: 'date_fin', type: 'date', required: true },
+    ],
+    exportRoute: 'garanties',
+    exportFilename: (item) => `garantie-${item.id}.pdf`,
+    menu: { label: 'Garanties' },
   },
   documents: {
     title: 'Documents',
-    description: 'Pieces administratives liees aux ventes, clients, vehicules et employes.',
+    description: '',
     endpoint: '/documents',
+    kind: 'crud',
     status: 'api-ready',
     primaryAction: 'Ajouter un document',
     fields: ['Type', 'Numero', 'Client', 'Vente', 'Expiration'],
@@ -201,17 +287,21 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Type document', name: 'type_document', required: true },
       { label: 'Numero document', name: 'numero_document' },
       { label: 'Date document', name: 'date_document', type: 'date' },
-      { label: 'Client', name: 'id_client', type: 'select', optionsEndpoint: '/clients', optionLabel: 'nom' },
-      { label: 'Vente', name: 'id_vente', type: 'select', optionsEndpoint: '/ventes', optionLabel: 'reference_vente' },
-      { label: 'Vehicule', name: 'id_voiture', type: 'select', optionsEndpoint: '/voitures', optionLabel: 'marque' },
-      { label: 'Employe', name: 'id_employe', type: 'select', optionsEndpoint: '/employes', optionLabel: 'nom' },
+      { label: 'Date production', name: 'date_production', type: 'date' },
+      { label: 'Client', name: 'id_client', type: 'select', optionsEndpoint: '/clients', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Client #${option?.id}` },
+      { label: 'Vente', name: 'id_vente', type: 'select', optionsEndpoint: '/ventes', optionFormatter: (option) => option?.reference_vente || `Vente #${option?.id}` },
+      { label: 'Vehicule', name: 'id_voiture', type: 'select', optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Vehicule #${option?.id}` },
+      { label: 'Employe', name: 'id_employe', type: 'select', optionsEndpoint: '/employes', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Employe #${option?.id}` },
       { label: 'Expiration', name: 'date_expiration', type: 'date' },
+      { label: 'Chemin fichier', name: 'chemin_fichier' },
     ],
+    menu: { label: 'Documents' },
   },
   sav: {
     title: 'SAV',
-    description: 'Tickets de reclamation, priorites, responsables et interventions.',
+    description: '',
     endpoint: '/tickets-sav',
+    kind: 'crud',
     status: 'api-ready',
     primaryAction: 'Ouvrir un ticket',
     fields: ['Reference', 'Client', 'Vehicule', 'Priorite', 'Statut'],
@@ -223,18 +313,25 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Statut', key: 'statut' },
     ],
     formFields: [
-      { label: 'Client', name: 'id_client', type: 'select', required: true, optionsEndpoint: '/clients', optionLabel: 'nom' },
-      { label: 'Vehicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionLabel: 'marque' },
-      { label: 'Responsable', name: 'id_responsable', type: 'select', required: true, optionsEndpoint: '/employes', optionLabel: 'nom' },
+      { label: 'Client', name: 'id_client', type: 'select', required: true, optionsEndpoint: '/clients', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Client #${option?.id}` },
+      { label: 'Vehicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Vehicule #${option?.id}` },
+      { label: 'Responsable', name: 'id_responsable', type: 'select', required: true, optionsEndpoint: '/employes', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Employe #${option?.id}` },
+      { label: 'Garantie', name: 'id_garantie', type: 'select', optionsEndpoint: '/garanties', optionFormatter: (option) => option?.type_garantie || `Garantie #${option?.id}` },
       { label: 'Objet', name: 'objet', required: true },
       { label: 'Priorite', name: 'priorite' },
       { label: 'Description', name: 'description', type: 'textarea' },
+      { label: 'Statut', name: 'statut' },
+      { label: 'Date ouverture', name: 'date_ouverture', type: 'date' },
+      { label: 'Date resolution', name: 'date_resolution', type: 'date' },
     ],
+    detailRoute: 'sav',
+    menu: { label: 'SAV' },
   },
   atelier: {
     title: 'Atelier',
-    description: 'Ordres de travail, taches, deadlines, temps passe et consommation pieces.',
+    description: '',
     endpoint: '/ordres-travail',
+    kind: 'crud',
     status: 'api-ready',
     primaryAction: 'Nouvel ordre de travail',
     fields: ['Reference OT', 'Vehicule', 'Technicien', 'Priorite', 'Statut'],
@@ -246,18 +343,21 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Statut', key: 'statut' },
     ],
     formFields: [
-      { label: 'Vehicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionLabel: 'marque' },
-      { label: 'Ticket SAV', name: 'id_ticket_sav', type: 'select', optionsEndpoint: '/tickets-sav', optionLabel: 'reference_ticket' },
-      { label: 'Technicien', name: 'id_technicien', type: 'select', optionsEndpoint: '/employes', optionLabel: 'nom' },
+      { label: 'Vehicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Vehicule #${option?.id}` },
+      { label: 'Ticket SAV', name: 'id_ticket_sav', type: 'select', optionsEndpoint: '/tickets-sav', optionFormatter: (option) => option?.reference_ticket || `Ticket #${option?.id}` },
+      { label: 'Technicien', name: 'id_technicien', type: 'select', optionsEndpoint: '/employes', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Employe #${option?.id}` },
       { label: 'Priorite', name: 'priorite' },
       { label: 'Deadline', name: 'deadline', type: 'date' },
       { label: 'Description', name: 'description', type: 'textarea', required: true },
     ],
+    detailRoute: 'atelier',
+    menu: { label: 'Atelier' },
   },
   locations: {
     title: 'Locations',
-    description: 'Contrats, reservations, echeances, retours et etats des lieux.',
+    description: '',
     endpoint: '/locations',
+    kind: 'crud',
     status: 'api-ready',
     primaryAction: 'Nouvelle location',
     fields: ['Reference', 'Client', 'Vehicule', 'Debut', 'Fin', 'Statut'],
@@ -270,8 +370,8 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Statut', key: 'statut' },
     ],
     formFields: [
-      { label: 'Client', name: 'id_client', type: 'select', required: true, optionsEndpoint: '/clients', optionLabel: 'nom' },
-      { label: 'Vehicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionLabel: 'marque' },
+      { label: 'Client', name: 'id_client', type: 'select', required: true, optionsEndpoint: '/clients', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Client #${option?.id}` },
+      { label: 'Vehicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Vehicule #${option?.id}` },
       { label: 'Date debut', name: 'date_debut', type: 'date', required: true },
       { label: 'Date fin', name: 'date_fin', type: 'date', required: true },
       { label: 'Tarif journalier', name: 'tarif_journalier', type: 'number', required: true },
@@ -279,11 +379,16 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Statut', name: 'statut' },
       { label: 'Observations', name: 'observations', type: 'textarea' },
     ],
+    detailRoute: 'locations',
+    exportRoute: 'locations',
+    exportFilename: (item) => `contrat-${item.reference_location ?? item.id}.pdf`,
+    menu: { label: 'Locations' },
   },
   stock: {
     title: 'Stock',
-    description: 'Pieces de rechange, seuils alerte, mouvements et valorisation.',
+    description: '',
     endpoint: '/pieces-stock',
+    kind: 'crud',
     status: 'api-ready',
     primaryAction: 'Ajouter une piece',
     fields: ['Reference', 'Designation', 'Prix unitaire', 'Quantite', 'Seuil'],
@@ -302,13 +407,35 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Seuil alerte', name: 'seuil_alerte', type: 'number' },
       { label: 'Statut', name: 'statut' },
     ],
+    menu: { label: 'Stock' },
   },
   reporting: {
     title: 'Reporting',
-    description: 'Rapports analytiques, CSV, performances commerciales, stock et finance.',
+    description: '',
     endpoint: '/reporting',
+    kind: 'analytics',
     status: 'api-ready',
     primaryAction: 'Exporter les rapports',
     fields: ['CA mensuel', 'Classement vendeurs', 'Stock critique', 'Paiements attente'],
+    menu: { label: 'Reporting' },
+  },
+  profile: {
+    title: 'Profil',
+    description: '',
+    kind: 'settings',
+    status: 'api-ready',
+    primaryAction: 'Mettre a jour le profil',
+    fields: ['Nom', 'Email', 'Role'],
+    menu: { label: 'Profil' },
+  },
+  settings: {
+    title: 'Parametres',
+    description: '',
+    kind: 'settings',
+    status: 'api-ready',
+    primaryAction: 'Enregistrer les parametres',
+    fields: ['Theme', 'Langue', 'Mot de passe'],
+    menu: { label: 'Parametres' },
+    hideFromDynamicMenu: true,
   },
 };

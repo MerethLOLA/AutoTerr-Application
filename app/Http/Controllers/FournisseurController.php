@@ -18,7 +18,7 @@ class FournisseurController extends Controller
             ->latest()
             ->paginate(15);
 
-        return response()->json($fournisseurs);
+        return $this->apiCollection($fournisseurs);
     }
 
     public function store(FournisseurRequest $request)
@@ -27,14 +27,16 @@ class FournisseurController extends Controller
         $fournisseur = Fournisseur::query()->create($request->validated());
         $this->logAction('create', 'fournisseur', $fournisseur, $request->validated(), $request);
 
-        return response()->json($fournisseur, 201);
+        return $this->apiItem($fournisseur, 201, [
+            'message' => 'Fournisseur cree',
+        ]);
     }
 
     public function show(Fournisseur $fournisseur)
     {
         $this->ensurePermission('view_fournisseurs');
 
-        return response()->json($fournisseur->load('voitures'));
+        return $this->apiItem($fournisseur->load('voitures'));
     }
 
     public function update(FournisseurRequest $request, Fournisseur $fournisseur)
@@ -43,7 +45,9 @@ class FournisseurController extends Controller
         $fournisseur->update($request->validated());
         $this->logAction('update', 'fournisseur', $fournisseur, $request->validated(), $request);
 
-        return response()->json($fournisseur->fresh());
+        return $this->apiItem($fournisseur->fresh(), 200, [
+            'message' => 'Fournisseur mis a jour',
+        ]);
     }
 
     public function destroy(Fournisseur $fournisseur)
@@ -52,6 +56,6 @@ class FournisseurController extends Controller
         $this->logAction('delete', 'fournisseur', $fournisseur, [], request());
         $fournisseur->delete();
 
-        return response()->json([], 204);
+        return $this->apiDeleted();
     }
 }

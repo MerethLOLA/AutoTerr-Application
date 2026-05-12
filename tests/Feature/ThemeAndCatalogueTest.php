@@ -35,44 +35,6 @@ class ThemeAndCatalogueTest extends TestCase
         $this->assertSame('dark', $user->fresh()->theme);
     }
 
-    public function test_public_catalogue_only_lists_available_vehicles_and_filters_by_search(): void
-    {
-        Voiture::query()->create([
-            'marque' => 'Toyota',
-            'modele' => 'Yaris',
-            'prix' => 5000000,
-            'numero_chassis' => 'CAT-100',
-            'statut' => 'disponible',
-        ]);
-        Voiture::query()->create([
-            'marque' => 'Peugeot',
-            'modele' => '208',
-            'prix' => 6500000,
-            'numero_chassis' => 'CAT-200',
-            'statut' => 'vendu',
-        ]);
-
-        $response = $this->get(route('catalogue.index', ['search' => 'Toyota']));
-
-        $response->assertOk();
-        $response->assertSee('Toyota');
-        $response->assertDontSee('Peugeot');
-    }
-
-    public function test_public_catalogue_show_returns_404_for_unavailable_vehicle(): void
-    {
-        $voiture = Voiture::query()->create([
-            'marque' => 'Renault',
-            'modele' => 'Clio',
-            'prix' => 4200000,
-            'numero_chassis' => 'CAT-300',
-            'statut' => 'vendu',
-        ]);
-
-        $this->get(route('catalogue.show', $voiture))
-            ->assertNotFound();
-    }
-
     public function test_general_login_screen_shows_client_and_employee_entry_points(): void
     {
         $this->get(route('login'))

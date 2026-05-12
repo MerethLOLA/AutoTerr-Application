@@ -1,37 +1,70 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api';
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  username: string;
-  role: string;
-}
+import { AUTH_CHANGED_EVENT, clearStoredAuth, readStoredAuth, writeStoredAuth } from '@/lib/auth-storage';
+import type { User } from '@/lib/types';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(readStoredAuth().token && readStoredAuth().user));
+  const [error, setError] = useState<string | null>(null);
+
+  const clearAuth = () => {
+    setUser(null);
+    setIsAuthenticated(false);
+    clearStoredAuth();
+  };
 
   useEffect(() => {
-    // Vérifier l'authentification au chargement
-    const checkAuth = async () => {
-      const storedUser = localStorage.getItem('user');
-      const token = localStorage.getItem('token');
+    let mounted = true;
 
-      if (storedUser && token) {
-        try {
-          setUser(JSON.parse(storedUser));
-          setIsAuthenticated(true);
-        } catch (err) {
-          clearAuth();
-        }
+    const checkAuth = async () => {
+      const { token, user: storedUser } = readStoredAuth();
+
+      if (!token) {
+        if (mounted) setLoading(false);
+        return;
       }
-      setLoading(false);
+
+      if (storedUser && mounted) {
+        setUser(storedUser);
+        setIsAuthenticated(true);
+      }
+
+      try {
+        const response = await apiClient.getMe();
+        const userData = response.user;
+
+        if (mounted) {
+          setUser(userData);
+          setIsAuthenticated(true);
+          setError(null);
+          writeStoredAuth(token, userData);
+        }
+      } catch (err: any) {
+        if (mounted) {
+          clearAuth();
+          setError(err?.message || 'Session invalide');
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
     };
 
     checkAuth();
+
+    const syncAuthState = () => {
+      const { token, user } = readStoredAuth();
+      setUser(user);
+      setIsAuthenticated(Boolean(token && user));
+    };
+
+    window.addEventListener(AUTH_CHANGED_EVENT, syncAuthState);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener(AUTH_CHANGED_EVENT, syncAuthState);
+    };
   }, []);
 
   const login = async (credentials: { email?: string; username?: string; password: string }) => {
@@ -39,12 +72,13 @@ export function useAuth() {
     try {
       const response = await apiClient.login(credentials);
       setUser(response.user);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      writeStoredAuth(response.token, response.user);
       setIsAuthenticated(true);
+      setError(null);
       return response;
-    } catch (error) {
+    } catch (err) {
       clearAuth();
-      throw error;
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -58,17 +92,11 @@ export function useAuth() {
     }
   };
 
-  const clearAuth = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-  };
-
   return {
     user,
     loading,
     isAuthenticated,
+    error,
     login,
     logout,
   };

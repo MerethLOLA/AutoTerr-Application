@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Services\ActionLogger;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 abstract class Controller
 {
@@ -24,5 +26,32 @@ abstract class Controller
     protected function resetDashboardCache(): void
     {
         Cache::forget('dashboard.kpis');
+    }
+
+    protected function apiItem(mixed $data, int $status = 200, array $extra = []): JsonResponse
+    {
+        return response()->json(array_merge([
+            'data' => $data,
+        ], $extra), $status);
+    }
+
+    protected function apiCollection(LengthAwarePaginator $paginator, array $extra = []): JsonResponse
+    {
+        return response()->json(array_merge([
+            'data' => $paginator->items(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ], $extra));
+    }
+
+    protected function apiDeleted(): JsonResponse
+    {
+        return response()->json([
+            'message' => 'Suppression effectuee',
+        ]);
     }
 }

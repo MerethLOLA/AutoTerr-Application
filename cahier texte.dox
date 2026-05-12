@@ -371,3 +371,27 @@ Valeur ajoutée du projet
 ✓ Base de données normalisée et cohérente avec contraintes d'intégrité
 ✓ Interface responsive mobile-first avec Tailwind CSS
 
+7.
+Stabiliser totalement les tests
+•
+éviter de devoir injecter APP_KEY manuellement pour testing
+•
+fiabiliser le setup de test une bonne fois
+8.
+Vérifier conformité cahier module par module
+•
+ventes
+•
+locations
+•
+SAV
+•
+atelier
+•
+stock
+•
+reporting
+•
+documents
+•
+rôles/permissions

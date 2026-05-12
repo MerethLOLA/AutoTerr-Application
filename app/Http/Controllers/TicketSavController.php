@@ -34,7 +34,7 @@ class TicketSavController extends Controller
             ->paginate(15);
 
         if ($request->wantsJson()) {
-            return response()->json($tickets);
+            return $this->apiCollection($tickets);
         }
 
         return view('tickets-sav.index', compact('tickets'));
@@ -73,7 +73,9 @@ class TicketSavController extends Controller
             return redirect()->route('tickets-sav.show', $ticket)->with('success', 'Ticket SAV cree.');
         }
 
-        return response()->json($ticket->load(['client', 'voiture', 'responsable', 'garantie']), 201);
+        return $this->apiItem($ticket->load(['client', 'voiture', 'responsable', 'garantie']), 201, [
+            'message' => 'Ticket SAV cree',
+        ]);
     }
 
     public function show(Request $request, TicketSav $ticketSav)
@@ -89,7 +91,7 @@ class TicketSavController extends Controller
         ]);
 
         if ($request->wantsJson()) {
-            return response()->json($ticketSav);
+            return $this->apiItem($ticketSav);
         }
 
         return view('tickets-sav.show', compact('ticketSav'));
@@ -120,7 +122,9 @@ class TicketSavController extends Controller
             return redirect()->route('tickets-sav.show', $ticketSav)->with('success', 'Ticket SAV mis a jour.');
         }
 
-        return response()->json($ticketSav->fresh()->load(['client', 'voiture', 'responsable', 'garantie', 'interventions']));
+        return $this->apiItem($ticketSav->fresh()->load(['client', 'voiture', 'responsable', 'garantie', 'interventions']), 200, [
+            'message' => 'Ticket SAV mis a jour',
+        ]);
     }
 
     public function destroy(TicketSav $ticketSav)
@@ -134,6 +138,6 @@ class TicketSavController extends Controller
             return redirect()->route('tickets-sav.index')->with('success', 'Ticket SAV supprime.');
         }
 
-        return response()->json([], 204);
+        return $this->apiDeleted();
     }
 }

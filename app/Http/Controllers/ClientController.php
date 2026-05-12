@@ -24,7 +24,7 @@ class ClientController extends Controller
             ->paginate(15);
 
         if ($request->wantsJson()) {
-            return response()->json($clients);
+            return $this->apiCollection($clients);
         }
 
         return view('clients.index', compact('clients'));
@@ -38,7 +38,9 @@ class ClientController extends Controller
         $client = Client::query()->create($data);
         $this->logAction('create', 'client', $client, $data, $request);
 
-        return response()->json($client->load('vendeurAttribue'), 201);
+        return $this->apiItem($client->load('vendeurAttribue'), 201, [
+            'message' => 'Client cree',
+        ]);
     }
 
     public function show(Request $request, Client $client)
@@ -48,7 +50,7 @@ class ClientController extends Controller
         $client->load(['ventes.facturation', 'paiements', 'documents', 'vendeurAttribue']);
 
         if ($request->wantsJson()) {
-            return response()->json($client);
+            return $this->apiItem($client);
         }
 
         return view('clients.show', compact('client'));
@@ -62,7 +64,9 @@ class ClientController extends Controller
         $client->update($data);
         $this->logAction('update', 'client', $client, $data, $request);
 
-        return response()->json($client->fresh()->load('vendeurAttribue'));
+        return $this->apiItem($client->fresh()->load('vendeurAttribue'), 200, [
+            'message' => 'Client mis a jour',
+        ]);
     }
 
     public function destroy(Client $client)
@@ -71,6 +75,6 @@ class ClientController extends Controller
         $this->logAction('delete', 'client', $client, [], request());
         $client->delete();
 
-        return response()->json([], 204);
+        return $this->apiDeleted();
     }
 }

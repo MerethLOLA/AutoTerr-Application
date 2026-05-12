@@ -75,7 +75,7 @@ export default function ModernLayout({ children }: ModernLayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link href="/catalogue" className="flex items-center gap-3 group">
+            <Link href="/dashboard" className="flex items-center gap-3 group">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center group-hover:shadow-lg group-hover:shadow-blue-500/50 transition-all duration-300">
                 <span className="text-white font-bold">SP</span>
               </div>
@@ -86,9 +86,6 @@ export default function ModernLayout({ children }: ModernLayoutProps) {
 
             {/* Menu principal */}
             <nav className="hidden md:flex items-center gap-8">
-              <Link href="/catalogue" className="text-slate-300 hover:text-white transition-colors font-medium text-sm">
-                Catalogue
-              </Link>
               <Link href="/locations" className="text-slate-300 hover:text-white transition-colors font-medium text-sm">
                 Mes Locations
               </Link>

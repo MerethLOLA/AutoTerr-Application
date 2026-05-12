@@ -13,10 +13,12 @@ class OrdreTravailRequest extends FormRequest
 
     public function rules(): array
     {
+        $required = $this->isMethod('POST') ? 'required' : 'sometimes';
+
         return [
-            'id_voiture' => ['required', 'integer', 'exists:voitures,id'],
+            'id_voiture' => [$required, 'integer', 'exists:voitures,id'],
             'id_ticket_sav' => ['nullable', 'integer', 'exists:tickets_sav,id'],
-            'description' => ['required', 'string'],
+            'description' => [$required, 'string'],
             'priorite' => ['nullable', 'string', 'max:50'],
             'deadline' => ['nullable', 'date'],
             'statut' => ['nullable', 'string', 'max:50'],

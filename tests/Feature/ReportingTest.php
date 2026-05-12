@@ -50,7 +50,7 @@ class ReportingTest extends TestCase
             'statut' => 'finalisee',
             'id_employe' => $employe->id,
         ]);
-        Facturation::query()->create([
+        $facture = Facturation::query()->create([
             'numero_facture' => 'RPT-FAC-1',
             'date_facture' => now(),
             'date_echeance' => now()->addDays(2),
@@ -65,7 +65,7 @@ class ReportingTest extends TestCase
             'mode_paiement' => 'Wave',
             'montant' => 5000000,
             'reste' => 23320000,
-            'id_facture' => 1,
+            'id_facture' => $facture->id,
             'id_vente' => $vente->id,
             'id_client' => $client->id,
         ]);

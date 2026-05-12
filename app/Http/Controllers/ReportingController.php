@@ -10,7 +10,9 @@ use App\Models\Paiement;
 use App\Models\PieceStock;
 use App\Models\TicketSav;
 use App\Models\Vente;
+use App\Models\Voiture;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportingController extends Controller
@@ -96,8 +98,17 @@ class ReportingController extends Controller
             'factures_impayees' => Facturation::query()->impayees()->count(),
             'factures_en_retard' => Facturation::query()->enRetard()->count(),
             'encaissements_mois' => (float) Paiement::query()->duMois()->sum('montant'),
-            'reste_global' => (float) Facturation::query()->get()->sum(fn (Facturation $facture) => $facture->reste_a_payer),
+            'reste_global' => (float) DB::table('facturations')
+                ->leftJoin(
+                    DB::raw('(SELECT id_facture, COALESCE(SUM(montant), 0) as total FROM paiements GROUP BY id_facture) as paiements_agg'),
+                    'facturations.id', '=', 'paiements_agg.id_facture'
+                )
+                ->where('facturations.statut', '!=', 'payee')
+                ->selectRaw('COALESCE(SUM(facturations.montant_ttc - COALESCE(paiements_agg.total, 0)), 0) as reste')
+                ->value('reste'),
         ];
+
+        $voituresDisponibles = Voiture::query()->where('statut', 'disponible')->count();
 
         $data = compact(
             'year',
@@ -107,10 +118,11 @@ class ReportingController extends Controller
             'savStats',
             'stockStats',
             'financeStats',
+            'voituresDisponibles',
         );
 
         if ($request->wantsJson()) {
-            return response()->json($data);
+            return $this->apiItem($data);
         }
 
         return view('reporting.index', $data);

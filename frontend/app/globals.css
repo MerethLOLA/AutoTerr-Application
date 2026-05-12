@@ -5,103 +5,194 @@
 @layer base {
   html {
     @apply scroll-smooth;
+    font-size: 100%;
   }
 
   body {
-    @apply bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50;
+    background: #f5f8fa;
+    @apply text-slate-900;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid #ff6b35;
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
 @layer components {
+
+  /* ── Skip link ──────────────────────────────────────────────────────────── */
+  .skip-link {
+    @apply absolute -top-full left-4 z-[9999] rounded bg-[#2d1b3d] px-4 py-3
+      text-sm font-bold text-white shadow-xl
+      focus:top-4 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#2d1b3d];
+  }
+
+  /* ── Shell ──────────────────────────────────────────────────────────────── */
+  .app-shell {
+    @apply min-h-screen text-slate-900;
+    background: #f5f8fa;
+  }
+
+  /* ── Cartes / Surfaces ──────────────────────────────────────────────────── */
+  .surface-panel {
+    @apply rounded-lg border border-[#dfe3eb] bg-white shadow-sm;
+  }
+
+  .surface-muted {
+    @apply rounded-lg border border-[#dfe3eb]/70 bg-[#f5f8fa];
+  }
+
+  /* Hero panel : remplacé par header léger style HubSpot */
+  .hero-panel {
+    @apply rounded-lg border border-[#dfe3eb] bg-white p-6 sm:p-7;
+  }
+
+  /* ── Typographie ─────────────────────────────────────────────────────────── */
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.18em] text-[#516f90];
+  }
+
+  .metric-card {
+    @apply rounded-lg border border-[#dfe3eb] bg-white p-5 shadow-sm transition
+      hover:shadow-md hover:border-[#cbd6e2];
+  }
+
+  .metric-label {
+    @apply text-xs font-bold uppercase tracking-[0.14em] text-[#516f90];
+  }
+
+  .section-title {
+    @apply text-lg font-bold text-[#33475b];
+  }
+
+  /* ── En-tête de page (style HubSpot) ───────────────────────────────────── */
+  .page-header {
+    @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between;
+  }
+
+  .page-title {
+    @apply text-2xl font-black text-[#33475b];
+  }
+
+  .page-subtitle {
+    @apply mt-0.5 text-sm text-[#516f90];
+  }
+
+  /* ── Champs de formulaire ────────────────────────────────────────────────── */
+  .field-control {
+    @apply w-full rounded border border-[#cbd6e2] bg-white px-3 py-2
+      text-sm text-[#33475b] outline-none transition
+      placeholder:text-[#99acc2]
+      hover:border-[#99acc2]
+      focus:border-[#ff6b35]
+      focus-visible:ring-2 focus-visible:ring-[#ff6b35]/30 focus-visible:ring-offset-1
+      disabled:cursor-not-allowed disabled:bg-[#f5f8fa] disabled:text-[#99acc2];
+  }
+
+  /* ── Boutons ─────────────────────────────────────────────────────────────── */
   .btn-primary {
-    @apply inline-flex items-center justify-center px-5 py-2 font-semibold rounded-lg transition-all duration-200 bg-[#ff6b35] text-white hover:bg-red-600 active:scale-95;
+    @apply inline-flex h-9 items-center justify-center rounded
+      bg-[#ff6b35] px-4 text-sm font-semibold text-white transition
+      hover:bg-[#e85c29]
+      focus:outline-none
+      focus-visible:ring-2 focus-visible:ring-[#ff6b35] focus-visible:ring-offset-2
+      active:scale-95
+      disabled:cursor-not-allowed disabled:bg-[#dfe3eb] disabled:text-[#99acc2] disabled:active:scale-100;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-5 py-2 font-semibold rounded-lg transition-all duration-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800;
+    @apply inline-flex h-9 items-center justify-center rounded
+      border border-[#cbd6e2] bg-white px-4 text-sm font-semibold text-[#33475b] transition
+      hover:bg-[#f5f8fa] hover:border-[#99acc2] hover:text-[#33475b]
+      focus:outline-none
+      focus-visible:ring-2 focus-visible:ring-[#253342]/30 focus-visible:ring-offset-2;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800;
+    @apply inline-flex h-9 items-center justify-center rounded
+      px-3 text-sm font-semibold text-[#516f90] transition
+      hover:bg-[#f5f8fa] hover:text-[#33475b]
+      focus:outline-none
+      focus-visible:ring-2 focus-visible:ring-[#253342]/30 focus-visible:ring-offset-1;
+  }
+
+  .btn-danger {
+    @apply inline-flex h-9 items-center justify-center rounded
+      bg-red-600 px-4 text-sm font-semibold text-white transition
+      hover:bg-red-700
+      focus:outline-none
+      focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2
+      active:scale-95;
+  }
+
+  /* ── Badges ──────────────────────────────────────────────────────────────── */
+  .status-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  /* ── Tableaux ────────────────────────────────────────────────────────────── */
+  .table-header {
+    @apply border-b border-[#dfe3eb] py-3 pr-4 text-left text-xs font-bold uppercase tracking-wide text-[#516f90] bg-[#f5f8fa];
+  }
+
+  .table-cell {
+    @apply py-3 pr-4 text-sm text-[#33475b];
+  }
+
+  .table-row {
+    @apply border-b border-[#dfe3eb] transition last:border-b-0 hover:bg-[#f5f8fa];
   }
 
   .card {
-    @apply rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm;
+    @apply rounded-lg border border-[#dfe3eb] bg-white shadow-sm;
   }
 }
 
-/* Landing page animations */
+/* ── Animations ──────────────────────────────────────────────────────────────── */
 @keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(28px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes slideRight {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.anim-up {
-  animation: fadeUp 0.7s ease both;
-}
-
-.anim-up-2 {
-  animation: fadeUp 0.7s 0.15s ease both;
-}
-
-.anim-up-3 {
-  animation: fadeUp 0.7s 0.3s ease both;
-}
-
-.anim-up-4 {
-  animation: fadeUp 0.7s 0.45s ease both;
-}
-
-.anim-fade {
-  animation: fadeIn 1s ease both;
-}
-
-.float {
-  animation: float 4s ease-in-out infinite;
+@media (prefers-reduced-motion: no-preference) {
+  .anim-up   { animation: fadeUp    0.6s ease both; }
+  .anim-up-2 { animation: fadeUp    0.6s 0.12s ease both; }
+  .anim-up-3 { animation: fadeUp    0.6s 0.24s ease both; }
+  .anim-up-4 { animation: fadeUp    0.6s 0.36s ease both; }
+  .anim-fade { animation: fadeIn    0.8s ease both; }
+  .float     { animation: float     4.0s ease-in-out infinite; }
 }

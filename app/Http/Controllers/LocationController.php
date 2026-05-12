@@ -68,7 +68,7 @@ class LocationController extends Controller
             ->paginate(15);
 
         if ($request->wantsJson()) {
-            return response()->json($locations);
+            return $this->apiCollection($locations);
         }
 
         return view('locations.index', compact('locations'));
@@ -129,7 +129,9 @@ class LocationController extends Controller
         $data['reference_location'] = 'LOC-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
         $location = Location::query()->create($data);
 
-        $voiture->update(['statut' => 'loue']);
+        $voiture->update([
+            'statut' => in_array($location->statut, ['planifiee', 'en_cours'], true) ? 'loue' : 'disponible',
+        ]);
         $this->logAction('create', 'location', $location, $data, $request);
         $this->resetDashboardCache();
 
@@ -137,7 +139,9 @@ class LocationController extends Controller
             return redirect()->route('locations.show', $location)->with('success', 'Location creee.');
         }
 
-        return response()->json($location->load(['client', 'voiture']), 201);
+        return $this->apiItem($location->load(['client', 'voiture']), 201, [
+            'message' => 'Location creee',
+        ]);
     }
 
     public function show(Request $request, Location $location)
@@ -151,7 +155,7 @@ class LocationController extends Controller
         ]);
 
         if ($request->wantsJson()) {
-            return response()->json($location);
+            return $this->apiItem($location);
         }
 
         return view('locations.show', compact('location'));
@@ -203,7 +207,9 @@ class LocationController extends Controller
             return redirect()->route('locations.show', $location)->with('success', 'Location mise a jour.');
         }
 
-        return response()->json($location->fresh()->load(['client', 'voiture', 'etatsDesLieux']));
+        return $this->apiItem($location->fresh()->load(['client', 'voiture', 'etatsDesLieux']), 200, [
+            'message' => 'Location mise a jour',
+        ]);
     }
 
     public function destroy(Location $location)
@@ -218,7 +224,7 @@ class LocationController extends Controller
             return redirect()->route('locations.index')->with('success', 'Location supprimee.');
         }
 
-        return response()->json([], 204);
+        return $this->apiDeleted();
     }
 
     public function markReturned(Request $request, Location $location)

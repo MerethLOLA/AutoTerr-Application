@@ -11,7 +11,7 @@ class EmployeController extends Controller
     {
         $this->ensurePermission('manage_ventes');
 
-        return response()->json(
+        return $this->apiCollection(
             Employe::query()->with('user')->latest()->paginate(15)
         );
     }
@@ -22,14 +22,16 @@ class EmployeController extends Controller
         $employe = Employe::query()->create($request->validated());
         $this->logAction('create', 'employe', $employe, $request->validated(), $request);
 
-        return response()->json($employe, 201);
+        return $this->apiItem($employe, 201, [
+            'message' => 'Employe cree',
+        ]);
     }
 
     public function show(Employe $employe)
     {
         $this->ensurePermission('manage_ventes');
 
-        return response()->json($employe->load(['user', 'ventes', 'documents', 'clientsAttribues']));
+        return $this->apiItem($employe->load(['user', 'ventes', 'documents', 'clientsAttribues']));
     }
 
     public function update(EmployeRequest $request, Employe $employe)
@@ -38,7 +40,9 @@ class EmployeController extends Controller
         $employe->update($request->validated());
         $this->logAction('update', 'employe', $employe, $request->validated(), $request);
 
-        return response()->json($employe->fresh());
+        return $this->apiItem($employe->fresh(), 200, [
+            'message' => 'Employe mis a jour',
+        ]);
     }
 
     public function destroy(Employe $employe)
@@ -47,6 +51,6 @@ class EmployeController extends Controller
         $this->logAction('delete', 'employe', $employe, [], request());
         $employe->delete();
 
-        return response()->json([], 204);
+        return $this->apiDeleted();
     }
 }
