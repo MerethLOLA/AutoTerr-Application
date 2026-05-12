@@ -17,6 +17,7 @@ class Location extends Model
         'reference_location',
         'id_client',
         'id_voiture',
+        'id_agent',
         'date_debut',
         'date_fin',
         'date_retour_effective',
@@ -45,6 +46,11 @@ class Location extends Model
     public function voiture(): BelongsTo
     {
         return $this->belongsTo(Voiture::class, 'id_voiture');
+    }
+
+    public function agent(): BelongsTo
+    {
+        return $this->belongsTo(Employe::class, 'id_agent');
     }
 
     public function etatsDesLieux(): HasMany

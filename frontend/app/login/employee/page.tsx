@@ -5,176 +5,225 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
 import { readStoredAuth } from '@/lib/auth-storage';
 
-function EyeIcon({ open }: { open: boolean }) {
-    if (open) {
-        return (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
-                <circle cx="12" cy="12" r="3" />
-            </svg>
-        );
-    }
-
-    return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-            <path d="M3 3l18 18" />
-            <path d="M10.6 10.7a3 3 0 0 0 4.2 4.2" />
-            <path d="M9.9 5.2A10.9 10.9 0 0 1 12 5c6.5 0 10 7 10 7a18.6 18.6 0 0 1-3 3.9" />
-            <path d="M6.6 6.7C4.1 8.3 2.6 11 2 12c0 0 3.5 7 10 7a10.7 10.7 0 0 0 5-1.2" />
-        </svg>
-    );
+function EyeOpen() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
 }
 
+function EyeOff() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M3 3l18 18" />
+      <path d="M10.6 10.7a3 3 0 0 0 4.2 4.2" />
+      <path d="M9.9 5.2A10.9 10.9 0 0 1 12 5c6.5 0 10 7 10 7a18.6 18.6 0 0 1-3 3.9" />
+      <path d="M6.6 6.7C4.1 8.3 2.6 11 2 12c0 0 3.5 7 10 7a10.7 10.7 0 0 0 5-1.2" />
+    </svg>
+  );
+}
+
+const VIOLET = '#2d1b3d';
+const VIOLET_MID = '#5b2d8e';   /* violet moyen pour focus / accents */
+const BG = '#ede0f7';           /* fond violet clair */
+
 export default function LoginEmployee() {
-    const router = useRouter();
-    const { login, loading, isAuthenticated } = useAuth();
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [remember, setRemember] = useState(true);
-    const [showPassword, setShowPassword] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const { login, loading, isAuthenticated } = useAuth();
 
-    const isDisabled = useMemo(() => loading || !username.trim() || !password.trim(), [loading, password, username]);
+  const [username, setUsername]         = useState('');
+  const [password, setPassword]         = useState('');
+  const [remember, setRemember]         = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError]               = useState<string | null>(null);
 
-    useEffect(() => {
-        const { token, user } = readStoredAuth();
+  const isDisabled = useMemo(
+    () => loading || !username.trim() || !password.trim(),
+    [loading, username, password],
+  );
 
-        if (token && user && isAuthenticated) {
-            router.replace(user.role === 'client' ? '/espace-client' : '/dashboard');
-        }
-    }, [isAuthenticated, router]);
+  useEffect(() => {
+    const { token, user } = readStoredAuth();
+    if (token && user && isAuthenticated) {
+      router.replace(user.role === 'client' ? '/espace-client' : '/dashboard');
+    }
+  }, [isAuthenticated, router]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      const res = await login({ username: username.trim(), password });
+      if (!remember) sessionStorage.setItem('employee_session_only', '1');
+      router.push(res.user.role === 'client' ? '/espace-client' : '/dashboard');
+    } catch (err: any) {
+      setError(err?.message || 'Identifiants incorrects. Veuillez réessayer.');
+    }
+  };
 
-        try {
-            const response = await login({ username: username.trim(), password });
-            if (!remember) {
-                sessionStorage.setItem('employee_session_only', '1');
-            }
+  /* ── styles inline réutilisables ── */
+  const inputBase: React.CSSProperties = {
+    width: '100%',
+    borderRadius: 3,
+    border: `1px solid #dfe3eb`,
+    backgroundColor: '#f5f8fa',
+    color: '#33475b',
+    padding: '10px 12px',
+    fontSize: 14,
+    outline: 'none',
+    transition: 'border-color .15s, background-color .15s',
+  };
 
-            router.push(response.user.role === 'client' ? '/espace-client' : '/dashboard');
-        } catch (err: any) {
-            setError(err?.message || 'Identifiants incorrects');
-        }
-    };
+  function focusInput(e: React.FocusEvent<HTMLInputElement>) {
+    e.target.style.borderColor = VIOLET_MID;
+    e.target.style.backgroundColor = '#fff';
+    e.target.style.boxShadow = `0 0 0 3px ${VIOLET_MID}22`;
+  }
+  function blurInput(e: React.FocusEvent<HTMLInputElement>) {
+    e.target.style.borderColor = '#dfe3eb';
+    e.target.style.backgroundColor = '#f5f8fa';
+    e.target.style.boxShadow = 'none';
+  }
 
-    return (
-        <div className="relative min-h-screen overflow-hidden bg-slate-50">
-            <div className="absolute inset-0 bg-[linear-gradient(135deg,_#ffffff_0%,_#f1f5f9_50%,_#e2e8f0_100%)]" />
-            <div className="absolute -left-32 top-10 h-80 w-80 rounded-full bg-slate-200/20 blur-3xl" />
-            <div className="absolute -right-24 bottom-20 h-96 w-96 rounded-full bg-slate-300/20 blur-3xl" />
+  return (
+    <div className="relative min-h-screen overflow-hidden" style={{ backgroundColor: BG }}>
 
-            <div className="relative mx-auto flex max-w-6xl flex-col px-6 py-6">
-                <div className="flex items-center gap-3">
-                    <div>
-                        <img src="/logo.png" alt="Logo" width="60" height="30" />
-                    </div>
-                    <p className="text-lg font-black text-[#002d54]">SunuPark</p>
-                </div>
-            </div>
+      {/* ── Formes décoratives ── */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rotate-45 rounded-3xl opacity-40"
+        style={{ backgroundColor: '#c9a8e8' }} />
+      <div className="pointer-events-none absolute -right-6 -top-6 h-36 w-36 rotate-45 rounded-2xl opacity-25"
+        style={{ backgroundColor: '#a87fd4' }} />
+      <div className="pointer-events-none absolute -bottom-14 -left-14 h-44 w-44 rotate-12 rounded-3xl opacity-25"
+        style={{ backgroundColor: '#c9a8e8' }} />
 
-            <div className="relative mx-auto flex min-h-[calc(100vh-100px)] max-w-6xl items-center px-6 py-10">
-                <div className="grid w-full items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-                    <section className="hidden lg:block">
-                        <div className="max-w-xl">
-                            <h1 className="max-w-lg text-5xl font-black tracking-tight text-slate-950">
-                                Connectez-vous au back-office.
-                            </h1>
-                            <p className="mt-5 max-w-lg text-lg leading-8 text-slate-600">
-                                Suivi commercial, locations, stock, SAV et reporting dans une interface.
-                            </p>
+      {/* ── Centrage ── */}
+      <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-12">
 
-                            <div className="mt-10 grid gap-4 sm:grid-cols-2">
-                                {[
-                                    { title: 'Acces securise', text: 'Authentification employee centralisee.' },
-                                    { title: 'Vue unifiee', text: 'Modules metier alignes avec l API Laravel.' },
-                                    { title: 'Pilotage rapide', text: 'Acces direct au dashboard et aux workflows.' },
-                                    { title: 'Design epure', text: 'Palette minimaliste et professionnelle.' },
-                                ].map((item) => (
-                                    <div key={item.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                                        <p className="text-sm font-black text-slate-900">{item.title}</p>
-                                        <p className="mt-2 text-sm leading-6 text-slate-600">{item.text}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </section>
-
-                    <section className="mx-auto w-full max-w-xl">
-                        <div className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-[0_8px_32px_rgba(0,45,84,0.08)] lg:p-10">
-                            <div className="mb-8 text-center lg:text-left">
-                                <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#002d54]">SunuPark</p>
-                                <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-950">Bienvenue</h1>
-                            </div>
-
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                {error && (
-                                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                                        {error}
-                                    </div>
-                                )}
-
-                                <div className="space-y-2">
-                                    <label className="block text-sm font-bold text-slate-700">Nom d&apos;utilisateur</label>
-                                    <input
-                                        type="text"
-                                        value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
-                                        required
-                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base text-slate-900 outline-none transition focus:border-[#002d54] focus:bg-white focus:ring-4 focus:ring-[#002d54]/10"
-                                        placeholder="votre_username"
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="block text-sm font-bold text-slate-700">Mot de passe</label>
-                                    <div className="relative">
-                                        <input
-                                            type={showPassword ? 'text' : 'password'}
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            required
-                                            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 pr-14 text-base text-slate-900 outline-none transition focus:border-[#002d54] focus:bg-white focus:ring-4 focus:ring-[#002d54]/10"
-                                            placeholder="********"
-                                        />
-                                        <button
-                                            type="button"
-                                            aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                                            onClick={() => setShowPassword((current) => !current)}
-                                            className="absolute inset-y-0 right-0 flex w-14 items-center justify-center text-slate-400 transition hover:text-[#002d54]"
-                                        >
-                                            <EyeIcon open={showPassword} />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-col gap-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-                                    <label className="inline-flex items-center gap-3 font-medium">
-                                        <input
-                                            type="checkbox"
-                                            checked={remember}
-                                            onChange={(e) => setRemember(e.target.checked)}
-                                            className="h-4 w-4 rounded border-slate-300 bg-white text-[#002d54] focus:ring-[#002d54]"
-                                        />
-                                        Se souvenir de moi
-                                    </label>
-                                    <span className="font-medium text-slate-400">Connexion securisee</span>
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    disabled={isDisabled}
-                                    className="inline-flex w-full items-center justify-center rounded-2xl bg-[#002d54] px-5 py-4 text-base font-black text-white shadow-lg shadow-[#002d54]/20 transition hover:bg-[#001a35] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
-                                >
-                                    {loading ? 'Connexion en cours...' : 'Se connecter'}
-                                </button>
-                            </form>
-                        </div>
-                    </section>
-                </div>
-            </div>
+        {/* Logo */}
+        <div className="mb-6 flex flex-col items-center gap-2">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: VIOLET }}>
+            <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                d="M12 2C8 2 5 5.5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.5-3-7-7-7z" />
+              <circle cx="12" cy="9" r="2.5" strokeWidth={1.8} />
+            </svg>
+          </div>
+          <span className="text-2xl font-black tracking-tight" style={{ color: VIOLET }}>
+            SunuPark
+          </span>
         </div>
-    );
+
+        {/* ── Carte ── */}
+        <div className="w-full max-w-md rounded-sm bg-white px-8 py-8 shadow-[0_4px_24px_rgba(45,27,61,0.12)]">
+
+          {/* Erreur */}
+          {error && (
+            <div className="mb-5 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+
+            {/* ── Nom d'utilisateur ── */}
+            <div>
+              <label className="mb-1.5 block text-sm font-bold" style={{ color: '#33475b' }}>
+                Nom d&apos;utilisateur
+              </label>
+              <input
+                type="text"
+                autoComplete="username"
+                placeholder="votre_identifiant"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                onFocus={focusInput}
+                onBlur={blurInput}
+                required
+                style={inputBase}
+              />
+            </div>
+
+            {/* ── Mot de passe ── */}
+            <div>
+              <label className="mb-1.5 block text-sm font-bold" style={{ color: '#33475b' }}>
+                Mot de passe
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onFocus={focusInput}
+                  onBlur={blurInput}
+                  required
+                  style={{ ...inputBase, paddingRight: 44 }}
+                />
+                {/* Bouton œil */}
+                <button
+                  type="button"
+                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-0 flex w-11 items-center justify-center transition"
+                  style={{ color: showPassword ? VIOLET_MID : '#516f90' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = VIOLET_MID)}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = showPassword ? VIOLET_MID : '#516f90')}
+                >
+                  {showPassword ? <EyeOpen /> : <EyeOff />}
+                </button>
+              </div>
+            </div>
+
+            {/* ── Se souvenir de moi ── */}
+            <label className="flex cursor-pointer items-center gap-2.5 text-sm" style={{ color: '#516f90' }}>
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300"
+                style={{ accentColor: VIOLET }}
+              />
+              Se souvenir de moi
+            </label>
+
+            {/* ── Bouton connexion ── */}
+            <button
+              type="submit"
+              disabled={isDisabled}
+              className="w-full rounded-sm py-2.5 text-sm font-bold transition"
+              style={{
+                backgroundColor: isDisabled ? '#dfe3eb' : VIOLET,
+                color:           isDisabled ? '#516f90' : '#fff',
+                cursor:          isDisabled ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {loading ? 'Connexion…' : 'Se connecter'}
+            </button>
+          </form>
+
+          {/* ── Séparateur ── */}
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1" style={{ backgroundColor: '#dfe3eb' }} />
+            <span className="text-xs font-semibold" style={{ color: '#516f90' }}>Accès sécurisé</span>
+            <div className="h-px flex-1" style={{ backgroundColor: '#dfe3eb' }} />
+          </div>
+
+          <p className="text-center text-xs leading-5" style={{ color: '#516f90' }}>
+            Session protégée par authentification JWT.<br />
+            Réservé au personnel SunuPark autorisé.
+          </p>
+        </div>
+
+        {/* Footer */}
+        <p className="mt-6 text-xs" style={{ color: '#516f90' }}>
+          © {new Date().getFullYear()} SunuPark — Tous droits réservés
+        </p>
+      </div>
+    </div>
+  );
 }

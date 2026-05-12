@@ -1,10 +1,14 @@
 <?php
 
+use App\Http\Controllers\AssuranceController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CarburantController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ControleTechniqueController;
 use App\Http\Controllers\CustomerPortalController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\EmployeController;
+use App\Http\Controllers\EntretienController;
 use App\Http\Controllers\FacturationController;
 use App\Http\Controllers\FournisseurController;
 use App\Http\Controllers\GarantieController;
@@ -14,6 +18,7 @@ use App\Http\Controllers\OrdreTravailController;
 use App\Http\Controllers\PaiementController;
 use App\Http\Controllers\PieceStockController;
 use App\Http\Controllers\ReportingController;
+use App\Http\Controllers\SinistreController;
 use App\Http\Controllers\TicketSavController;
 use App\Http\Controllers\UserSettingsController;
 use App\Http\Controllers\VenteController;
@@ -50,6 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
         'garanties' => GarantieController::class,
     ]);
 
+    Route::post('/locations/{location}/etats-lieux', [LocationController::class, 'addEtatLieu']);
     Route::get('/garanties/{garantie}/export',      [GarantieController::class,    'export']);
     Route::get('/facturations/{facturation}/export', [FacturationController::class, 'export']);
     Route::get('/paiements/{paiement}/export',       [PaiementController::class,    'export']);
@@ -59,6 +65,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('pieces-stock', PieceStockController::class)->parameters(['pieces-stock' => 'pieceStock']);
     Route::get('/mouvements-stock', [MouvementStockController::class, 'index']);
     Route::get('/mouvements-stock/{mouvementStock}', [MouvementStockController::class, 'show']);
+
+    // Nouveaux modules parc complet
+    Route::apiResource('assurances', AssuranceController::class);
+    Route::apiResource('carburants', CarburantController::class);
+    Route::apiResource('controles-techniques', ControleTechniqueController::class)
+        ->parameters(['controles-techniques' => 'controleTechnique']);
+    Route::apiResource('sinistres', SinistreController::class);
+    Route::apiResource('entretiens', EntretienController::class);
+
+    // Historique complet d'un véhicule
+    Route::get('/voitures/{voiture}/historique', [VoitureController::class, 'historique']);
+
+    // Alertes d'expiration (assurances, CT, entretiens)
+    Route::get('/alertes/expirations', [VoitureController::class, 'alertesExpirations']);
     Route::get('/reporting', [ReportingController::class, 'index']);
     Route::get('/reporting/export', [ReportingController::class, 'export']);
     Route::get('/customer/portal', [CustomerPortalController::class, 'summary']);

@@ -53,6 +53,8 @@ function fmtMoney(n: number | null | undefined) {
   return new Intl.NumberFormat('fr-FR').format(n) + ' XOF';
 }
 
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
 export default function LocationDetailPage() {
   const params = useParams();
   const id = params.id as string;
@@ -64,6 +66,12 @@ export default function LocationDetailPage() {
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  // État des lieux form
+  const [showEtatForm, setShowEtatForm] = useState(false);
+  const [etatForm, setEtatForm] = useState({ type_etat: 'depart', date_etat: todayISO(), description: '' });
+  const [savingEtat, setSavingEtat] = useState(false);
+  const [etatError, setEtatError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -88,6 +96,24 @@ export default function LocationDetailPage() {
       setError(err?.message || 'Erreur lors de la mise à jour');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function submitEtat(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingEtat(true);
+    setEtatError(null);
+    try {
+      const res = await apiClient.post<{ data: EtatDesLieux }>(`/locations/${id}/etats-lieux`, etatForm);
+      setLocation((l) => l ? { ...l, etatsDesLieux: [...(l.etatsDesLieux ?? []), res.data] } : l);
+      setEtatForm({ type_etat: 'depart', date_etat: todayISO(), description: '' });
+      setShowEtatForm(false);
+      setFeedback('État des lieux enregistré.');
+      setTimeout(() => setFeedback(null), 3000);
+    } catch (err: any) {
+      setEtatError(err?.response?.data?.message || 'Erreur lors de l\'enregistrement');
+    } finally {
+      setSavingEtat(false);
     }
   }
 
@@ -200,7 +226,7 @@ export default function LocationDetailPage() {
 
             {/* États des lieux */}
             <section className="surface-panel">
-              <div className="border-b border-[#dfe3eb] px-5 py-4">
+              <div className="flex items-center justify-between border-b border-[#dfe3eb] px-5 py-4">
                 <h2 className="section-title">
                   États des lieux
                   {location.etatsDesLieux && location.etatsDesLieux.length > 0 && (
@@ -209,7 +235,67 @@ export default function LocationDetailPage() {
                     </span>
                   )}
                 </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowEtatForm((v) => !v)}
+                  className="inline-flex items-center gap-1 rounded border border-[#dfe3eb] bg-white px-3 py-1.5 text-xs font-semibold text-[#33475b] transition hover:border-[#2d1b3d] hover:bg-[#2d1b3d] hover:text-white"
+                >
+                  {showEtatForm ? 'Annuler' : '+ Ajouter'}
+                </button>
               </div>
+
+              {/* Formulaire d'ajout */}
+              {showEtatForm && (
+                <form onSubmit={submitEtat} className="border-b border-[#dfe3eb] bg-[#f5f8fa] px-5 py-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-[#33475b]">Type *</label>
+                      <select
+                        className="field-control"
+                        value={etatForm.type_etat}
+                        onChange={(e) => setEtatForm((f) => ({ ...f, type_etat: e.target.value }))}
+                        required
+                      >
+                        <option value="depart">Départ</option>
+                        <option value="retour">Retour</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-[#33475b]">Date *</label>
+                      <input
+                        type="date"
+                        className="field-control"
+                        value={etatForm.date_etat}
+                        onChange={(e) => setEtatForm((f) => ({ ...f, date_etat: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="mb-1 block text-xs font-semibold text-[#33475b]">Description / observations</label>
+                      <textarea
+                        className="field-control resize-none"
+                        rows={3}
+                        placeholder="État général du véhicule, dommages constatés…"
+                        value={etatForm.description}
+                        onChange={(e) => setEtatForm((f) => ({ ...f, description: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  {etatError && (
+                    <p className="mt-2 text-xs text-red-600">{etatError}</p>
+                  )}
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={savingEtat}
+                      className="btn-primary"
+                    >
+                      {savingEtat ? 'Enregistrement…' : 'Enregistrer l\'état'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>

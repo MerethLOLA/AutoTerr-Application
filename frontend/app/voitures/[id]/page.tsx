@@ -6,9 +6,9 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+const STORAGE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '');
 function imgUrl(p?: string | null) {
-  return p ? `${API_URL}/storage/${p}` : null;
+  return p ? `${STORAGE_URL}/storage/${p}` : null;
 }
 function money(v?: number | string | null) {
   return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(v ?? 0));
@@ -197,10 +197,14 @@ export default function VoitureDetailPage() {
             )}
 
             {/* Actions secondaires */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Link href={`/voitures/${voiture.id}/edit`}
                 className="flex-1 rounded-xl border border-slate-200 py-2.5 text-center text-sm font-bold text-slate-600 transition hover:bg-slate-50">
                 Modifier
+              </Link>
+              <Link href={`/voitures/${voiture.id}/historique`}
+                className="flex-1 rounded-xl border border-[#2d1b3d] bg-[#2d1b3d]/5 py-2.5 text-center text-sm font-bold text-[#2d1b3d] transition hover:bg-[#2d1b3d]/10">
+                Historique
               </Link>
               <Link href={`/garanties?voiture_id=${voiture.id}`}
                 className="flex-1 rounded-xl border border-slate-200 py-2.5 text-center text-sm font-bold text-slate-600 transition hover:bg-slate-50">

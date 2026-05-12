@@ -270,6 +270,83 @@ class VoitureController extends Controller
         return $this->apiDeleted();
     }
 
+    public function historique(Request $request, Voiture $voiture): JsonResponse
+    {
+        $this->ensurePermission('view_voitures');
+
+        $voiture->load([
+            'ventes:id,id_voiture,reference_vente,date_vente,prix_final,statut',
+            'locations:id,id_voiture,reference_location,date_debut,date_fin,statut,tarif_journalier',
+            'ticketsSav:id,id_voiture,reference_ticket,objet,statut,date_ouverture,priorite',
+            'ordresTravail:id,id_voiture,reference_ot,description,statut,created_at',
+            'assurances:id,id_voiture,compagnie,type_assurance,date_debut,date_fin,statut',
+            'controlesTechniques:id,id_voiture,type_controle,date_controle,date_expiration,resultat',
+            'entretiens:id,id_voiture,type_entretien,date_prevue,date_realise,statut,cout',
+            'sinistres:id,id_voiture,type_sinistre,date_sinistre,statut,montant_dommages',
+            'carburants:id,id_voiture,date_plein,kilometrage_au_plein,montant_total,type_carburant',
+        ]);
+
+        return response()->json(['data' => $voiture]);
+    }
+
+    public function alertesExpirations(): JsonResponse
+    {
+        $this->ensurePermission('view_voitures');
+
+        $horizon = now()->addDays(30);
+
+        $assurancesExpirant = \App\Models\Assurance::query()
+            ->with('voiture:id,marque,modele')
+            ->where('statut', 'active')
+            ->whereBetween('date_fin', [now(), $horizon])
+            ->orderBy('date_fin')
+            ->get(['id', 'id_voiture', 'compagnie', 'type_assurance', 'date_fin']);
+
+        $assurancesExpirees = \App\Models\Assurance::query()
+            ->with('voiture:id,marque,modele')
+            ->where('statut', 'active')
+            ->where('date_fin', '<', now())
+            ->orderBy('date_fin', 'desc')
+            ->get(['id', 'id_voiture', 'compagnie', 'type_assurance', 'date_fin']);
+
+        $controlesExpirant = \App\Models\ControleTechnique::query()
+            ->with('voiture:id,marque,modele')
+            ->whereNotNull('date_expiration')
+            ->whereBetween('date_expiration', [now(), $horizon])
+            ->orderBy('date_expiration')
+            ->get(['id', 'id_voiture', 'type_controle', 'date_expiration', 'resultat']);
+
+        $controlesExpires = \App\Models\ControleTechnique::query()
+            ->with('voiture:id,marque,modele')
+            ->whereNotNull('date_expiration')
+            ->where('date_expiration', '<', now())
+            ->orderBy('date_expiration', 'desc')
+            ->get(['id', 'id_voiture', 'type_controle', 'date_expiration', 'resultat']);
+
+        $entretiensPrevus = \App\Models\Entretien::query()
+            ->with(['voiture:id,marque,modele', 'technicien:id,nom,prenom'])
+            ->where('statut', 'planifie')
+            ->whereNotNull('date_prevue')
+            ->where('date_prevue', '<=', $horizon)
+            ->orderBy('date_prevue')
+            ->get(['id', 'id_voiture', 'id_technicien', 'type_entretien', 'date_prevue', 'statut']);
+
+        return response()->json([
+            'data' => [
+                'assurances_expirant' => $assurancesExpirant,
+                'assurances_expirees' => $assurancesExpirees,
+                'controles_expirant'  => $controlesExpirant,
+                'controles_expires'   => $controlesExpires,
+                'entretiens_prevus'   => $entretiensPrevus,
+                'total_alertes'       => $assurancesExpirant->count()
+                    + $assurancesExpirees->count()
+                    + $controlesExpirant->count()
+                    + $controlesExpires->count()
+                    + $entretiensPrevus->count(),
+            ],
+        ]);
+    }
+
     private function generateNumeroChassis(): string
     {
         do {

@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Assurance;
+use App\Models\Carburant;
+use App\Models\Entretien;
 use App\Models\Facturation;
 use App\Models\Location;
 use App\Models\MouvementStock;
 use App\Models\OrdreTravail;
 use App\Models\Paiement;
 use App\Models\PieceStock;
+use App\Models\Sinistre;
 use App\Models\TicketSav;
 use App\Models\Vente;
 use App\Models\Voiture;
@@ -110,6 +114,33 @@ class ReportingController extends Controller
 
         $voituresDisponibles = Voiture::query()->where('statut', 'disponible')->count();
 
+        $conformiteStats = [
+            'assurances_expirant' => Assurance::query()
+                ->whereBetween('date_fin', [now()->toDateString(), now()->addDays(30)->toDateString()])
+                ->where('statut', '!=', 'annulee')
+                ->count(),
+            'assurances_expirees' => Assurance::query()
+                ->where('date_fin', '<', now()->toDateString())
+                ->where('statut', '!=', 'annulee')
+                ->count(),
+            'sinistres_ouverts' => Sinistre::query()
+                ->whereNotIn('statut', ['clos', 'annule', 'rejete'])
+                ->count(),
+            'entretiens_a_venir' => Entretien::query()
+                ->where('statut', 'planifie')
+                ->whereBetween('date_entretien', [now()->toDateString(), now()->addDays(30)->toDateString()])
+                ->count(),
+            'cout_entretien_mois' => (float) Entretien::query()
+                ->whereMonth('date_entretien', now()->month)
+                ->whereYear('date_entretien', now()->year)
+                ->selectRaw('COALESCE(SUM(cout_main_oeuvre + cout_pieces), 0) as total')
+                ->value('total'),
+            'cout_carburant_mois' => (float) Carburant::query()
+                ->whereMonth('date_plein', now()->month)
+                ->whereYear('date_plein', now()->year)
+                ->sum('cout'),
+        ];
+
         $data = compact(
             'year',
             'salesMonthly',
@@ -119,6 +150,7 @@ class ReportingController extends Controller
             'stockStats',
             'financeStats',
             'voituresDisponibles',
+            'conformiteStats',
         );
 
         if ($request->wantsJson()) {

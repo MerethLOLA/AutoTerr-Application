@@ -5,9 +5,9 @@ import { apiClient } from '@/lib/api';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+const STORAGE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '');
 function imgUrl(p?: string | null) {
-  return p ? `${API_URL}/storage/${p}` : null;
+  return p ? `${STORAGE_URL}/storage/${p}` : null;
 }
 function money(v: number) {
   return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(v);

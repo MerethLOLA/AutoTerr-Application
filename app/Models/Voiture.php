@@ -95,6 +95,31 @@ class Voiture extends Model
         return $this->hasMany(Document::class, 'id_voiture');
     }
 
+    public function assurances(): HasMany
+    {
+        return $this->hasMany(Assurance::class, 'id_voiture');
+    }
+
+    public function carburants(): HasMany
+    {
+        return $this->hasMany(Carburant::class, 'id_voiture');
+    }
+
+    public function controlesTechniques(): HasMany
+    {
+        return $this->hasMany(ControleTechnique::class, 'id_voiture');
+    }
+
+    public function sinistres(): HasMany
+    {
+        return $this->hasMany(Sinistre::class, 'id_voiture');
+    }
+
+    public function entretiens(): HasMany
+    {
+        return $this->hasMany(Entretien::class, 'id_voiture');
+    }
+
     public function scopeDisponibles($query)
     {
         return $query->where('statut', 'disponible');

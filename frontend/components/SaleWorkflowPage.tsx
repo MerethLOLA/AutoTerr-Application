@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
-function imgUrl(p?: string | null) { return p ? `${API_URL}/storage/${p}` : null; }
+const STORAGE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '');
+function imgUrl(p?: string | null) { return p ? `${STORAGE_URL}/storage/${p}` : null; }
 function money(v?: number | string | null) {
   return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(v ?? 0));
 }

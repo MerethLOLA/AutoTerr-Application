@@ -4,9 +4,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 const AUTH_PREFIX = '/auth';
 
 const API_CONFIG = {
-  timeout: 10000,
-  retryAttempts: 3,
-  retryDelay: 1000,
+  timeout: 30000,
+  retryAttempts: 2,
+  retryDelay: 800,
 };
 
 interface ApiError {
@@ -42,11 +42,22 @@ class ApiClient {
 
     this.client.interceptors.response.use(
       (response) => response,
-      (error: AxiosError) => {
+      async (error: AxiosError) => {
         if (error.response?.status === 401) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           window.location.href = '/login/employee';
+          return Promise.reject(error);
+        }
+
+        const config = error.config as any;
+
+        // Retry automatique sur timeout ou erreur réseau (pas sur les 4xx)
+        const isRetryable = !error.response || error.code === 'ECONNABORTED';
+        if (isRetryable && (config._retryCount ?? 0) < API_CONFIG.retryAttempts) {
+          config._retryCount = (config._retryCount ?? 0) + 1;
+          await new Promise((r) => setTimeout(r, API_CONFIG.retryDelay * config._retryCount));
+          return this.client(config);
         }
 
         return Promise.reject(error);

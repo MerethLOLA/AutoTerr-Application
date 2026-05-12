@@ -6,9 +6,9 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+const STORAGE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '');
 function imgUrl(p?: string | null) {
-  return p ? `${API_URL}/storage/${p}` : null;
+  return p ? `${STORAGE_URL}/storage/${p}` : null;
 }
 
 interface SelectOption { id: number; nom: string; }

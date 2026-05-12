@@ -17,6 +17,7 @@ class Garantie extends Model
 
     protected $fillable = [
         'id_voiture',
+        'id_employe',
         'duree_garantie',
         'type_garantie',
         'date_debut',
@@ -33,6 +34,11 @@ class Garantie extends Model
     public function voiture(): BelongsTo
     {
         return $this->belongsTo(Voiture::class, 'id_voiture');
+    }
+
+    public function employe(): BelongsTo
+    {
+        return $this->belongsTo(Employe::class, 'id_employe');
     }
 
     public function ticketsSav(): HasMany

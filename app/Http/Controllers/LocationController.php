@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\LocationRequest;
 use App\Models\Client;
+use App\Models\EtatLieuLocation;
 use App\Models\Location;
 use App\Models\Voiture;
 use App\Services\DocumentExportService;
@@ -151,7 +152,7 @@ class LocationController extends Controller
         $location->load([
             'client:id,nom,prenom',
             'voiture:id,marque,modele',
-            'etatsDesLieux:id,id_location,type_etat,date_etat',
+            'etatsDesLieux:id,id_location,type_etat,description,date_etat',
         ]);
 
         if ($request->wantsJson()) {
@@ -242,6 +243,23 @@ class LocationController extends Controller
         $this->resetDashboardCache();
 
         return redirect()->route('locations.show', $location)->with('success', 'Retour de location enregistre.');
+    }
+
+    public function addEtatLieu(Request $request, Location $location)
+    {
+        $this->ensurePermission('manage_location');
+
+        $data = $request->validate([
+            'type_etat'   => 'required|in:depart,retour',
+            'date_etat'   => 'required|date',
+            'description' => 'nullable|string|max:2000',
+        ]);
+
+        $data['id_location'] = $location->id;
+        $etat = EtatLieuLocation::query()->create($data);
+        $this->logAction('create', 'etat_lieu', $etat, $data, $request);
+
+        return $this->apiItem($etat, 201, ['message' => 'État des lieux enregistré']);
     }
 
     public function export(Location $location, DocumentExportService $exportService)
