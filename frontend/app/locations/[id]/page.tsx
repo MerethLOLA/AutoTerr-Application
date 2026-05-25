@@ -36,11 +36,11 @@ function badge(value: string) {
     planifiee: 'bg-amber-100 text-amber-800',
     en_cours: 'bg-blue-100 text-blue-800',
     terminee: 'bg-emerald-100 text-emerald-800',
-    annulee: 'bg-[#f5f8fa] text-[#516f90]',
+    annulee: 'bg-[#f5f8fa] text-[#6b7280]',
     depart: 'bg-blue-100 text-blue-800',
     retour: 'bg-emerald-100 text-emerald-800',
   };
-  return `inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${map[value] ?? 'bg-[#f5f8fa] text-[#516f90]'}`;
+  return `inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${map[value] ?? 'bg-[#f5f8fa] text-[#6b7280]'}`;
 }
 
 function fmtDate(d: string | null | undefined) {
@@ -59,8 +59,9 @@ export default function LocationDetailPage() {
   const params = useParams();
   const id = params.id as string;
 
-  const [location, setLocation] = useState<Location | null>(null);
-  const [loading, setLoading] = useState(true);
+  const _initLoc = apiClient.getCached<{ data: Location }>(`/locations/${id}`);
+  const [location, setLocation] = useState<Location | null>(_initLoc?.data ?? null);
+  const [loading, setLoading] = useState(_initLoc === null);
   const [error, setError] = useState<string | null>(null);
   const [statut, setStatut] = useState('');
   const [saving, setSaving] = useState(false);
@@ -167,10 +168,10 @@ export default function LocationDetailPage() {
         {/* En-tête */}
         <div className="page-header">
           <div>
-            <nav className="mb-1 flex items-center gap-1.5 text-xs text-[#516f90]">
-              <Link href="/locations" className="hover:text-[#33475b]">Locations</Link>
+            <nav className="mb-1 flex items-center gap-1.5 text-xs text-[#6b7280]">
+              <Link href="/locations" className="hover:text-[#111827]">Locations</Link>
               <span>/</span>
-              <span className="font-semibold text-[#33475b]">{location.reference_location}</span>
+              <span className="font-semibold text-[#111827]">{location.reference_location}</span>
             </nav>
             <h1 className="page-title">Contrat de location</h1>
           </div>
@@ -211,15 +212,15 @@ export default function LocationDetailPage() {
                   { label: 'Caution', value: fmtMoney(location.caution) },
                 ].map(({ label, value }) => (
                   <div key={label} className="rounded border border-[#dfe3eb] bg-[#f5f8fa] px-4 py-3">
-                    <p className="text-xs text-[#516f90]">{label}</p>
-                    <p className="mt-1 text-sm font-bold text-[#33475b]">{value}</p>
+                    <p className="text-xs text-[#6b7280]">{label}</p>
+                    <p className="mt-1 text-sm font-bold text-[#111827]">{value}</p>
                   </div>
                 ))}
               </div>
               {location.observations && (
                 <div className="mt-4 rounded border border-[#dfe3eb] bg-[#f5f8fa] px-4 py-3">
-                  <p className="text-xs font-semibold text-[#516f90]">Observations</p>
-                  <p className="mt-1 text-sm text-[#33475b]">{location.observations}</p>
+                  <p className="text-xs font-semibold text-[#6b7280]">Observations</p>
+                  <p className="mt-1 text-sm text-[#111827]">{location.observations}</p>
                 </div>
               )}
             </section>
@@ -230,7 +231,7 @@ export default function LocationDetailPage() {
                 <h2 className="section-title">
                   États des lieux
                   {location.etatsDesLieux && location.etatsDesLieux.length > 0 && (
-                    <span className="ml-2 rounded bg-[#f5f8fa] px-2 py-0.5 text-xs text-[#516f90]">
+                    <span className="ml-2 rounded bg-[#f5f8fa] px-2 py-0.5 text-xs text-[#6b7280]">
                       {location.etatsDesLieux.length}
                     </span>
                   )}
@@ -238,7 +239,7 @@ export default function LocationDetailPage() {
                 <button
                   type="button"
                   onClick={() => setShowEtatForm((v) => !v)}
-                  className="inline-flex items-center gap-1 rounded border border-[#dfe3eb] bg-white px-3 py-1.5 text-xs font-semibold text-[#33475b] transition hover:border-[#2d1b3d] hover:bg-[#2d1b3d] hover:text-white"
+                  className="inline-flex items-center gap-1 rounded border border-[#dfe3eb] bg-white px-3 py-1.5 text-xs font-semibold text-[#111827] transition hover:border-[#2d1b3d] hover:bg-[#2d1b3d] hover:text-white"
                 >
                   {showEtatForm ? 'Annuler' : '+ Ajouter'}
                 </button>
@@ -249,7 +250,7 @@ export default function LocationDetailPage() {
                 <form onSubmit={submitEtat} className="border-b border-[#dfe3eb] bg-[#f5f8fa] px-5 py-4">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="mb-1 block text-xs font-semibold text-[#33475b]">Type *</label>
+                      <label className="mb-1 block text-xs font-semibold text-[#111827]">Type *</label>
                       <select
                         className="field-control"
                         value={etatForm.type_etat}
@@ -261,7 +262,7 @@ export default function LocationDetailPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-semibold text-[#33475b]">Date *</label>
+                      <label className="mb-1 block text-xs font-semibold text-[#111827]">Date *</label>
                       <input
                         type="date"
                         className="field-control"
@@ -271,7 +272,7 @@ export default function LocationDetailPage() {
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="mb-1 block text-xs font-semibold text-[#33475b]">Description / observations</label>
+                      <label className="mb-1 block text-xs font-semibold text-[#111827]">Description / observations</label>
                       <textarea
                         className="field-control resize-none"
                         rows={3}
@@ -308,7 +309,7 @@ export default function LocationDetailPage() {
                   <tbody>
                     {!location.etatsDesLieux || location.etatsDesLieux.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="px-5 py-8 text-sm text-[#516f90]">Aucun état des lieux enregistré.</td>
+                        <td colSpan={3} className="px-5 py-8 text-sm text-[#6b7280]">Aucun état des lieux enregistré.</td>
                       </tr>
                     ) : (
                       location.etatsDesLieux.map((etat) => (
@@ -318,8 +319,8 @@ export default function LocationDetailPage() {
                               {etat.type_etat === 'depart' ? 'Départ' : etat.type_etat === 'retour' ? 'Retour' : etat.type_etat}
                             </span>
                           </td>
-                          <td className="table-cell font-medium text-[#33475b]">{fmtDate(etat.date_etat)}</td>
-                          <td className="table-cell text-[#516f90] max-w-xs truncate">{etat.description || '-'}</td>
+                          <td className="table-cell font-medium text-[#111827]">{fmtDate(etat.date_etat)}</td>
+                          <td className="table-cell text-[#6b7280] max-w-xs truncate">{etat.description || '-'}</td>
                         </tr>
                       ))
                     )}
@@ -345,8 +346,8 @@ export default function LocationDetailPage() {
                   { label: 'Retour effectif', value: fmtDate(location.date_retour_effective) },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between gap-3">
-                    <dt className="text-[#516f90]">{label}</dt>
-                    <dd className="text-right font-medium text-[#33475b]">{value}</dd>
+                    <dt className="text-[#6b7280]">{label}</dt>
+                    <dd className="text-right font-medium text-[#111827]">{value}</dd>
                   </div>
                 ))}
               </dl>
@@ -357,7 +358,7 @@ export default function LocationDetailPage() {
               <h2 className="section-title mb-4">Mettre à jour</h2>
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-[#33475b]">Statut</label>
+                  <label className="mb-1 block text-xs font-semibold text-[#111827]">Statut</label>
                   <select className="field-control" value={statut} onChange={(e) => setStatut(e.target.value)}>
                     {STATUTS_LOCATION.map((s) => (
                       <option key={s} value={s}>{s.replace('_', ' ')}</option>

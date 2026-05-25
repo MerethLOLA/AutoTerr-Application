@@ -9,7 +9,7 @@ class EmployeController extends Controller
 {
     public function index()
     {
-        $this->ensurePermission('manage_ventes');
+        $this->ensureRole('admin', 'super_admin');
 
         return $this->apiCollection(
             Employe::query()->with('user')->latest()->paginate(15)
@@ -18,7 +18,7 @@ class EmployeController extends Controller
 
     public function store(EmployeRequest $request)
     {
-        $this->ensurePermission('manage_ventes');
+        $this->ensureRole('admin', 'super_admin');
         $employe = Employe::query()->create($request->validated());
         $this->logAction('create', 'employe', $employe, $request->validated(), $request);
 
@@ -29,14 +29,14 @@ class EmployeController extends Controller
 
     public function show(Employe $employe)
     {
-        $this->ensurePermission('manage_ventes');
+        $this->ensureRole('admin', 'super_admin');
 
         return $this->apiItem($employe->load(['user', 'ventes', 'documents', 'clientsAttribues']));
     }
 
     public function update(EmployeRequest $request, Employe $employe)
     {
-        $this->ensurePermission('manage_ventes');
+        $this->ensureRole('admin', 'super_admin');
         $employe->update($request->validated());
         $this->logAction('update', 'employe', $employe, $request->validated(), $request);
 
@@ -47,7 +47,7 @@ class EmployeController extends Controller
 
     public function destroy(Employe $employe)
     {
-        $this->ensurePermission('manage_ventes');
+        $this->ensureRole('admin', 'super_admin');
         $this->logAction('delete', 'employe', $employe, [], request());
         $employe->delete();
 

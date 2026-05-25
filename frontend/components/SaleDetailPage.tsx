@@ -1,4 +1,4 @@
-'use client';
+﻿﻿﻿﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
@@ -38,27 +38,38 @@ function badge(statut: string) {
   const map: Record<string, string> = {
     termine:    'bg-emerald-100 text-emerald-800 border-emerald-200',
     en_cours:   'bg-blue-100 text-blue-800 border-blue-200',
-    annule:     'bg-[#f5f8fa] text-[#516f90] border-[#dfe3eb]',
+    annule:     'bg-[#f5f8fa] text-[#6b7280] border-[#dfe3eb]',
     en_attente: 'bg-amber-100 text-amber-800 border-amber-200',
     payee:      'bg-emerald-100 text-emerald-800 border-emerald-200',
     impayee:    'bg-red-100 text-red-700 border-red-200',
   };
-  return `inline-flex items-center rounded border px-2.5 py-0.5 text-xs font-semibold ${map[statut] ?? 'bg-[#f5f8fa] text-[#516f90] border-[#dfe3eb]'}`;
+  return `inline-flex items-center rounded border px-2.5 py-0.5 text-xs font-semibold ${map[statut] ?? 'bg-[#f5f8fa] text-[#6b7280] border-[#dfe3eb]'}`;
 }
 
 function InfoRow({ label, value }: { label: string; value?: string | number | null }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-[#dfe3eb] py-2.5 last:border-0">
-      <span className="shrink-0 text-xs font-semibold text-[#516f90]">{label}</span>
-      <span className="text-right text-sm font-medium text-[#33475b]">{value ?? '-'}</span>
+      <span className="shrink-0 text-xs font-semibold text-[#6b7280]">{label}</span>
+      <span className="text-right text-sm font-medium text-[#111827]">{value ?? '-'}</span>
     </div>
   );
 }
 
 export default function SaleDetailPage({ saleId }: { saleId: string }) {
-  const [sale, setSale]       = useState<SaleDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const _initSale = apiClient.getCached<any>(`/ventes/${saleId}`);
+  const [sale, setSale]           = useState<SaleDetail | null>(_initSale?.data ?? _initSale ?? null);
+  const [loading, setLoading]     = useState(_initSale === null);
+  const [error, setError]         = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  async function downloadFacture(factureId: number, numero: string) {
+    setDownloading(true);
+    try {
+      await apiClient.download(`/facturations/${factureId}/export`, `facture-${numero}.pdf`);
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   useEffect(() => {
     setLoading(true);
@@ -86,7 +97,7 @@ export default function SaleDetailPage({ saleId }: { saleId: string }) {
       <DashboardLayout>
         <div className="surface-panel py-16 text-center">
           <p className="text-sm font-semibold text-red-600">{error ?? 'Vente introuvable'}</p>
-          <Link href="/ventes/historique" className="mt-4 inline-block text-sm font-bold text-[#ff6b35] hover:underline">
+          <Link href="/ventes/historique" className="mt-4 inline-block text-sm font-bold text-[#111827] hover:underline">
             ← Retour à l&apos;historique
           </Link>
         </div>
@@ -102,12 +113,12 @@ export default function SaleDetailPage({ saleId }: { saleId: string }) {
       <div className="space-y-6">
 
         {/* Fil d'ariane */}
-        <nav className="flex items-center gap-2 text-sm text-[#516f90]">
-          <Link href="/ventes/historique" className="font-semibold hover:text-[#33475b]">
+        <nav className="flex items-center gap-2 text-sm text-[#6b7280]">
+          <Link href="/ventes/historique" className="font-semibold hover:text-[#111827]">
             Historique des ventes
           </Link>
           <span>/</span>
-          <span className="font-bold text-[#33475b]">{sale.reference_vente}</span>
+          <span className="font-bold text-[#111827]">{sale.reference_vente}</span>
         </nav>
 
         {/* En-tête */}
@@ -131,7 +142,7 @@ export default function SaleDetailPage({ saleId }: { saleId: string }) {
               <div className="mt-3">
                 <Link
                   href={`/clients`}
-                  className="text-xs font-semibold text-[#ff6b35] hover:underline"
+                  className="text-xs font-semibold text-[#111827] hover:underline"
                 >
                   Voir la fiche client →
                 </Link>
@@ -150,7 +161,7 @@ export default function SaleDetailPage({ saleId }: { saleId: string }) {
               <div className="mt-3">
                 <Link
                   href={`/voitures/${sale.voiture.id}`}
-                  className="text-xs font-semibold text-[#ff6b35] hover:underline"
+                  className="text-xs font-semibold text-[#111827] hover:underline"
                 >
                   Voir la fiche véhicule →
                 </Link>
@@ -172,12 +183,22 @@ export default function SaleDetailPage({ saleId }: { saleId: string }) {
         {sale.facturation && (
           <div className="surface-panel p-5">
             <h2 className="section-title mb-4">Facture associée</h2>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <div className="space-y-1">
-                <p className="text-sm font-bold text-[#33475b]">{sale.facturation.numero_facture}</p>
-                <p className="text-xs text-[#516f90]">{money(sale.facturation.montant_ttc)} XOF TTC</p>
+                <p className="text-sm font-bold text-[#111827]">{sale.facturation.numero_facture}</p>
+                <p className="text-xs text-[#6b7280]">{money(sale.facturation.montant_ttc)} XOF TTC</p>
               </div>
-              <span className={badge(sale.facturation.statut)}>{sale.facturation.statut.replace('_', ' ')}</span>
+              <div className="flex items-center gap-3">
+                <span className={badge(sale.facturation.statut)}>{sale.facturation.statut.replace('_', ' ')}</span>
+                <button
+                  type="button"
+                  disabled={downloading}
+                  onClick={() => downloadFacture(sale.facturation!.id, sale.facturation!.numero_facture)}
+                  className="inline-flex items-center gap-1.5 rounded border border-[#dfe3eb] bg-white px-3 py-1.5 text-xs font-semibold text-[#111827] transition hover:border-[#2d1b3d] hover:bg-[#2d1b3d] hover:text-white disabled:opacity-40"
+                >
+                  {downloading ? '…' : '↓ PDF'}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -199,8 +220,8 @@ export default function SaleDetailPage({ saleId }: { saleId: string }) {
                 <tbody>
                   {sale.paiements!.map((p) => (
                     <tr key={p.id} className="table-row">
-                      <td className="table-cell pl-5 text-[#33475b]">{fmtDate(p.date)}</td>
-                      <td className="table-cell tabular-nums font-semibold text-[#33475b]">{money(p.montant)} XOF</td>
+                      <td className="table-cell pl-5 text-[#111827]">{fmtDate(p.date)}</td>
+                      <td className="table-cell tabular-nums font-semibold text-[#111827]">{money(p.montant)} XOF</td>
                     </tr>
                   ))}
                 </tbody>
@@ -213,7 +234,7 @@ export default function SaleDetailPage({ saleId }: { saleId: string }) {
         {sale.observations && (
           <div className="surface-panel p-5">
             <h2 className="section-title mb-3">Observations</h2>
-            <p className="text-sm leading-relaxed text-[#516f90]">{sale.observations}</p>
+            <p className="text-sm leading-relaxed text-[#6b7280]">{sale.observations}</p>
           </div>
         )}
 

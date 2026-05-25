@@ -34,7 +34,7 @@ interface KpiCardProps {
 
 function KpiCard({ label, value, sub, href, variant = 'default', icon }: KpiCardProps) {
   const s = {
-    default: { card: 'bg-white border-slate-200', value: 'text-[#002d54]', icon: 'bg-[#002d54]/[0.07] text-[#002d54]' },
+    default: { card: 'bg-white border-slate-200', value: 'text-[#111827]', icon: 'bg-[#002d54]/[0.07] text-[#111827]' },
     success: { card: 'bg-emerald-50 border-emerald-200', value: 'text-emerald-700', icon: 'bg-emerald-100 text-emerald-600' },
     warning: { card: 'bg-amber-50 border-amber-200', value: 'text-amber-700', icon: 'bg-amber-100 text-amber-600' },
     danger: { card: 'bg-red-50 border-red-200', value: 'text-red-700', icon: 'bg-red-100 text-red-500' },
@@ -66,11 +66,11 @@ function MonthlyBars({ data }: { data: NonNullable<ReportingPayload['salesMonthl
           <div key={d.label} className="group relative flex flex-1 flex-col items-center gap-1.5">
             {/* Tooltip */}
             <div className="pointer-events-none absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden w-max rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs shadow-lg group-hover:block z-10">
-              <p className="font-black text-[#002d54]">{d.count} vente{d.count !== 1 ? 's' : ''}</p>
+              <p className="font-black text-[#111827]">{d.count} vente{d.count !== 1 ? 's' : ''}</p>
               <p className="text-slate-500">{money(d.amount)} XOF</p>
             </div>
             <div
-              className="w-full rounded-t-lg bg-[#002d54] transition-all duration-300 group-hover:bg-[#ff6b35]"
+              className="w-full rounded-t-lg bg-[#002d54] transition-all duration-300 group-hover:bg-[#33475b]"
               style={{ height: `${heightPct}%` }}
             />
             <span className="text-[9px] font-bold text-slate-400">{d.label}</span>
@@ -82,16 +82,16 @@ function MonthlyBars({ data }: { data: NonNullable<ReportingPayload['salesMonthl
 }
 
 export default function DashboardPage() {
-  const [payload, setPayload] = useState<ReportingPayload | null>(null);
-  const [loading, setLoading] = useState(true);
+  const _initDash = apiClient.getCached<ReportingPayload>('/reporting');
+  const [payload, setPayload] = useState<ReportingPayload | null>(_initDash);
+  const [loading, setLoading] = useState(_initDash === null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
     apiClient.get<ReportingPayload>('/reporting')
-      .then((data) => { if (mounted) setPayload(data); })
-      .catch((err: any) => { if (mounted) setError(err?.message || 'Impossible de charger le dashboard'); })
-      .finally(() => { if (mounted) setLoading(false); });
+      .then((data) => { if (mounted) { setPayload(data); setLoading(false); } })
+      .catch((err: any) => { if (mounted) { setError(err?.message || 'Impossible de charger le dashboard'); setLoading(false); } });
     return () => { mounted = false; };
   }, []);
 
@@ -106,6 +106,7 @@ export default function DashboardPage() {
   const stk = payload?.stockStats;
   const sav = payload?.savStats;
   const loc = payload?.locationStats;
+  const conf = payload?.conformiteStats;
 
   return (
     <DashboardLayout>
@@ -225,6 +226,43 @@ export default function DashboardPage() {
               </div>
             </section>
 
+            {/* ── KPIs — Conformité & coûts ───────────────── */}
+            <section>
+              <p className="eyebrow mb-3">Conformité &amp; coûts véhicules</p>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <KpiCard
+                  label="Assurances expirant (30j)"
+                  value={(conf?.assurances_expirant ?? 0) + (conf?.assurances_expirees ?? 0)}
+                  sub={`${conf?.assurances_expirees ?? 0} déjà expirée${(conf?.assurances_expirees ?? 0) !== 1 ? 's' : ''}`}
+                  href="/assurances"
+                  variant={(conf?.assurances_expirees ?? 0) > 0 ? 'danger' : (conf?.assurances_expirant ?? 0) > 0 ? 'warning' : 'default'}
+                  icon={<IconShield className="h-5 w-5" />}
+                />
+                <KpiCard
+                  label="Sinistres ouverts"
+                  value={conf?.sinistres_ouverts ?? 0}
+                  sub="Déclarations en cours de traitement"
+                  href="/sinistres"
+                  variant={(conf?.sinistres_ouverts ?? 0) > 0 ? 'warning' : 'default'}
+                  icon={<IconAlert className="h-5 w-5" />}
+                />
+                <KpiCard
+                  label="Coût entretiens (mois)"
+                  value={`${money(conf?.cout_entretien_mois)} XOF`}
+                  sub={`${conf?.entretiens_a_venir ?? 0} entretien${(conf?.entretiens_a_venir ?? 0) !== 1 ? 's' : ''} à venir (30j)`}
+                  href="/entretiens"
+                  icon={<IconWrench className="h-5 w-5" />}
+                />
+                <KpiCard
+                  label="Coût carburant (mois)"
+                  value={`${money(conf?.cout_carburant_mois)} XOF`}
+                  sub="Total pleins du mois en cours"
+                  href="/carburant"
+                  icon={<IconFuel className="h-5 w-5" />}
+                />
+              </div>
+            </section>
+
             {/* ── Graphe + Synthèse ────────────────────────── */}
             <section className="grid gap-6 lg:grid-cols-5">
               {/* Histogramme mensuel */}
@@ -235,7 +273,7 @@ export default function DashboardPage() {
                     <p className="mt-1 text-xs text-slate-400">Année {payload?.year} — survol pour le détail</p>
                   </div>
                   <Link href="/reporting"
-                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-[#002d54] transition hover:bg-slate-50">
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-[#111827] transition hover:bg-slate-50">
                     Rapport complet →
                   </Link>
                 </div>
@@ -258,6 +296,8 @@ export default function DashboardPage() {
                     { label: 'Ordres en retard', value: sav?.ordres_en_retard ?? 0, href: '/atelier', alert: true },
                     { label: 'Factures en retard', value: fin?.factures_en_retard ?? 0, href: '/facturations', alert: true },
                     { label: 'Pièces en alerte stock', value: stk?.alertes ?? 0, href: '/stock', alert: true },
+                    { label: 'Assurances expirées', value: conf?.assurances_expirees ?? 0, href: '/assurances', alert: true },
+                    { label: 'Sinistres ouverts', value: conf?.sinistres_ouverts ?? 0, href: '/sinistres', warn: true },
                   ] as Array<{ label: string; value: number; href: string; warn?: boolean; alert?: boolean }>)
                     .map((row) => (
                       <Link key={row.label} href={row.href}
@@ -266,7 +306,7 @@ export default function DashboardPage() {
                         <span className={`text-sm font-black ${
                           row.value > 0 && row.alert ? 'text-red-600'
                           : row.value > 0 && row.warn ? 'text-amber-600'
-                          : row.value > 0 ? 'text-[#002d54]'
+                          : row.value > 0 ? 'text-[#111827]'
                           : 'text-slate-300'
                         }`}>
                           {row.value}
@@ -276,7 +316,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="mt-4 border-t border-slate-100 pt-4">
                   <Link href="/reporting"
-                    className="block rounded-xl bg-slate-50 px-4 py-3 text-center text-xs font-bold text-[#002d54] transition hover:bg-slate-100">
+                    className="block rounded-xl bg-slate-50 px-4 py-3 text-center text-xs font-bold text-[#111827] transition hover:bg-slate-100">
                     Voir le rapport complet →
                   </Link>
                 </div>
@@ -409,6 +449,33 @@ function IconBox({ className }: { className?: string }) {
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+    </svg>
+  );
+}
+
+function IconShield({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  );
+}
+
+function IconAlert({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+  );
+}
+
+function IconFuel({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
     </svg>
   );
 }

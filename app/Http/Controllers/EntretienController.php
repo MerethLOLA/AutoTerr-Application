@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Entretien;
+use App\Services\DocumentExportService;
 use Illuminate\Http\Request;
 
 class EntretienController extends Controller
@@ -95,5 +96,13 @@ class EntretienController extends Controller
         $entretien->delete();
 
         return $this->apiDeleted();
+    }
+
+    public function export(Entretien $entretien, DocumentExportService $exportService)
+    {
+        $this->ensurePermission('view_voitures');
+        $this->logAction('export', 'entretien', $entretien, [], request());
+
+        return $exportService->entretien($entretien);
     }
 }

@@ -26,25 +26,15 @@ class PieceStockController extends Controller
             ->latest()
             ->paginate(15);
 
-        if ($request->wantsJson()) {
-            return $this->apiCollection($pieces);
-        }
-
-        return view('pieces-stock.index', compact('pieces'));
+        return $this->apiCollection($pieces);
     }
 
     public function create()
     {
         $this->ensurePermission('manage_stock');
 
-        return view('pieces-stock.create', [
-            'pieceStock' => new PieceStock([
-                'statut' => 'actif',
-                'quantite_stock' => 0,
-                'seuil_alerte' => 0,
-            ]),
+        return response()->json([
             'fournisseurs' => Fournisseur::query()->orderBy('nom')->get(['id', 'nom']),
-            'isEdit' => false,
         ]);
     }
 
@@ -64,7 +54,7 @@ class PieceStockController extends Controller
         ]);
     }
 
-    public function show(Request $request, PieceStock $pieceStock)
+    public function show(PieceStock $pieceStock)
     {
         $this->ensurePermission('view_stock');
 
@@ -73,21 +63,16 @@ class PieceStockController extends Controller
             'mouvements:id,id_piece_stock,type_mouvement,quantite,date_mouvement',
         ]);
 
-        if ($request->wantsJson()) {
-            return $this->apiItem($pieceStock);
-        }
-
-        return view('pieces-stock.show', compact('pieceStock'));
+        return $this->apiItem($pieceStock);
     }
 
     public function edit(PieceStock $pieceStock)
     {
         $this->ensurePermission('manage_stock');
 
-        return view('pieces-stock.edit', [
+        return response()->json([
             'pieceStock' => $pieceStock,
             'fournisseurs' => Fournisseur::query()->orderBy('nom')->get(['id', 'nom']),
-            'isEdit' => true,
         ]);
     }
 

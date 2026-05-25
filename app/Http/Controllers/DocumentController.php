@@ -12,23 +12,15 @@ use Illuminate\Http\Request;
 
 class DocumentController extends Controller
 {
-    public function create(Request $request)
+    public function create()
     {
         $this->ensurePermission('manage_ventes');
 
-        return view('documents.create', [
-            'document' => new Document([
-                'date_document' => now()->toDateString(),
-                'date_production' => now()->toDateString(),
-                'id_vente' => $request->integer('vente'),
-                'id_client' => $request->integer('client'),
-                'id_voiture' => $request->integer('voiture'),
-            ]),
+        return response()->json([
             'ventes' => Vente::query()->with(['client', 'voiture'])->orderByDesc('date_vente')->get(),
             'clients' => Client::query()->orderBy('nom')->get(['id', 'nom', 'prenom', 'raison_sociale']),
             'employes' => Employe::query()->orderBy('nom')->get(['id', 'nom', 'prenom']),
             'voitures' => Voiture::query()->orderBy('marque')->get(['id', 'marque', 'modele']),
-            'isEdit' => false,
         ]);
     }
 
@@ -42,11 +34,7 @@ class DocumentController extends Controller
             ->latest('date_production')
             ->paginate(15);
 
-        if ($request->wantsJson()) {
-            return $this->apiCollection($documents);
-        }
-
-        return view('documents.index', compact('documents'));
+        return $this->apiCollection($documents);
     }
 
     public function store(DocumentRequest $request)
@@ -72,24 +60,19 @@ class DocumentController extends Controller
 
         $document->load(['vente', 'client', 'employe', 'voiture']);
 
-        if (request()->wantsJson()) {
-            return $this->apiItem($document);
-        }
-
-        return view('documents.show', compact('document'));
+        return $this->apiItem($document);
     }
 
     public function edit(Document $document)
     {
         $this->ensurePermission('manage_ventes');
 
-        return view('documents.edit', [
+        return response()->json([
             'document' => $document,
             'ventes' => Vente::query()->with(['client', 'voiture'])->orderByDesc('date_vente')->get(),
             'clients' => Client::query()->orderBy('nom')->get(['id', 'nom', 'prenom', 'raison_sociale']),
             'employes' => Employe::query()->orderBy('nom')->get(['id', 'nom', 'prenom']),
             'voitures' => Voiture::query()->orderBy('marque')->get(['id', 'marque', 'modele']),
-            'isEdit' => true,
         ]);
     }
 

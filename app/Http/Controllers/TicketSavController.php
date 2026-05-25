@@ -33,28 +33,18 @@ class TicketSavController extends Controller
             ->latest()
             ->paginate(15);
 
-        if ($request->wantsJson()) {
-            return $this->apiCollection($tickets);
-        }
-
-        return view('tickets-sav.index', compact('tickets'));
+        return $this->apiCollection($tickets);
     }
 
     public function create()
     {
         $this->ensurePermission('create_ticket');
 
-        return view('tickets-sav.create', [
-            'ticketSav' => new TicketSav([
-                'statut' => 'ouvert',
-                'priorite' => 'normale',
-                'date_ouverture' => now(),
-            ]),
+        return response()->json([
             'clients' => Client::query()->orderBy('nom')->get(['id', 'nom', 'prenom']),
             'voitures' => Voiture::query()->orderBy('marque')->get(['id', 'marque', 'modele', 'immatriculation']),
             'responsables' => Employe::query()->orderBy('nom')->get(['id', 'nom', 'prenom']),
             'garanties' => Garantie::query()->orderByDesc('date_fin')->get(['id', 'type_garantie', 'date_fin']),
-            'isEdit' => false,
         ]);
     }
 
@@ -78,7 +68,7 @@ class TicketSavController extends Controller
         ]);
     }
 
-    public function show(Request $request, TicketSav $ticketSav)
+    public function show(TicketSav $ticketSav)
     {
         $this->ensurePermission('manage_sav');
 
@@ -90,24 +80,19 @@ class TicketSavController extends Controller
             'interventions.employe:id,nom,prenom',
         ]);
 
-        if ($request->wantsJson()) {
-            return $this->apiItem($ticketSav);
-        }
-
-        return view('tickets-sav.show', compact('ticketSav'));
+        return $this->apiItem($ticketSav);
     }
 
     public function edit(TicketSav $ticketSav)
     {
         $this->ensurePermission('manage_sav');
 
-        return view('tickets-sav.edit', [
+        return response()->json([
             'ticketSav' => $ticketSav,
             'clients' => Client::query()->orderBy('nom')->get(['id', 'nom', 'prenom']),
             'voitures' => Voiture::query()->orderBy('marque')->get(['id', 'marque', 'modele', 'immatriculation']),
             'responsables' => Employe::query()->orderBy('nom')->get(['id', 'nom', 'prenom']),
             'garanties' => Garantie::query()->orderByDesc('date_fin')->get(['id', 'type_garantie', 'date_fin']),
-            'isEdit' => true,
         ]);
     }
 

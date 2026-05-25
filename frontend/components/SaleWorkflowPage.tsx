@@ -2,9 +2,10 @@
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 const STORAGE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '');
 function imgUrl(p?: string | null) { return p ? `${STORAGE_URL}/storage/${p}` : null; }
@@ -23,7 +24,6 @@ const STEPS = [
   { num: 4, label: 'Confirmation' },
 ];
 
-// ── Indicateur d'étapes ────────────────────────────────────────────────────────
 function Stepper({ current }: { current: number }) {
   return (
     <div className="surface-panel p-5">
@@ -33,7 +33,7 @@ function Stepper({ current }: { current: number }) {
             <div className="flex flex-col items-center gap-1.5">
               <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-black transition-all ${
                 current > s.num  ? 'bg-emerald-500 text-white'
-                : current === s.num ? 'bg-[#ff6b35] text-white shadow-lg shadow-[#ff6b35]/30'
+                : current === s.num ? 'bg-[#33475b] text-white shadow-lg shadow-[#33475b]/30'
                 : 'bg-slate-100 text-slate-400'
               }`}>
                 {current > s.num ? (
@@ -42,7 +42,7 @@ function Stepper({ current }: { current: number }) {
                   </svg>
                 ) : s.num}
               </div>
-              <span className={`hidden text-[11px] font-bold sm:block ${current === s.num ? 'text-[#ff6b35]' : current > s.num ? 'text-emerald-600' : 'text-slate-400'}`}>
+              <span className={`hidden text-[11px] font-bold sm:block ${current === s.num ? 'text-[#111827]' : current > s.num ? 'text-emerald-600' : 'text-slate-400'}`}>
                 {s.label}
               </span>
             </div>
@@ -56,14 +56,13 @@ function Stepper({ current }: { current: number }) {
   );
 }
 
-// ── Carte véhicule résumée ─────────────────────────────────────────────────────
 function VoitureCard({ v, compact = false }: { v: Voiture; compact?: boolean }) {
   const photo = imgUrl(v.image_principale);
   if (compact) {
     return (
       <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-        <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-100">
-          {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : (
+        <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+          {photo ? <Image src={photo} alt="" fill className="object-cover" /> : (
             <div className="flex h-full items-center justify-center text-slate-300">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -73,17 +72,17 @@ function VoitureCard({ v, compact = false }: { v: Voiture; compact?: boolean }) 
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-black text-[#002d54]">{v.marque} {v.modele}</p>
+          <p className="truncate text-sm font-black text-[#111827]">{v.marque} {v.modele}</p>
           <p className="text-xs text-slate-500">{[v.annee, v.energie].filter(Boolean).join(' · ')}</p>
         </div>
-        <p className="shrink-0 text-sm font-black text-[#002d54]">{money(v.prix)} <span className="text-xs font-normal text-slate-400">XOF</span></p>
+        <p className="shrink-0 text-sm font-black text-[#111827]">{money(v.prix)} <span className="text-xs font-normal text-slate-400">XOF</span></p>
       </div>
     );
   }
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="aspect-[16/7] overflow-hidden bg-slate-100">
-        {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : (
+      <div className="relative aspect-[16/7] overflow-hidden bg-slate-100">
+        {photo ? <Image src={photo} alt="" fill className="object-cover" /> : (
           <div className="flex h-full items-center justify-center text-slate-200">
             <svg className="h-20 w-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
@@ -94,23 +93,21 @@ function VoitureCard({ v, compact = false }: { v: Voiture; compact?: boolean }) 
       </div>
       <div className="p-4">
         <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{[v.annee, v.energie].filter(Boolean).join(' · ')}</p>
-        <h3 className="mt-1 text-xl font-black text-[#002d54]">{v.marque} {v.modele}</h3>
+        <h3 className="mt-1 text-xl font-black text-[#111827]">{v.marque} {v.modele}</h3>
         <p className="mt-2 text-2xl font-black text-slate-900">{money(v.prix)} <span className="text-sm font-bold text-slate-400">XOF</span></p>
       </div>
     </div>
   );
 }
 
-// ── Page principale ────────────────────────────────────────────────────────────
 export default function SaleWorkflowPage() {
-  const router       = useRouter();
   const searchParams = useSearchParams();
   const preVoitureId = searchParams.get('voiture_id');
 
-  const [step, setStep]     = useState(preVoitureId ? 2 : 1);
+  const [step, setStep]       = useState(preVoitureId ? 2 : 1);
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [saleId, setSaleId] = useState<number | null>(null);
+  const [saleId, setSaleId]   = useState<number | null>(null);
 
   const [voitures, setVoitures] = useState<Voiture[]>([]);
   const [clients, setClients]   = useState<Client[]>([]);
@@ -136,7 +133,6 @@ export default function SaleWorkflowPage() {
     setForm((f) => ({ ...f, [key]: val }));
   }
 
-  // Chargement des données de référence
   useEffect(() => {
     function arr<T>(res: any): T[] {
       return Array.isArray(res) ? res : (res?.data ?? []);
@@ -148,14 +144,12 @@ export default function SaleWorkflowPage() {
     ]).catch(console.error);
   }, []);
 
-  // Si voiture_id dans l'URL → pré-sélectionner
   useEffect(() => {
     if (!preVoitureId || voitures.length === 0) return;
     const found = voitures.find((v) => String(v.id) === preVoitureId);
     if (found) { setSelVoiture(found); patch('prix_final', String(found.prix)); }
   }, [preVoitureId, voitures]);
 
-  // Filtres locaux
   const filteredVoitures = useMemo(() =>
     voitures.filter((v) =>
       !searchV || `${v.marque} ${v.modele}`.toLowerCase().includes(searchV.toLowerCase())
@@ -166,14 +160,12 @@ export default function SaleWorkflowPage() {
       !searchC || `${c.nom} ${c.prenom ?? ''} ${c.telephone ?? ''}`.toLowerCase().includes(searchC.toLowerCase())
     ), [clients, searchC]);
 
-  // Calculs financiers
-  const prixBase = Number(form.prix_final) || 0;
-  const remise   = Number(form.remise) || 0;
+  const prixBase   = Number(form.prix_final) || 0;
+  const remise     = Number(form.remise) || 0;
   const montantHT  = Math.max(prixBase - remise, 0);
   const tva        = 18;
   const montantTTC = Math.round(montantHT * (1 + tva / 100) * 100) / 100;
 
-  // Soumission
   async function handleSubmit() {
     setLoading(true);
     setSubmitError(null);
@@ -197,7 +189,7 @@ export default function SaleWorkflowPage() {
     }
   }
 
-  // ── Écran de succès ──────────────────────────────────────────────────────────
+  // Écran de succès
   if (step === 5) {
     return (
       <DashboardLayout>
@@ -207,7 +199,7 @@ export default function SaleWorkflowPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="mt-6 text-3xl font-black text-[#002d54]">Vente finalisée !</h1>
+          <h1 className="mt-6 text-3xl font-black text-[#111827]">Vente finalisée !</h1>
           <p className="mt-3 text-slate-500">
             La vente a été enregistrée avec succès.
             {selClient && ` Client : ${selClient.nom}${selClient.prenom ? ' ' + selClient.prenom : ''}.`}
@@ -223,7 +215,7 @@ export default function SaleWorkflowPage() {
               <div className="flex justify-between"><span className="text-slate-500">Prix de vente</span><span className="font-bold">{money(prixBase)} XOF</span></div>
               {remise > 0 && <div className="flex justify-between text-amber-600"><span>Remise</span><span className="font-bold">- {money(remise)} XOF</span></div>}
               <div className="flex justify-between"><span className="text-slate-500">Montant HT</span><span className="font-bold">{money(montantHT)} XOF</span></div>
-              <div className="flex justify-between border-t border-slate-200 pt-2 text-base"><span className="font-black text-[#002d54]">Total TTC (TVA {tva}%)</span><span className="font-black text-[#002d54]">{money(montantTTC)} XOF</span></div>
+              <div className="flex justify-between border-t border-slate-200 pt-2 text-base"><span className="font-black text-[#111827]">Total TTC (TVA {tva}%)</span><span className="font-black text-[#111827]">{money(montantTTC)} XOF</span></div>
             </div>
           </div>
           <div className="mt-8 flex flex-col gap-3">
@@ -233,12 +225,17 @@ export default function SaleWorkflowPage() {
               </Link>
             )}
             {saleId && (
-              <Link href={`/facturations`} className="btn-secondary w-full text-center">
+              <Link href="/facturations" className="btn-secondary w-full text-center">
                 Accéder aux factures
               </Link>
             )}
-            <button onClick={() => { setStep(1); setSelVoiture(null); setSelClient(null); setForm({ id_voiture: '', id_client: '', id_employe: '', prix_final: '', remise: '0', date_vente: new Date().toISOString().slice(0, 10), observations: '' }); setSaleId(null); }}
-              className="text-sm font-bold text-slate-500 hover:text-[#002d54]">
+            <button
+              onClick={() => {
+                setStep(1); setSelVoiture(null); setSelClient(null);
+                setForm({ id_voiture: '', id_client: '', id_employe: '', prix_final: '', remise: '0', date_vente: new Date().toISOString().slice(0, 10), observations: '' });
+                setSaleId(null);
+              }}
+              className="text-sm font-bold text-slate-500 hover:text-[#111827]">
               Créer une nouvelle vente
             </button>
           </div>
@@ -263,10 +260,10 @@ export default function SaleWorkflowPage() {
         {/* Stepper */}
         <Stepper current={step} />
 
-        {/* Récap compact si véhicule déjà sélectionné (étapes 2+) */}
+        {/* Récap compact si véhicule déjà sélectionné */}
         {selVoiture && step > 1 && <VoitureCard v={selVoiture} compact />}
 
-        {/* ── Étape 1 : Véhicule ─────────────────────────────────────────── */}
+        {/* Étape 1 : Véhicule */}
         {step === 1 && (
           <div className="surface-panel space-y-5 p-6">
             <div>
@@ -274,7 +271,6 @@ export default function SaleWorkflowPage() {
               <p className="mt-1 text-sm text-slate-400">{voitures.length} véhicule{voitures.length !== 1 ? 's' : ''} disponible{voitures.length !== 1 ? 's' : ''}</p>
             </div>
 
-            {/* Recherche */}
             <div className="relative">
               <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -283,7 +279,6 @@ export default function SaleWorkflowPage() {
                 value={searchV} onChange={(e) => setSearchV(e.target.value)} />
             </div>
 
-            {/* Liste */}
             <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
               {filteredVoitures.length === 0 && <p className="py-4 text-center text-sm text-slate-400">Aucun véhicule disponible.</p>}
               {filteredVoitures.map((v) => {
@@ -293,10 +288,10 @@ export default function SaleWorkflowPage() {
                   <button key={v.id} type="button"
                     onClick={() => { setSelVoiture(v); patch('id_voiture', String(v.id)); patch('prix_final', String(v.prix)); }}
                     className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
-                      sel ? 'border-[#ff6b35] bg-[#ff6b35]/[0.04] shadow-sm' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      sel ? 'border-[#33475b] bg-[#33475b]/[0.04] shadow-sm' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                     }`}>
-                    <div className="h-12 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
-                      {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : (
+                    <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                      {photo ? <Image src={photo} alt="" fill className="object-cover" /> : (
                         <div className="flex h-full items-center justify-center text-slate-300">
                           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -306,7 +301,7 @@ export default function SaleWorkflowPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-black text-[#002d54]">{v.marque} {v.modele}</p>
+                      <p className="truncate font-black text-[#111827]">{v.marque} {v.modele}</p>
                       <p className="text-xs text-slate-400">{[v.annee, v.energie].filter(Boolean).join(' · ')}</p>
                     </div>
                     <div className="shrink-0 text-right">
@@ -314,7 +309,7 @@ export default function SaleWorkflowPage() {
                       <p className="text-xs text-slate-400">XOF</p>
                     </div>
                     {sel && (
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#ff6b35]">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#33475b]">
                         <svg className="h-3.5 w-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
@@ -333,7 +328,7 @@ export default function SaleWorkflowPage() {
           </div>
         )}
 
-        {/* ── Étape 2 : Client ───────────────────────────────────────────── */}
+        {/* Étape 2 : Client */}
         {step === 2 && (
           <div className="surface-panel space-y-5 p-6">
             <div>
@@ -358,9 +353,9 @@ export default function SaleWorkflowPage() {
                   <button key={c.id} type="button"
                     onClick={() => { setSelClient(c); patch('id_client', String(c.id)); }}
                     className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
-                      sel ? 'border-[#ff6b35] bg-[#ff6b35]/[0.04]' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      sel ? 'border-[#33475b] bg-[#33475b]/[0.04]' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                     }`}>
-                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black ${sel ? 'bg-[#ff6b35] text-white' : 'bg-[#002d54] text-white'}`}>
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black ${sel ? 'bg-[#33475b] text-white' : 'bg-[#002d54] text-white'}`}>
                       {full.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -368,7 +363,7 @@ export default function SaleWorkflowPage() {
                       {c.telephone && <p className="text-xs text-slate-400">{c.telephone}</p>}
                     </div>
                     {sel && (
-                      <svg className="h-5 w-5 shrink-0 text-[#ff6b35]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-5 w-5 shrink-0 text-[#111827]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                     )}
@@ -378,7 +373,7 @@ export default function SaleWorkflowPage() {
             </div>
 
             <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-              <Link href="/clients" className="text-sm font-bold text-[#ff6b35] hover:underline">
+              <Link href="/clients" className="text-sm font-bold text-[#111827] hover:underline">
                 + Créer un nouveau client
               </Link>
               <div className="flex gap-3">
@@ -391,7 +386,7 @@ export default function SaleWorkflowPage() {
           </div>
         )}
 
-        {/* ── Étape 3 : Conditions ───────────────────────────────────────── */}
+        {/* Étape 3 : Conditions */}
         {step === 3 && (
           <div className="surface-panel space-y-5 p-6">
             <h2 className="section-title">Conditions de la vente</h2>
@@ -431,7 +426,6 @@ export default function SaleWorkflowPage() {
                 value={form.observations} onChange={(e) => patch('observations', e.target.value)} />
             </label>
 
-            {/* Simulation financière */}
             {prixBase > 0 && (
               <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                 <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">Simulation financière</p>
@@ -440,7 +434,7 @@ export default function SaleWorkflowPage() {
                   {remise > 0 && <div className="flex justify-between text-amber-600"><span>Remise accordée</span><span className="font-bold">- {money(remise)} XOF</span></div>}
                   <div className="flex justify-between"><span className="text-slate-500">Montant HT</span><span className="font-bold">{money(montantHT)} XOF</span></div>
                   <div className="flex justify-between"><span className="text-slate-500">TVA ({tva}%)</span><span className="font-bold">{money(montantTTC - montantHT)} XOF</span></div>
-                  <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-black text-[#002d54]">
+                  <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-black text-[#111827]">
                     <span>Total TTC</span>
                     <span>{money(montantTTC)} XOF</span>
                   </div>
@@ -458,19 +452,17 @@ export default function SaleWorkflowPage() {
           </div>
         )}
 
-        {/* ── Étape 4 : Confirmation ────────────────────────────────────── */}
+        {/* Étape 4 : Confirmation */}
         {step === 4 && (
           <div className="space-y-4">
             <div className="surface-panel p-6">
               <h2 className="section-title mb-5">Récapitulatif avant finalisation</h2>
 
-              {/* Véhicule */}
               <div className="mb-4">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Véhicule</p>
                 {selVoiture && <VoitureCard v={selVoiture} compact />}
               </div>
 
-              {/* Client */}
               <div className="mb-4">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Client</p>
                 {selClient && (
@@ -486,7 +478,6 @@ export default function SaleWorkflowPage() {
                 )}
               </div>
 
-              {/* Financier */}
               <div>
                 <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Conditions financières</p>
                 <div className="rounded-2xl border border-slate-200 p-4">
@@ -494,7 +485,7 @@ export default function SaleWorkflowPage() {
                     <div className="flex justify-between"><span className="text-slate-500">Prix de vente</span><span className="font-bold">{money(prixBase)} XOF</span></div>
                     {remise > 0 && <div className="flex justify-between text-amber-600"><span>Remise</span><span className="font-bold">- {money(remise)} XOF</span></div>}
                     <div className="flex justify-between"><span className="text-slate-500">Montant HT</span><span className="font-bold">{money(montantHT)} XOF</span></div>
-                    <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-black text-[#002d54]">
+                    <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-black text-[#111827]">
                       <span>Total TTC (TVA {tva}%)</span>
                       <span>{money(montantTTC)} XOF</span>
                     </div>
@@ -505,7 +496,6 @@ export default function SaleWorkflowPage() {
               </div>
             </div>
 
-            {/* Erreur */}
             {submitError && (
               <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-700">
                 {submitError}

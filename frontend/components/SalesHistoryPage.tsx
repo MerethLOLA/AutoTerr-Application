@@ -1,4 +1,4 @@
-'use client';
+﻿﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
@@ -27,15 +27,16 @@ function badge(statut: string) {
   const map: Record<string, string> = {
     termine:    'bg-emerald-100 text-emerald-800',
     en_cours:   'bg-blue-100 text-blue-800',
-    annule:     'bg-[#f5f8fa] text-[#516f90]',
+    annule:     'bg-[#f5f8fa] text-[#6b7280]',
     en_attente: 'bg-amber-100 text-amber-800',
   };
-  return `inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${map[statut] ?? 'bg-[#f5f8fa] text-[#516f90]'}`;
+  return `inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${map[statut] ?? 'bg-[#f5f8fa] text-[#6b7280]'}`;
 }
 
 export default function SalesHistoryPage() {
-  const [sales, setSales]       = useState<Sale[]>([]);
-  const [loading, setLoading]   = useState(true);
+  const _initSales = apiClient.getCached<any>('/ventes', { page: 1 });
+  const [sales, setSales]       = useState<Sale[]>(_initSales?.data ?? []);
+  const [loading, setLoading]   = useState(_initSales === null);
   const [error, setError]       = useState<string | null>(null);
   const [search, setSearch]     = useState('');
   const [page, setPage]         = useState(1);
@@ -85,14 +86,14 @@ export default function SalesHistoryPage() {
             <div>
               <h2 className="section-title">Ventes</h2>
               {total > 0 && (
-                <p className="mt-0.5 text-xs text-[#516f90]">
+                <p className="mt-0.5 text-xs text-[#6b7280]">
                   {total} vente{total > 1 ? 's' : ''}
                 </p>
               )}
             </div>
             {/* Recherche */}
             <div className="relative w-full max-w-xs">
-              <svg className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#516f90]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#6b7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
@@ -136,14 +137,14 @@ export default function SalesHistoryPage() {
                 <tbody>
                   {sales.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-5 py-10 text-sm text-[#516f90]">
+                      <td colSpan={7} className="px-5 py-10 text-sm text-[#6b7280]">
                         Aucune vente trouvée.
                       </td>
                     </tr>
                   ) : (
                     sales.map((sale) => (
                       <tr key={sale.id} className="table-row">
-                        <td className="table-cell pl-5 font-mono font-semibold text-[#33475b]">
+                        <td className="table-cell pl-5 font-mono font-semibold text-[#111827]">
                           {sale.reference_vente}
                         </td>
                         <td className="table-cell">{fmtDate(sale.date_vente)}</td>
@@ -160,7 +161,7 @@ export default function SalesHistoryPage() {
                         <td className="table-cell">
                           <Link
                             href={`/ventes/${sale.id}`}
-                            className="text-xs font-semibold text-[#33475b] hover:text-[#ff6b35] transition-colors"
+                            className="text-xs font-semibold text-[#111827] hover:text-[#111827] transition-colors"
                           >
                             Voir
                           </Link>
@@ -180,16 +181,16 @@ export default function SalesHistoryPage() {
                 type="button"
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="rounded border border-[#dfe3eb] px-3 py-1.5 text-xs font-medium text-[#33475b] transition hover:bg-[#f5f8fa] disabled:opacity-40"
+                className="rounded border border-[#dfe3eb] px-3 py-1.5 text-xs font-medium text-[#111827] transition hover:bg-[#f5f8fa] disabled:opacity-40"
               >
-                ← Précédent
+                ← Précédent
               </button>
-              <span className="text-xs text-[#516f90]">Page {page} / {totalPages}</span>
+              <span className="text-xs text-[#6b7280]">Page {page} / {totalPages}</span>
               <button
                 type="button"
                 disabled={page === totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                className="rounded border border-[#dfe3eb] px-3 py-1.5 text-xs font-medium text-[#33475b] transition hover:bg-[#f5f8fa] disabled:opacity-40"
+                className="rounded border border-[#dfe3eb] px-3 py-1.5 text-xs font-medium text-[#111827] transition hover:bg-[#f5f8fa] disabled:opacity-40"
               >
                 Suivant →
               </button>

@@ -156,15 +156,15 @@ function buildTimeline(data: HistoriqueVoiture): TimelineEvent[] {
 }
 
 export default function VehicleHistoryPage({ params }: { params: { id: string } }) {
-  const [voiture, setVoiture] = useState<HistoriqueVoiture | null>(null);
-  const [loading, setLoading] = useState(true);
+  const _initHist = apiClient.getCached<any>(`/voitures/${params.id}/historique`);
+  const [voiture, setVoiture] = useState<HistoriqueVoiture | null>(_initHist?.data ?? _initHist ?? null);
+  const [loading, setLoading] = useState(_initHist === null);
   const [error, setError]     = useState<string | null>(null);
 
   useEffect(() => {
     apiClient.get<any>(`/voitures/${params.id}/historique`)
-      .then((res) => setVoiture(res?.data ?? res))
-      .catch((err: any) => setError(err?.message || 'Véhicule introuvable'))
-      .finally(() => setLoading(false));
+      .then((res) => { setVoiture(res?.data ?? res); setLoading(false); })
+      .catch((err: any) => { setError(err?.message || 'Véhicule introuvable'); setLoading(false); });
   }, [params.id]);
 
   if (loading) {
@@ -186,7 +186,7 @@ export default function VehicleHistoryPage({ params }: { params: { id: string } 
       <DashboardLayout>
         <div className="surface-panel py-16 text-center">
           <p className="text-sm font-semibold text-red-600">{error ?? 'Véhicule introuvable'}</p>
-          <Link href="/voitures" className="mt-4 inline-block text-sm font-bold text-[#ff6b35] hover:underline">
+          <Link href="/voitures" className="mt-4 inline-block text-sm font-bold text-[#111827] hover:underline">
             ← Retour aux véhicules
           </Link>
         </div>
@@ -206,14 +206,14 @@ export default function VehicleHistoryPage({ params }: { params: { id: string } 
       <div className="space-y-6">
 
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-[#516f90]">
-          <Link href="/voitures" className="font-semibold hover:text-[#33475b]">Véhicules</Link>
+        <nav className="flex items-center gap-2 text-sm text-[#6b7280]">
+          <Link href="/voitures" className="font-semibold hover:text-[#111827]">Véhicules</Link>
           <span>/</span>
-          <Link href={`/voitures/${params.id}`} className="font-semibold hover:text-[#33475b]">
+          <Link href={`/voitures/${params.id}`} className="font-semibold hover:text-[#111827]">
             {voiture.marque} {voiture.modele}
           </Link>
           <span>/</span>
-          <span className="font-bold text-[#33475b]">Historique</span>
+          <span className="font-bold text-[#111827]">Historique</span>
         </nav>
 
         {/* En-tête */}
@@ -228,19 +228,19 @@ export default function VehicleHistoryPage({ params }: { params: { id: string } 
         {/* KPIs coût de possession */}
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="surface-panel p-4">
-            <p className="text-xs text-[#516f90]">Dépenses carburant</p>
-            <p className="mt-1 text-xl font-bold text-[#33475b]">{money(totalCarburant)} <span className="text-sm font-normal">XOF</span></p>
-            <p className="mt-0.5 text-xs text-[#516f90]">{(voiture.carburants ?? []).length} pleins</p>
+            <p className="text-xs text-[#6b7280]">Dépenses carburant</p>
+            <p className="mt-1 text-xl font-bold text-[#111827]">{money(totalCarburant)} <span className="text-sm font-normal">XOF</span></p>
+            <p className="mt-0.5 text-xs text-[#6b7280]">{(voiture.carburants ?? []).length} pleins</p>
           </div>
           <div className="surface-panel p-4">
-            <p className="text-xs text-[#516f90]">Dépenses entretien</p>
-            <p className="mt-1 text-xl font-bold text-[#33475b]">{money(totalEntretien)} <span className="text-sm font-normal">XOF</span></p>
-            <p className="mt-0.5 text-xs text-[#516f90]">{(voiture.entretiens ?? []).length} entretiens</p>
+            <p className="text-xs text-[#6b7280]">Dépenses entretien</p>
+            <p className="mt-1 text-xl font-bold text-[#111827]">{money(totalEntretien)} <span className="text-sm font-normal">XOF</span></p>
+            <p className="mt-0.5 text-xs text-[#6b7280]">{(voiture.entretiens ?? []).length} entretiens</p>
           </div>
           <div className="surface-panel p-4">
-            <p className="text-xs text-[#516f90]">Sinistres déclarés</p>
+            <p className="text-xs text-[#6b7280]">Sinistres déclarés</p>
             <p className="mt-1 text-xl font-bold text-red-600">{money(totalSinistres)} <span className="text-sm font-normal">XOF</span></p>
-            <p className="mt-0.5 text-xs text-[#516f90]">{(voiture.sinistres ?? []).length} sinistres</p>
+            <p className="mt-0.5 text-xs text-[#6b7280]">{(voiture.sinistres ?? []).length} sinistres</p>
           </div>
         </div>
 
@@ -249,7 +249,7 @@ export default function VehicleHistoryPage({ params }: { params: { id: string } 
           <h2 className="section-title mb-5">Chronologie complète</h2>
 
           {timeline.length === 0 ? (
-            <p className="py-8 text-center text-sm text-[#516f90]">Aucun événement enregistré pour ce véhicule.</p>
+            <p className="py-8 text-center text-sm text-[#6b7280]">Aucun événement enregistré pour ce véhicule.</p>
           ) : (
             <div className="relative">
               {/* Trait vertical */}
@@ -267,14 +267,14 @@ export default function VehicleHistoryPage({ params }: { params: { id: string } 
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="rounded bg-[#f5f8fa] px-1.5 py-0.5 text-xs font-semibold text-[#516f90]">
+                              <span className="rounded bg-[#f5f8fa] px-1.5 py-0.5 text-xs font-semibold text-[#6b7280]">
                                 {typeLabel(event.type)}
                               </span>
-                              <span className="text-sm font-bold text-[#33475b]">{event.label}</span>
+                              <span className="text-sm font-bold text-[#111827]">{event.label}</span>
                             </div>
-                            <p className="mt-0.5 text-xs text-[#516f90]">{event.description}</p>
+                            <p className="mt-0.5 text-xs text-[#6b7280]">{event.description}</p>
                           </div>
-                          <span className="shrink-0 text-xs text-[#516f90]">{fmtDate(event.date)}</span>
+                          <span className="shrink-0 text-xs text-[#6b7280]">{fmtDate(event.date)}</span>
                         </div>
                       </div>
                     </div>

@@ -26,7 +26,9 @@ class VoitureRequest extends FormRequest
             'modele' => ['required', 'string', 'max:100'],
             'annee' => ['nullable', 'integer', 'min:1900', 'max:' . (now()->year + 1)],
             'couleur' => ['nullable', 'string', 'max:50'],
-            'prix' => ['required', 'numeric', 'min:0'],
+            'prix'       => ['nullable', 'numeric', 'min:0'],
+            'prix_vente' => ['nullable', 'numeric', 'min:0'],
+            'type_usage' => ['nullable', 'string', 'in:location,vente,les_deux'],
             'kilometrage' => ['nullable', 'integer', 'min:0'],
             'numero_chassis' => $chassisRules,
             'date_acquisition' => ['nullable', 'date'],
@@ -39,7 +41,7 @@ class VoitureRequest extends FormRequest
             'id_fournisseur' => ['nullable', 'integer', 'exists:fournisseurs,id'],
             'description' => ['nullable', 'string'],
             'images' => ['nullable', 'array'],
-            'images.*' => ['image', 'mimes:jpeg,png,jpg,gif', 'max:5120'],
+            'images.*' => ['image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
         ];
     }
 }

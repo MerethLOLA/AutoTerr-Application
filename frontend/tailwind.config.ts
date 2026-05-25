@@ -30,6 +30,15 @@ const config: Config = {
         '3xl': '16px',
         full: '9999px',
       },
+      animation: {
+        fadeIn: 'fadeIn 0.35s ease both',
+      },
+      keyframes: {
+        fadeIn: {
+          from: { opacity: '0' },
+          to:   { opacity: '1' },
+        },
+      },
       fontSize: {
         '2xs': ['11px', '16px'],
         xs:    ['12px', '16px'],

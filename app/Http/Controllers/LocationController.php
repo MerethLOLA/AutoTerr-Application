@@ -47,7 +47,7 @@ class LocationController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        return view('reservations.index', compact('reservations'));
+        return $this->apiCollection($reservations);
     }
 
     public function index(Request $request)
@@ -68,26 +68,16 @@ class LocationController extends Controller
             ->latest()
             ->paginate(15);
 
-        if ($request->wantsJson()) {
-            return $this->apiCollection($locations);
-        }
-
-        return view('locations.index', compact('locations'));
+        return $this->apiCollection($locations);
     }
 
     public function create()
     {
         $this->ensurePermission('manage_location');
 
-        return view('locations.create', [
-            'location' => new Location([
-                'date_debut' => now(),
-                'date_fin' => now()->addDay(),
-                'statut' => 'en_cours',
-            ]),
+        return response()->json([
             'clients' => Client::query()->orderBy('nom')->get(['id', 'nom', 'prenom']),
             'voitures' => Voiture::query()->where('statut', 'disponible')->orderBy('marque')->get(['id', 'marque', 'modele', 'immatriculation']),
-            'isEdit' => false,
         ]);
     }
 
@@ -102,7 +92,9 @@ class LocationController extends Controller
         $this->logAction('update', 'reservation', $location, ['statut' => 'en_cours'], $request);
         $this->resetDashboardCache();
 
-        return redirect()->route('reservations.index')->with('success', 'Reservation confirmee.');
+        return $this->apiItem($location->fresh()->load(['client', 'voiture']), 200, [
+            'message' => 'Reservation confirmee',
+        ]);
     }
 
     public function cancelReservation(Request $request, Location $location)
@@ -116,7 +108,9 @@ class LocationController extends Controller
         $this->logAction('update', 'reservation', $location, ['statut' => 'annulee'], $request);
         $this->resetDashboardCache();
 
-        return redirect()->route('reservations.index')->with('success', 'Reservation annulee.');
+        return $this->apiItem($location->fresh()->load(['client', 'voiture']), 200, [
+            'message' => 'Reservation annulee',
+        ]);
     }
 
     public function store(LocationRequest $request)
@@ -145,7 +139,7 @@ class LocationController extends Controller
         ]);
     }
 
-    public function show(Request $request, Location $location)
+    public function show(Location $location)
     {
         $this->ensurePermission('manage_location');
 
@@ -155,18 +149,14 @@ class LocationController extends Controller
             'etatsDesLieux:id,id_location,type_etat,description,date_etat',
         ]);
 
-        if ($request->wantsJson()) {
-            return $this->apiItem($location);
-        }
-
-        return view('locations.show', compact('location'));
+        return $this->apiItem($location);
     }
 
     public function edit(Location $location)
     {
         $this->ensurePermission('manage_location');
 
-        return view('locations.edit', [
+        return response()->json([
             'location' => $location,
             'clients' => Client::query()->orderBy('nom')->get(['id', 'nom', 'prenom']),
             'voitures' => Voiture::query()
@@ -174,7 +164,6 @@ class LocationController extends Controller
                 ->orWhere('id', $location->id_voiture)
                 ->orderBy('marque')
                 ->get(['id', 'marque', 'modele', 'immatriculation']),
-            'isEdit' => true,
         ]);
     }
 
@@ -242,7 +231,9 @@ class LocationController extends Controller
         $this->logAction('retour', 'location', $location, ['statut' => 'terminee'], $request);
         $this->resetDashboardCache();
 
-        return redirect()->route('locations.show', $location)->with('success', 'Retour de location enregistre.');
+        return $this->apiItem($location->fresh()->load(['client', 'voiture']), 200, [
+            'message' => 'Retour de location enregistre',
+        ]);
     }
 
     public function addEtatLieu(Request $request, Location $location)

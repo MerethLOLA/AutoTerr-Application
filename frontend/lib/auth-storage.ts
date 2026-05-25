@@ -1,4 +1,4 @@
-import type { User } from '@/lib/types';
+﻿import type { User } from '@/lib/types';
 
 export const AUTH_CHANGED_EVENT = 'sunupark-auth-changed';
 
@@ -12,8 +12,8 @@ export function readStoredAuth(): StoredAuthState {
     return { token: null, user: null };
   }
 
-  const token = localStorage.getItem('token');
-  const rawUser = localStorage.getItem('user');
+  const token = sessionStorage.getItem('token');
+  const rawUser = sessionStorage.getItem('user');
 
   if (!token || !rawUser) {
     return { token: null, user: null };
@@ -30,15 +30,16 @@ export function readStoredAuth(): StoredAuthState {
 }
 
 export function writeStoredAuth(token: string, user: User) {
-  localStorage.setItem('token', token);
-  localStorage.setItem('user', JSON.stringify(user));
-  localStorage.setItem('userId', String(user.id));
+  sessionStorage.setItem('token', token);
+  sessionStorage.setItem('user', JSON.stringify(user));
+  sessionStorage.setItem('userId', String(user.id));
   window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
 }
 
 export function clearStoredAuth() {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  localStorage.removeItem('userId');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('userId');
   window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
 }
+

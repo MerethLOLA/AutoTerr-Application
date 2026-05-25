@@ -13,17 +13,15 @@ use Illuminate\Support\Facades\DB;
 
 class PaiementController extends Controller
 {
-    public function create(Request $request)
+    public function create()
     {
         $this->ensurePermission('manage_recouvrement');
 
-        return view('paiements.create', [
+        return response()->json([
             'paiement' => new Paiement(['date' => now()->toDateString()]),
             'factures' => Facturation::query()->with('vente.client')->orderByDesc('date_facture')->get(),
             'ventes' => Vente::query()->with('client')->orderByDesc('date_vente')->get(['id', 'reference_vente', 'id_client']),
             'clients' => Client::query()->orderBy('nom')->get(['id', 'nom', 'prenom', 'raison_sociale']),
-            'isEdit' => false,
-            'selectedFactureId' => $request->integer('facture'),
         ]);
     }
 
@@ -37,11 +35,7 @@ class PaiementController extends Controller
             ->latest('date')
             ->paginate(15);
 
-        if ($request->wantsJson()) {
-            return $this->apiCollection($paiements);
-        }
-
-        return view('paiements.index', compact('paiements'));
+        return $this->apiCollection($paiements);
     }
 
     public function store(PaiementRequest $request)
@@ -55,11 +49,16 @@ class PaiementController extends Controller
                 : null;
 
             if ($facture) {
-                abort_if((float) $data['montant'] > (float) $facture->reste_a_payer, 422, 'Le montant depasse le reste a payer.');
-                $data['id_vente'] = $facture->id_vente;
+                $resteExact = round((float) $facture->reste_a_payer, 2);
+                $montant    = round((float) $data['montant'], 2);
+                abort_if(
+                    abs($montant - $resteExact) > 0.01,
+                    422,
+                    'Le montant doit être exactement '.number_format($resteExact, 0, ',', ' ').' XOF (reste à payer intégral).'
+                );
+                $data['id_vente']  = $facture->id_vente;
                 $data['id_client'] = $facture->vente->id_client;
-                $reste = max((float) $facture->reste_a_payer - (float) $data['montant'], 0);
-                $data['reste'] = $reste;
+                $data['reste']     = 0;
             }
 
             $paiement = Paiement::query()->create($data);
@@ -92,24 +91,18 @@ class PaiementController extends Controller
 
         $paiement->load(['client', 'vente', 'facturation']);
 
-        if (request()->wantsJson()) {
-            return $this->apiItem($paiement);
-        }
-
-        return view('paiements.show', compact('paiement'));
+        return $this->apiItem($paiement);
     }
 
     public function edit(Paiement $paiement)
     {
         $this->ensurePermission('manage_recouvrement');
 
-        return view('paiements.edit', [
+        return response()->json([
             'paiement' => $paiement,
             'factures' => Facturation::query()->with('vente.client')->orderByDesc('date_facture')->get(),
             'ventes' => Vente::query()->with('client')->orderByDesc('date_vente')->get(['id', 'reference_vente', 'id_client']),
             'clients' => Client::query()->orderBy('nom')->get(['id', 'nom', 'prenom', 'raison_sociale']),
-            'isEdit' => true,
-            'selectedFactureId' => $paiement->id_facture,
         ]);
     }
 
@@ -125,12 +118,16 @@ class PaiementController extends Controller
 
             if ($facture) {
                 $autresPaiements = (float) $facture->paiements()->whereKeyNot($paiement->id)->sum('montant');
-                $resteDisponible = max((float) $facture->montant_ttc - $autresPaiements, 0);
-                abort_if((float) $data['montant'] > $resteDisponible, 422, 'Le montant depasse le reste a payer.');
-                $reste = max((float) $facture->montant_ttc - $autresPaiements - (float) $data['montant'], 0);
-                $data['id_vente'] = $facture->id_vente;
+                $resteDisponible = round(max((float) $facture->montant_ttc - $autresPaiements, 0), 2);
+                $montant         = round((float) $data['montant'], 2);
+                abort_if(
+                    abs($montant - $resteDisponible) > 0.01,
+                    422,
+                    'Le montant doit être exactement '.number_format($resteDisponible, 0, ',', ' ').' XOF (reste à payer intégral).'
+                );
+                $data['id_vente']  = $facture->id_vente;
                 $data['id_client'] = $facture->vente->id_client;
-                $data['reste'] = $reste;
+                $data['reste']     = 0;
             }
 
             $paiement->update($data);

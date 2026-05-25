@@ -1,8 +1,12 @@
-'use client';
+﻿'use client';
 
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { apiClient, getNotifications, NotificationItem } from '@/lib/api';
+import { AUTH_CHANGED_EVENT } from '@/lib/auth-storage';
+import { useTranslation } from '@/lib/i18n';
+import NextImage from 'next/image';
 import { useNotificationBadges } from '@/lib/useNotificationBadges';
+import { useRole } from '@/lib/useRole';
 import Link from 'next/link';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -35,7 +39,7 @@ const IC = {
   person:    'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
   chevronL:  'M15 19l-7-7 7-7',
   chevronR:  'M9 5l7 7-7 7',
-  // Nouveaux icônes
+  
   fuel:      'M3 10h2m0 0V6a1 1 0 011-1h8a1 1 0 011 1v12a1 1 0 001 1h1a1 1 0 001-1V9.5a.5.5 0 00-.5-.5H18m-13 1v7m0 0h8m-8 0V10m8 0V6m0 11h1',
   wrench:    'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
   calendar:  'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
@@ -56,66 +60,66 @@ function NavIcon({ d, size = 17 }: { d: string; size?: number }) {
   );
 }
 
-// ── Structure de navigation ───────────────────────────────────────────────────
 
 const clientMenuItems = [
-  { label: 'Mon espace', href: '/espace-client', icon: IC.person },
+  { lk: 'nav.items.mySpace', href: '/espace-client', icon: IC.person },
 ];
 
 const navGroups = [
   {
-    label: 'Parc automobile',
+    lk: 'nav.groups.fleet',
     items: [
-      { label: 'Véhicules',    href: '/voitures',    badgeKey: null as string | null, icon: IC.car },
-      { label: 'Stock pièces', href: '/stock',        badgeKey: 'alertes_stock',       icon: IC.box },
-      { label: 'Fournisseurs', href: '/fournisseurs', badgeKey: null,                  icon: IC.truck },
+      { lk: 'nav.items.vehicles',  href: '/voitures',    badgeKey: null as string | null, icon: IC.car },
+      { lk: 'nav.items.parts',     href: '/stock',        badgeKey: 'alertes_stock',       icon: IC.box },
+      { lk: 'nav.items.suppliers', href: '/fournisseurs', badgeKey: null,                  icon: IC.truck },
     ],
   },
   {
-    label: 'Commercial',
+    lk: 'nav.groups.commercial',
     items: [
-      { label: 'Clients',     href: '/clients',      badgeKey: null,                icon: IC.users },
-      { label: 'Ventes',      href: '/ventes',       badgeKey: null,                icon: IC.cart },
-      { label: 'Locations',   href: '/locations',    badgeKey: 'reservations',      icon: IC.key },
-      { label: 'Facturation', href: '/facturations', badgeKey: 'factures_impayees', icon: IC.invoice },
-      { label: 'Paiements',   href: '/paiements',    badgeKey: null,                icon: IC.card },
+      { lk: 'nav.items.clients',   href: '/clients',      badgeKey: null,                  icon: IC.users },
+      { lk: 'nav.items.sales',     href: '/ventes',       badgeKey: null,                  icon: IC.cart },
+      { lk: 'nav.items.rentals',   href: '/locations',    badgeKey: 'reservations',        icon: IC.key },
+      { lk: 'nav.items.requests',  href: '/demandes',     badgeKey: 'demandes_en_attente', icon: IC.support },
+      { lk: 'nav.items.billing',   href: '/facturations', badgeKey: 'factures_impayees',   icon: IC.invoice },
+      { lk: 'nav.items.payments',  href: '/payments',     badgeKey: null,                  icon: IC.card },
     ],
   },
   {
-    label: 'Après-vente',
+    lk: 'nav.groups.afterSales',
     items: [
-      { label: 'SAV',       href: '/sav',       badgeKey: 'tickets_ouverts', icon: IC.support },
-      { label: 'Atelier',   href: '/atelier',   badgeKey: 'ordres_ouverts',  icon: IC.sliders },
-      { label: 'Planning',  href: '/planning',  badgeKey: null,              icon: IC.calendar },
-      { label: 'Entretiens',href: '/entretiens',badgeKey: null,              icon: IC.wrench },
-      { label: 'Garanties', href: '/garanties', badgeKey: null,              icon: IC.shield },
+      { lk: 'nav.items.support',     href: '/sav',       badgeKey: 'tickets_ouverts', icon: IC.support },
+      { lk: 'nav.items.workshop',    href: '/atelier',   badgeKey: 'ordres_ouverts',  icon: IC.sliders },
+      { lk: 'nav.items.planning',    href: '/planning',  badgeKey: null,              icon: IC.calendar },
+      { lk: 'nav.items.maintenance', href: '/entretiens',badgeKey: null,              icon: IC.wrench },
+      { lk: 'nav.items.warranties',  href: '/garanties', badgeKey: null,              icon: IC.shield },
     ],
   },
   {
-    label: 'Conformité',
+    lk: 'nav.groups.compliance',
     items: [
-      { label: 'Assurances',      href: '/assurances',          badgeKey: null, icon: IC.shield },
-      { label: 'Contrôles Tech.', href: '/controles-techniques',badgeKey: null, icon: IC.clip },
-      { label: 'Sinistres',       href: '/sinistres',           badgeKey: null, icon: IC.exclamation },
-      { label: 'Carburant',       href: '/carburant',           badgeKey: null, icon: IC.fuel },
-      { label: 'Alertes',         href: '/alertes',             badgeKey: null, icon: IC.bell },
+      { lk: 'nav.items.insurance',   href: '/assurances',           badgeKey: null, icon: IC.shield },
+      { lk: 'nav.items.techChecks',  href: '/controles-techniques', badgeKey: null, icon: IC.clip },
+      { lk: 'nav.items.claims',      href: '/sinistres',            badgeKey: null, icon: IC.exclamation },
+      { lk: 'nav.items.fuel',        href: '/carburant',            badgeKey: null, icon: IC.fuel },
+      { lk: 'nav.items.alerts',      href: '/alertes',              badgeKey: null, icon: IC.bell },
     ],
   },
   {
-    label: 'Gestion',
+    lk: 'nav.groups.management',
     items: [
-      { label: 'Employés',  href: '/employes',  badgeKey: null, icon: IC.person },
-      { label: 'Documents', href: '/documents', badgeKey: null, icon: IC.document },
-      { label: 'Reporting', href: '/reporting', badgeKey: null, icon: IC.chart },
+      { lk: 'nav.items.employees',  href: '/employes',  badgeKey: null, icon: IC.person },
+      { lk: 'nav.items.documents',  href: '/documents', badgeKey: null, icon: IC.document },
+      { lk: 'nav.items.reporting',  href: '/reporting', badgeKey: null, icon: IC.chart },
     ],
   },
 ];
 
 const quickActions = [
-  { label: '+ Véhicule', href: '/voitures/new', variant: 'primary' as const },
-  { label: '+ Vente',    href: '/ventes',       variant: 'primary' as const },
-  { label: 'Clients',    href: '/clients',      variant: 'secondary' as const },
-  { label: 'Stock',      href: '/stock',        variant: 'secondary' as const },
+  { lk: 'nav.quickActions.addVehicle', href: '/voitures/new', variant: 'primary' as const },
+  { lk: 'nav.quickActions.addSale',    href: '/ventes',       variant: 'primary' as const },
+  { lk: 'nav.quickActions.clients',    href: '/clients',      variant: 'secondary' as const },
+  { lk: 'nav.quickActions.stock',      href: '/stock',        variant: 'secondary' as const },
 ];
 
 const employeeRoles = ['admin', 'super_admin', 'commercial', 'agent_location', 'sav', 'atelier', 'stock'];
@@ -137,11 +141,16 @@ export default function DashboardLayout({
   const pathname    = usePathname();
   const notifBtnId  = useId();
   const userMenuId  = useId();
+  const { t }       = useTranslation();
+
+  const { role: currentUserRole, canAccessRoute } = useRole();
 
   const [sidebarOpen,      setSidebarOpen]      = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [searchQuery,      setSearchQuery]      = useState('');
+  const [searchOpen,       setSearchOpen]       = useState(false);
   const [currentUserName,  setCurrentUserName]  = useState('Utilisateur');
-  const [currentUserRole,  setCurrentUserRole]  = useState('');
+  const [currentPhotoUrl,  setCurrentPhotoUrl]  = useState<string | null>(null);
   const [currentTime,      setCurrentTime]      = useState('');
   const [userMenuOpen,     setUserMenuOpen]      = useState(false);
   const [notifMenuOpen,    setNotifMenuOpen]     = useState(false);
@@ -160,27 +169,36 @@ export default function DashboardLayout({
   }, [menuVariant, pathname]);
 
   const totalNotifs =
-    (counts.tickets_ouverts   ?? 0) +
-    (counts.ordres_ouverts    ?? 0) +
-    (counts.factures_impayees ?? 0) +
-    (counts.reservations      ?? 0) +
-    (counts.alertes_stock     ?? 0);
+    (counts.tickets_ouverts     ?? 0) +
+    (counts.ordres_ouverts      ?? 0) +
+    (counts.factures_impayees   ?? 0) +
+    (counts.reservations        ?? 0) +
+    (counts.alertes_stock       ?? 0) +
+    (counts.demandes_en_attente ?? 0);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('user');
-      if (raw) {
-        const u = JSON.parse(raw);
-        setCurrentUserName(u?.name || u?.username || 'Utilisateur');
-        setCurrentUserRole(u?.role || '');
-      }
-    } catch { /* ignore */ }
+    function syncUserFromStorage() {
+      try {
+        const raw = sessionStorage.getItem('user');
+        if (raw) {
+          const u = JSON.parse(raw);
+          setCurrentUserName(u?.name || u?.username || 'Utilisateur');
+          setCurrentPhotoUrl(u?.profile_photo_url || null);
+        }
+      } catch { /* ignore */ }
+    }
+
+    syncUserFromStorage();
+    window.addEventListener(AUTH_CHANGED_EVENT, syncUserFromStorage);
 
     const tick = () =>
       setCurrentTime(new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' }).format(new Date()));
     tick();
     const iv = window.setInterval(tick, 60_000);
-    return () => window.clearInterval(iv);
+    return () => {
+      window.removeEventListener(AUTH_CHANGED_EVENT, syncUserFromStorage);
+      window.clearInterval(iv);
+    };
   }, []);
 
   useEffect(() => {
@@ -202,7 +220,7 @@ export default function DashboardLayout({
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  useEffect(() => { setSidebarOpen(false); }, [pathname]);
+  useEffect(() => { setSidebarOpen(false); setSearchOpen(false); }, [pathname]);
 
   function getInitials(name: string) {
     return name.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase();
@@ -226,6 +244,12 @@ export default function DashboardLayout({
 
   // ── Sidebar content ───────────────────────────────────────────────────────────
 
+  const filteredNavGroups = navGroups
+    .map((g) => ({ ...g, items: g.items.filter((item) => canAccessRoute(item.href)) }))
+    .filter((g) => g.items.length > 0);
+
+  const filteredQuickActions = quickActions.filter((a) => canAccessRoute(a.href));
+
   const collapsed = sidebarCollapsed; // shorthand
 
   const sidebarContent = (
@@ -235,9 +259,9 @@ export default function DashboardLayout({
       <div className={`hidden lg:flex ${collapsed ? 'justify-center' : 'justify-end'} px-2 py-2`}>
         <button
           type="button"
-          aria-label={collapsed ? 'Ouvrir la barre latérale' : 'Réduire la barre latérale'}
+          aria-label={collapsed ? t('nav.sidebar.open') : t('nav.sidebar.collapse')}
           onClick={() => setSidebarCollapsed((v) => !v)}
-          title={collapsed ? 'Ouvrir' : 'Réduire'}
+          title={collapsed ? t('nav.sidebar.open') : t('nav.sidebar.collapse')}
           className="flex h-7 w-7 items-center justify-center rounded text-[#8a6da0] transition hover:bg-white/[0.1] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
         >
           <NavIcon d={collapsed ? IC.chevronR : IC.chevronL} size={14} />
@@ -255,16 +279,16 @@ export default function DashboardLayout({
                   <Link
                     href={item.href}
                     aria-current={active ? 'page' : undefined}
-                    title={collapsed ? item.label : undefined}
+                    title={collapsed ? t(item.lk) : undefined}
                     className={`flex items-center rounded py-2.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20
                       ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'}
                       ${active
-                        ? 'bg-[#ff6b35]/[0.15] text-[#ff6b35]'
+                        ? 'bg-white/[0.15] text-white'
                         : 'text-[#c4a8d8] hover:bg-white/[0.08] hover:text-white'
                       }`}
                   >
                     <NavIcon d={item.icon} />
-                    {!collapsed && item.label}
+                    {!collapsed && t(item.lk)}
                   </Link>
                 </li>
               );
@@ -278,36 +302,36 @@ export default function DashboardLayout({
           <Link
             href="/dashboard"
             aria-current={activeItem === '/dashboard' ? 'page' : undefined}
-            title={collapsed ? 'Tableau de bord' : undefined}
+            title={collapsed ? t('nav.dashboard') : undefined}
             className={`mb-1 flex items-center rounded py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20
               ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'}
               ${activeItem === '/dashboard'
-                ? 'bg-[#ff6b35]/[0.15] text-[#ff6b35]'
+                ? 'bg-white/[0.15] text-white'
                 : 'text-[#c4a8d8] hover:bg-white/[0.08] hover:text-white'
               }`}
           >
             <NavIcon d={IC.home} />
-            {!collapsed && 'Tableau de bord'}
+            {!collapsed && t('nav.dashboard')}
           </Link>
 
           {/* Actions rapides — masquées si réduit */}
           {!collapsed && (
-            <section aria-label="Actions rapides" className="mb-4 mt-2">
+            <section aria-label={t('nav.quickActions.title')} className="mb-4 mt-2">
               <p className="mb-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#8a6da0]">
-                Actions rapides
+                {t('nav.quickActions.title')}
               </p>
               <div className="grid grid-cols-2 gap-1">
-                {quickActions.map((action) => (
+                {filteredQuickActions.map((action) => (
                   <Link
-                    key={action.href + action.label}
+                    key={action.href + action.lk}
                     href={action.href}
                     className={`rounded px-2 py-1.5 text-center text-[11px] font-semibold leading-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1
                       ${action.variant === 'primary'
-                        ? 'bg-[#ff6b35] text-white hover:bg-[#e85c29] focus-visible:ring-[#ff6b35] active:scale-95'
+                        ? 'bg-white/[0.15] text-white hover:bg-white/[0.25] focus-visible:ring-white/20 active:scale-95'
                         : 'bg-white/[0.07] text-[#c4a8d8] hover:bg-white/[0.13] hover:text-white focus-visible:ring-white/20'
                       }`}
                   >
-                    {action.label}
+                    {t(action.lk)}
                   </Link>
                 ))}
               </div>
@@ -319,11 +343,11 @@ export default function DashboardLayout({
 
           {/* Navigation groupée */}
           <div className="flex-1 space-y-4 overflow-y-auto">
-            {navGroups.map((group) => (
-              <section key={group.label} aria-label={group.label}>
+            {filteredNavGroups.map((group) => (
+              <section key={group.lk} aria-label={t(group.lk)}>
                 {!collapsed && (
                   <p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#8a6da0]">
-                    {group.label}
+                    {t(group.lk)}
                   </p>
                 )}
                 <ul className="space-y-0.5" role="list">
@@ -337,21 +361,21 @@ export default function DashboardLayout({
                         <Link
                           href={item.href}
                           aria-current={active ? 'page' : undefined}
-                          title={collapsed ? item.label : undefined}
+                          title={collapsed ? t(item.lk) : undefined}
                           className={`relative flex items-center rounded py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20
                             ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'}
                             ${active
-                              ? 'bg-[#ff6b35]/[0.12] font-semibold text-[#ff6b35]'
+                              ? 'bg-white/[0.12] font-semibold text-white'
                               : 'font-medium text-[#c4a8d8] hover:bg-white/[0.08] hover:text-white'
                             }`}
                         >
                           <NavIcon d={item.icon} />
-                          {!collapsed && <span className="flex-1">{item.label}</span>}
+                          {!collapsed && <span className="flex-1">{t(item.lk)}</span>}
                           {badge > 0 && !collapsed && (
                             <span
                               aria-label={`${badge} élément${badge > 1 ? 's' : ''}`}
                               className={`flex min-w-[18px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none
-                                ${active ? 'bg-[#ff6b35]/30 text-[#ff6b35]' : 'bg-[#ff6b35] text-white'}`}
+                                ${active ? 'bg-white/[0.25] text-white' : 'bg-white/80 text-[#2d1b3d]'}`}
                             >
                               {badge}
                             </span>
@@ -359,7 +383,7 @@ export default function DashboardLayout({
                           {badge > 0 && collapsed && (
                             <span
                               aria-hidden="true"
-                              className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#ff6b35]"
+                              className="absolute right-1 top-1 h-2 w-2 rounded-full bg-white/70"
                             />
                           )}
                         </Link>
@@ -380,18 +404,18 @@ export default function DashboardLayout({
             id={userMenuId}
             role="menu"
             aria-label="Menu utilisateur"
-            className="absolute bottom-full left-2 right-2 mb-2 overflow-hidden rounded border border-[#dfe3eb] bg-white shadow-xl"
+            className="absolute bottom-full left-2 right-2 mb-2 overflow-hidden rounded border border-[#dfe3eb] bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800"
           >
             <Link
               href="/settings"
               role="menuitem"
-              className={`flex items-center gap-2.5 px-4 py-3 text-sm font-medium text-[#33475b] transition hover:bg-[#f5f8fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#ff6b35] ${
-                pathname.startsWith('/settings') ? 'bg-[#f5f8fa]' : ''
+              className={`flex items-center gap-2.5 px-4 py-3 text-sm font-medium text-[#111827] transition hover:bg-[#f5f8fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#33475b]/30 dark:text-slate-200 dark:hover:bg-slate-700 ${
+                pathname.startsWith('/settings') ? 'bg-[#f5f8fa] dark:bg-slate-700' : ''
               }`}
               onClick={() => setUserMenuOpen(false)}
             >
               <NavIcon d={IC.sliders} size={16} />
-              Paramètres
+              {t('user.settings')}
             </Link>
             <button
               type="button"
@@ -403,7 +427,7 @@ export default function DashboardLayout({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
                   d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              Déconnexion
+              {t('user.logout')}
             </button>
           </div>
         )}
@@ -419,12 +443,23 @@ export default function DashboardLayout({
           className={`flex w-full items-center rounded py-2 text-left transition hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20
             ${collapsed ? 'justify-center px-1' : 'gap-3 px-2'}`}
         >
-          <div
-            aria-hidden="true"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ff6b35] text-xs font-black text-white"
-          >
-            {getInitials(currentUserName)}
-          </div>
+          {currentPhotoUrl ? (
+            <img
+              src={currentPhotoUrl}
+              alt={currentUserName}
+              aria-hidden="true"
+              width={32}
+              height={32}
+              className="h-8 w-8 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <div
+              aria-hidden="true"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#516f90] text-xs font-black text-white"
+            >
+              {getInitials(currentUserName)}
+            </div>
+          )}
           {!collapsed && (
             <>
               <div className="min-w-0 flex-1">
@@ -448,7 +483,7 @@ export default function DashboardLayout({
   // ── JSX ───────────────────────────────────────────────────────────────────────
 
   const content = (
-    <div style={{ background: '#f5f8fa', minHeight: '100vh' }}>
+    <div className="min-h-screen bg-[#f5f8fa] text-slate-900 dark:bg-slate-900 dark:text-slate-100">
 
       {/* Skip link */}
       <a href="#main-content" className="skip-link">
@@ -467,7 +502,7 @@ export default function DashboardLayout({
             {/* Mobile hamburger */}
             <button
               type="button"
-              aria-label={sidebarOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+              aria-label={sidebarOpen ? t('nav.sidebar.closeMenu') : t('nav.sidebar.openMenu')}
               aria-expanded={sidebarOpen}
               aria-controls="sidebar-nav"
               onClick={() => setSidebarOpen((v) => !v)}
@@ -488,7 +523,7 @@ export default function DashboardLayout({
               href="/dashboard"
               className="flex items-center gap-2.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
             >
-              <img src="/logo.png" alt="SunuPark" width="36" height="36" className="h-9 w-9 object-contain opacity-95" />
+              <NextImage src="/logo.png" alt="SunuPark" width={36} height={36} className="h-9 w-9 object-contain opacity-95" />
               <div className="hidden sm:block">
                 <p className="text-sm font-black text-white leading-tight">SunuPark</p>
                 <p className="text-[10px] leading-tight" style={{ color: '#8a6da0' }}>Parc automobile</p>
@@ -504,8 +539,16 @@ export default function DashboardLayout({
               </svg>
               <input
                 type="search"
-                placeholder="Recherche rapide…"
-                aria-label="Recherche dans l'application"
+                placeholder={t('nav.search.placeholder')}
+                aria-label={t('nav.search.placeholder')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchQuery.trim()) {
+                    router.push(`/voitures?search=${encodeURIComponent(searchQuery.trim())}`);
+                    setSearchQuery('');
+                  }
+                }}
                 className="h-8 w-full rounded pl-9 pr-4 text-xs outline-none transition focus:ring-1 focus:ring-white/20"
                 style={{
                   background: 'rgba(255,255,255,0.07)',
@@ -519,9 +562,22 @@ export default function DashboardLayout({
           {/* Droite : heure + notifs */}
           <div className="flex items-center gap-1.5">
             <div className="hidden text-right sm:block mr-1" aria-live="polite" aria-atomic="true">
-              <p className="text-sm font-semibold text-white leading-tight">Bonjour, {currentUserName}</p>
+              <p className="text-sm font-semibold text-white leading-tight">{t('nav.greeting')} {currentUserName}</p>
               <p className="text-[11px] leading-tight" style={{ color: '#8a6da0' }}>{currentTime || '--:--'}</p>
             </div>
+
+            {/* Bouton recherche mobile */}
+            <button
+              type="button"
+              aria-label={searchOpen ? t('nav.search.close') : t('nav.search.open')}
+              aria-expanded={searchOpen}
+              onClick={() => setSearchOpen((v) => !v)}
+              className="flex h-9 w-9 items-center justify-center rounded text-[#c4a8d8] transition hover:bg-white/[0.1] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 lg:hidden"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
 
             {/* Cloche notifications */}
             <div className="relative">
@@ -541,7 +597,7 @@ export default function DashboardLayout({
                 {(notifLoading || totalNotifs > 0) && (
                   <span
                     aria-hidden="true"
-                    className="absolute -right-0.5 -top-0.5 flex min-h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[#ff6b35] px-1 text-[10px] font-bold text-white"
+                    className="absolute -right-0.5 -top-0.5 flex min-h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[#516f90] px-1 text-[10px] font-bold text-white"
                   >
                     {notifLoading ? '·' : totalNotifs}
                   </span>
@@ -552,32 +608,32 @@ export default function DashboardLayout({
                 <div
                   role="dialog"
                   aria-label="Panneau de notifications"
-                  className="absolute right-0 mt-2 w-[min(360px,90vw)] overflow-hidden rounded border border-[#dfe3eb] bg-white shadow-xl"
+                  className="absolute right-0 mt-2 w-[min(360px,90vw)] overflow-hidden rounded border border-[#dfe3eb] bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800"
                 >
-                  <div className="border-b border-[#dfe3eb] px-4 py-3">
-                    <p className="text-sm font-bold text-[#33475b]">Notifications</p>
-                    <p className="mt-0.5 text-xs text-[#516f90]">Alertes et suivis récents</p>
+                  <div className="border-b border-[#dfe3eb] px-4 py-3 dark:border-slate-700">
+                    <p className="text-sm font-bold text-[#111827] dark:text-slate-100">{t('notif.title')}</p>
+                    <p className="mt-0.5 text-xs text-[#6b7280] dark:text-slate-400">{t('notif.subtitle')}</p>
                   </div>
                   <div className="max-h-[380px] overflow-y-auto" role="list">
                     {notifItems.length === 0 ? (
-                      <p className="px-4 py-8 text-center text-sm text-[#516f90]">Aucune notification récente.</p>
+                      <p className="px-4 py-8 text-center text-sm text-[#6b7280]">{t('notif.empty')}</p>
                     ) : notifItems.map((item) => (
                       <button
                         key={item.id}
                         type="button"
                         role="listitem"
                         onClick={() => handleNotifClick(item)}
-                        className={`block w-full border-b border-[#dfe3eb] px-4 py-3 text-left transition last:border-b-0 hover:bg-[#f5f8fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#ff6b35] ${
-                          item.read_at ? 'bg-white' : 'bg-[#ff6b35]/[0.03]'
+                        className={`block w-full border-b border-[#dfe3eb] px-4 py-3 text-left transition last:border-b-0 hover:bg-[#f5f8fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#33475b]/20 dark:border-slate-700 dark:hover:bg-slate-700 ${
+                          item.read_at ? 'bg-white dark:bg-slate-800' : 'bg-[#f5f8fa] dark:bg-slate-700/50'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <p className="text-sm font-semibold text-[#33475b]">{item.title}</p>
-                            <p className="mt-0.5 text-xs text-[#516f90]">{item.message}</p>
+                            <p className="text-sm font-semibold text-[#111827] dark:text-slate-100">{item.title}</p>
+                            <p className="mt-0.5 text-xs text-[#6b7280] dark:text-slate-400">{item.message}</p>
                           </div>
                           {!item.read_at && (
-                            <span aria-label="Non lue" className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#ff6b35]" />
+                            <span aria-label="Non lue" className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#516f90]" />
                           )}
                         </div>
                       </button>
@@ -588,6 +644,39 @@ export default function DashboardLayout({
             </div>
           </div>
         </div>
+
+        {/* Barre de recherche mobile */}
+        {searchOpen && (
+          <div className="border-t px-4 py-2 lg:hidden" style={{ borderColor: SIDEBAR_BDR }}>
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style={{ color: '#8a6da0' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="search"
+                autoFocus
+                placeholder={t('nav.search.mobile')}
+                aria-label={t('nav.search.mobile')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchQuery.trim()) {
+                    router.push(`/voitures?search=${encodeURIComponent(searchQuery.trim())}`);
+                    setSearchQuery('');
+                    setSearchOpen(false);
+                  }
+                  if (e.key === 'Escape') setSearchOpen(false);
+                }}
+                className="h-9 w-full rounded pl-9 pr-4 text-sm outline-none transition focus:ring-1 focus:ring-white/20"
+                style={{
+                  background: 'rgba(255,255,255,0.07)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  color: '#e2d4f0',
+                }}
+              />
+            </div>
+          </div>
+        )}
       </header>
 
       <div className="relative flex">
@@ -622,8 +711,7 @@ export default function DashboardLayout({
         {/* ── Contenu principal ─────────────────────────────────────────── */}
         <main
           id="main-content"
-          className="min-w-0 flex-1 p-4 sm:p-5 lg:p-6"
-          style={{ background: '#f5f8fa' }}
+          className="min-w-0 flex-1 p-4 sm:p-5 lg:p-6 bg-[#f5f8fa] dark:bg-slate-900"
           tabIndex={-1}
         >
           {children}
@@ -644,3 +732,4 @@ export default function DashboardLayout({
     </ProtectedRoute>
   );
 }
+

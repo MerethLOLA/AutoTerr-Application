@@ -17,11 +17,16 @@ const STATUTS = ['disponible', 'reserve', 'en_reparation'];
 const ETATS   = ['neuf', 'occasion', 'accidente'];
 const ENERGIES = ['essence', 'diesel', 'hybride', 'electrique', 'gaz'];
 const BOITES   = ['manuelle', 'automatique', 'semi-automatique'];
+const TYPE_USAGES = [
+  { value: 'location', label: 'Location uniquement' },
+  { value: 'vente',    label: 'Vente uniquement' },
+  { value: 'les_deux', label: 'Location & Vente' },
+];
 
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-semibold text-[#33475b]">{label}</label>
+      <label className="mb-1 block text-xs font-semibold text-[#111827]">{label}</label>
       {children}
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
@@ -45,6 +50,7 @@ export default function NewVoiturePage() {
   // Formulaire
   const [form, setForm] = useState({
     marque: '', modele: '', annee: '', couleur: '', prix: '',
+    prix_vente: '', type_usage: 'les_deux',
     kilometrage: '', numero_chassis: '', date_acquisition: '',
     statut: 'disponible', etat: '', energie: '', type_boite: '',
     type_vehicule_id: '', origine_marque_id: '', id_fournisseur: '',
@@ -58,6 +64,16 @@ export default function NewVoiturePage() {
   function set(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => { const n = { ...e }; delete n[key]; return n; });
+  }
+
+  function setTypeUsage(value: string) {
+    setForm((f) => ({
+      ...f,
+      type_usage: value,
+      prix:       value === 'vente'    ? '' : f.prix,
+      prix_vente: value === 'location' ? '' : f.prix_vente,
+    }));
+    setErrors((e) => { const n = { ...e }; delete n.type_usage; return n; });
   }
 
   const addFiles = useCallback((files: FileList | File[]) => {
@@ -88,8 +104,16 @@ export default function NewVoiturePage() {
     setGlobalError('');
     setErrors({});
 
+    const isLocation = form.type_usage === 'location' || form.type_usage === 'les_deux';
+    const isVente    = form.type_usage === 'vente'    || form.type_usage === 'les_deux';
+
     const fd = new FormData();
-    Object.entries(form).forEach(([k, v]) => { if (v) fd.append(k, v); });
+    Object.entries(form).forEach(([k, v]) => {
+      if (k === 'prix' || k === 'prix_vente') return; // gérés séparément
+      if (v) fd.append(k, v);
+    });
+    fd.append('prix',       isLocation ? (form.prix       || '') : '');
+    fd.append('prix_vente', isVente    ? (form.prix_vente || '') : '');
     pendingFiles.forEach((f) => fd.append('images[]', f));
 
     try {
@@ -114,10 +138,10 @@ export default function NewVoiturePage() {
         {/* En-tête */}
         <div className="page-header">
           <div>
-            <nav className="mb-1 flex items-center gap-1.5 text-xs text-[#516f90]">
-              <Link href="/voitures" className="hover:text-[#33475b]">Véhicules</Link>
+            <nav className="mb-1 flex items-center gap-1.5 text-xs text-[#6b7280]">
+              <Link href="/voitures" className="hover:text-[#111827]">Véhicules</Link>
               <span>/</span>
-              <span className="font-semibold text-[#33475b]">Nouveau véhicule</span>
+              <span className="font-semibold text-[#111827]">Nouveau véhicule</span>
             </nav>
             <h1 className="page-title">Ajouter un véhicule</h1>
           </div>
@@ -208,14 +232,35 @@ export default function NewVoiturePage() {
             </div>
           </section>
 
-          {/* ── Section 3 : Prix & Acquisition ── */}
+          {/* ── Section 3 : Usage & Prix ── */}
           <section className="surface-panel p-6">
-            <h2 className="section-title mb-5">Prix & Acquisition</h2>
+            <h2 className="section-title mb-5">Usage & Prix</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Field label="Prix de vente (XOF) *" error={errors.prix}>
-                <input className="field-control" type="number" min="0"
-                  value={form.prix} onChange={(e) => set('prix', e.target.value)} placeholder="0" required />
+
+              {/* Type d'usage — toujours visible en premier */}
+              <Field label="Usage du véhicule *" error={errors.type_usage}>
+                <select className="field-control" value={form.type_usage}
+                  onChange={(e) => setTypeUsage(e.target.value)} required>
+                  {TYPE_USAGES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
               </Field>
+
+              {/* Tarif journalier — visible si location ou les_deux */}
+              {(form.type_usage === 'location' || form.type_usage === 'les_deux') && (
+                <Field label="Tarif location (XOF / jour)" error={errors.prix}>
+                  <input className="field-control" type="number" min="0"
+                    value={form.prix} onChange={(e) => set('prix', e.target.value)} placeholder="0" />
+                </Field>
+              )}
+
+              {/* Prix de vente — visible si vente ou les_deux */}
+              {(form.type_usage === 'vente' || form.type_usage === 'les_deux') && (
+                <Field label="Prix de vente (XOF)" error={errors.prix_vente}>
+                  <input className="field-control" type="number" min="0"
+                    value={form.prix_vente} onChange={(e) => set('prix_vente', e.target.value)} placeholder="0" />
+                </Field>
+              )}
+
               <Field label="Date d'acquisition" error={errors.date_acquisition}>
                 <input className="field-control" type="date"
                   value={form.date_acquisition} onChange={(e) => set('date_acquisition', e.target.value)} />
@@ -243,7 +288,7 @@ export default function NewVoiturePage() {
           {/* ── Section 5 : Photos ── */}
           <section className="surface-panel p-6">
             <h2 className="section-title mb-1">Photos du véhicule</h2>
-            <p className="mb-4 text-xs text-[#516f90]">JPEG, PNG, GIF · Max 5 Mo par photo · La première photo sera l&apos;image principale</p>
+            <p className="mb-4 text-xs text-[#6b7280]">JPEG, PNG, GIF · Max 5 Mo par photo · La première photo sera l&apos;image principale</p>
 
             {/* Zone de dépôt */}
             <div
@@ -253,18 +298,18 @@ export default function NewVoiturePage() {
               onClick={() => fileInputRef.current?.click()}
               className={`cursor-pointer rounded border-2 border-dashed p-8 text-center transition
                 ${dragging
-                  ? 'border-[#ff6b35] bg-[#ff6b35]/5'
-                  : 'border-[#cbd6e2] bg-[#f5f8fa] hover:border-[#ff6b35]/50 hover:bg-[#ff6b35]/[0.02]'
+                  ? 'border-[#33475b] bg-[#f5f8fa]'
+                  : 'border-[#cbd6e2] bg-[#f5f8fa] hover:border-[#33475b]/50'
                 }`}
             >
               <svg className="mx-auto mb-3 h-10 w-10 text-[#cbd6e2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <p className="text-sm font-semibold text-[#33475b]">
+              <p className="text-sm font-semibold text-[#111827]">
                 {dragging ? 'Déposez les photos ici' : 'Cliquez ou déposez vos photos ici'}
               </p>
-              <p className="mt-1 text-xs text-[#516f90]">Plusieurs fichiers acceptés</p>
+              <p className="mt-1 text-xs text-[#6b7280]">Plusieurs fichiers acceptés</p>
               <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
                 onChange={(e) => e.target.files && addFiles(e.target.files)} />
             </div>
@@ -276,7 +321,7 @@ export default function NewVoiturePage() {
                   <div key={i} className="group relative aspect-square overflow-hidden rounded border border-[#dfe3eb] bg-[#f5f8fa]">
                     <img src={src} alt={`photo ${i + 1}`} className="h-full w-full object-cover" />
                     {i === 0 && (
-                      <span className="absolute left-1 top-1 rounded bg-[#ff6b35] px-1.5 py-0.5 text-[9px] font-bold text-white">
+                      <span className="absolute left-1 top-1 rounded bg-slate-600 px-1.5 py-0.5 text-[9px] font-bold text-white">
                         Principale
                       </span>
                     )}

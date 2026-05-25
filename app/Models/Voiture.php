@@ -25,6 +25,8 @@ class Voiture extends Model
         'numero_chassis',
         'date_acquisition',
         'statut',
+        'type_usage',
+        'prix_vente',
         'etat',
         'energie',
         'type_boite',
@@ -38,8 +40,9 @@ class Voiture extends Model
     protected function casts(): array
     {
         return [
-            'annee' => 'integer',
-            'prix' => 'decimal:2',
+            'annee'       => 'integer',
+            'prix'        => 'decimal:2',
+            'prix_vente'  => 'decimal:2',
             'kilometrage' => 'integer',
             'date_acquisition' => 'date',
         ];
@@ -123,6 +126,16 @@ class Voiture extends Model
     public function scopeDisponibles($query)
     {
         return $query->where('statut', 'disponible');
+    }
+
+    public function scopePourLocation($query)
+    {
+        return $query->whereIn('type_usage', ['location', 'les_deux']);
+    }
+
+    public function scopePourVente($query)
+    {
+        return $query->whereIn('type_usage', ['vente', 'les_deux']);
     }
 
     public function scopeParOrigine($query, int $origineId)

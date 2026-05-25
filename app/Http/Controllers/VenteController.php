@@ -15,18 +15,14 @@ use Illuminate\Support\Str;
 
 class VenteController extends Controller
 {
-    public function create(Request $request)
+    public function create()
     {
         $this->ensurePermission('create_vente');
 
-        $selectedVoiture = $request->integer('voiture');
-
-        return view('ventes.create', [
-            'vente' => new Vente(['date_vente' => now()->toDateString(), 'statut' => 'finalisee', 'id_voiture' => $selectedVoiture ?: null]),
+        return response()->json([
             'clients' => Client::query()->orderBy('nom')->get(['id', 'nom', 'prenom', 'raison_sociale']),
             'voitures' => Voiture::query()->where('statut', 'disponible')->orderBy('marque')->get(['id', 'marque', 'modele', 'prix', 'statut']),
             'employes' => Employe::query()->orderBy('nom')->get(['id', 'nom', 'prenom', 'poste']),
-            'isEdit' => false,
         ]);
     }
 
@@ -50,11 +46,7 @@ class VenteController extends Controller
             ->latest('date_vente')
             ->paginate(15);
 
-        if ($request->wantsJson()) {
-            return $this->apiCollection($ventes);
-        }
-
-        return view('ventes.index', compact('ventes'));
+        return $this->apiCollection($ventes);
     }
 
     public function store(VenteRequest $request, BusinessReferenceService $referenceService)
@@ -113,7 +105,7 @@ class VenteController extends Controller
         return redirect()->route('ventes.show', $vente)->with('success', 'Vente enregistree avec facture automatique.');
     }
 
-    public function show(Request $request, Vente $vente)
+    public function show(Vente $vente)
     {
         $this->ensurePermission('manage_ventes');
 
@@ -124,18 +116,14 @@ class VenteController extends Controller
             'paiements:id,id_vente,date,montant',
         ]);
 
-        if ($request->wantsJson()) {
-            return $this->apiItem($vente);
-        }
-
-        return view('ventes.show', compact('vente'));
+        return $this->apiItem($vente);
     }
 
     public function edit(Vente $vente)
     {
         $this->ensurePermission('manage_ventes');
 
-        return view('ventes.edit', [
+        return response()->json([
             'vente' => $vente,
             'clients' => Client::query()->orderBy('nom')->get(['id', 'nom', 'prenom', 'raison_sociale']),
             'voitures' => Voiture::query()
@@ -144,7 +132,6 @@ class VenteController extends Controller
                 ->orderBy('marque')
                 ->get(['id', 'marque', 'modele', 'prix', 'statut']),
             'employes' => Employe::query()->orderBy('nom')->get(['id', 'nom', 'prenom', 'poste']),
-            'isEdit' => true,
         ]);
     }
 

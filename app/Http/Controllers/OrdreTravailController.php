@@ -26,27 +26,17 @@ class OrdreTravailController extends Controller
             ->latest()
             ->paginate(15);
 
-        if ($request->wantsJson()) {
-            return $this->apiCollection($ordres);
-        }
-
-        return view('ordres-travail.index', compact('ordres'));
+        return $this->apiCollection($ordres);
     }
 
-    public function create(Request $request)
+    public function create()
     {
         $this->ensurePermission('manage_atelier');
 
-        return view('ordres-travail.create', [
-            'ordreTravail' => new OrdreTravail([
-                'id_ticket_sav' => $request->integer('ticket'),
-                'priorite' => 'normale',
-                'statut' => 'ouvert',
-            ]),
+        return response()->json([
             'voitures' => Voiture::query()->orderBy('marque')->get(['id', 'marque', 'modele', 'immatriculation']),
             'tickets' => TicketSav::query()->orderByDesc('date_ouverture')->get(['id', 'reference_ticket']),
             'techniciens' => Employe::query()->orderBy('nom')->get(['id', 'nom', 'prenom']),
-            'isEdit' => false,
         ]);
     }
 
@@ -68,29 +58,24 @@ class OrdreTravailController extends Controller
         ]);
     }
 
-    public function show(Request $request, OrdreTravail $ordreTravail)
+    public function show(OrdreTravail $ordreTravail)
     {
         $this->ensurePermission('manage_atelier');
 
         $ordreTravail->load(['voiture', 'ticketSav', 'technicien', 'taches', 'consommations.piece']);
 
-        if ($request->wantsJson()) {
-            return $this->apiItem($ordreTravail);
-        }
-
-        return view('ordres-travail.show', compact('ordreTravail'));
+        return $this->apiItem($ordreTravail);
     }
 
     public function edit(OrdreTravail $ordreTravail)
     {
         $this->ensurePermission('manage_atelier');
 
-        return view('ordres-travail.edit', [
+        return response()->json([
             'ordreTravail' => $ordreTravail,
             'voitures' => Voiture::query()->orderBy('marque')->get(['id', 'marque', 'modele', 'immatriculation']),
             'tickets' => TicketSav::query()->orderByDesc('date_ouverture')->get(['id', 'reference_ticket']),
             'techniciens' => Employe::query()->orderBy('nom')->get(['id', 'nom', 'prenom']),
-            'isEdit' => true,
         ]);
     }
 

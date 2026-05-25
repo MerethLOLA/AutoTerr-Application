@@ -4,6 +4,7 @@ export type ModuleKind = 'crud' | 'workflow' | 'analytics' | 'settings';
 export interface ModuleColumn {
   label: string;
   key: string;
+  type?: 'text' | 'date' | 'money' | 'badge' | 'km' | 'number' | 'image';
 }
 
 export interface ModuleFormField {
@@ -72,9 +73,9 @@ export const modules: Record<string, ModuleDefinition> = {
     columns: [
       { label: 'Marque', key: 'marque' },
       { label: 'Modele', key: 'modele' },
-      { label: 'Annee', key: 'annee' },
-      { label: 'Prix XOF', key: 'prix' },
-      { label: 'Statut', key: 'statut' },
+      { label: 'Annee', key: 'annee', type: 'number' as const },
+      { label: 'Prix XOF', key: 'prix', type: 'money' as const },
+      { label: 'Statut', key: 'statut', type: 'badge' as const },
     ],
     formFields: [
       { label: 'Marque', name: 'marque', required: true },
@@ -127,6 +128,7 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Date naissance', name: 'date_naissance', type: 'date' },
       { label: 'Vendeur attribue', name: 'id_vendeur_attribue', type: 'select', optionsEndpoint: '/employes', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Employe #${option?.id}` },
     ],
+    detailRoute: 'clients',
     menu: { label: 'Clients' },
   },
   fournisseurs: {
@@ -153,6 +155,7 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Pays origine', name: 'pays_origine' },
       { label: 'Vehicules fournis', name: 'vehicule_fournis', type: 'textarea' },
     ],
+    detailRoute: 'fournisseurs',
     menu: { label: 'Fournisseurs' },
   },
   ventes: {
@@ -167,8 +170,8 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Reference', key: 'reference_vente' },
       { label: 'Client', key: 'client.nom' },
       { label: 'Vehicule', key: 'voiture.marque' },
-      { label: 'Prix final', key: 'prix_final' },
-      { label: 'Statut', key: 'statut' },
+      { label: 'Prix final', key: 'prix_final', type: 'money' as const },
+      { label: 'Statut', key: 'statut', type: 'badge' as const },
     ],
     formFields: [
       { label: 'Date vente', name: 'date_vente', type: 'date', required: true },
@@ -191,9 +194,9 @@ export const modules: Record<string, ModuleDefinition> = {
     columns: [
       { label: 'Numero', key: 'numero_facture' },
       { label: 'Vente', key: 'vente.reference_vente' },
-      { label: 'Montant HT', key: 'montant_ht' },
-      { label: 'Montant TTC', key: 'montant_ttc' },
-      { label: 'Statut', key: 'statut' },
+      { label: 'Montant HT', key: 'montant_ht', type: 'money' as const },
+      { label: 'Montant TTC', key: 'montant_ttc', type: 'money' as const },
+      { label: 'Statut', key: 'statut', type: 'badge' as const },
     ],
     formFields: [
       { label: 'Vente', name: 'id_vente', type: 'select', required: true, optionsEndpoint: '/ventes', optionFormatter: (option) => option?.reference_vente || `Vente #${option?.id}` },
@@ -219,10 +222,10 @@ export const modules: Record<string, ModuleDefinition> = {
     primaryAction: 'Enregistrer un paiement',
     fields: ['Date', 'Mode', 'Montant', 'Reste', 'Facture'],
     columns: [
-      { label: 'Date', key: 'date' },
+      { label: 'Date', key: 'date', type: 'date' as const },
       { label: 'Mode', key: 'mode_paiement' },
-      { label: 'Montant', key: 'montant' },
-      { label: 'Reste', key: 'reste' },
+      { label: 'Montant', key: 'montant', type: 'money' as const },
+      { label: 'Reste', key: 'reste', type: 'money' as const },
       { label: 'Facture', key: 'facturation.numero_facture' },
     ],
     formFields: [
@@ -254,8 +257,8 @@ export const modules: Record<string, ModuleDefinition> = {
     columns: [
       { label: 'Vehicule', key: 'voiture.marque' },
       { label: 'Type', key: 'type_garantie' },
-      { label: 'Date debut', key: 'date_debut' },
-      { label: 'Date fin', key: 'date_fin' },
+      { label: 'Date debut', key: 'date_debut', type: 'date' as const },
+      { label: 'Date fin', key: 'date_fin', type: 'date' as const },
     ],
     formFields: [
       { label: 'Vehicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Vehicule #${option?.id}` },
@@ -282,7 +285,7 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Numero', key: 'numero_document' },
       { label: 'Client', key: 'client.nom' },
       { label: 'Vente', key: 'vente.reference_vente' },
-      { label: 'Expiration', key: 'date_expiration' },
+      { label: 'Expiration', key: 'date_expiration', type: 'date' as const },
     ],
     formFields: [
       { label: 'Type document', name: 'type_document', required: true },
@@ -310,8 +313,8 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Reference', key: 'reference_ticket' },
       { label: 'Client', key: 'client.nom' },
       { label: 'Vehicule', key: 'voiture.marque' },
-      { label: 'Priorite', key: 'priorite' },
-      { label: 'Statut', key: 'statut' },
+      { label: 'Priorite', key: 'priorite', type: 'badge' as const },
+      { label: 'Statut', key: 'statut', type: 'badge' as const },
     ],
     formFields: [
       { label: 'Client', name: 'id_client', type: 'select', required: true, optionsEndpoint: '/clients', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Client #${option?.id}` },
@@ -340,8 +343,8 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Reference OT', key: 'reference_ot' },
       { label: 'Vehicule', key: 'voiture.marque' },
       { label: 'Technicien', key: 'technicien.nom' },
-      { label: 'Priorite', key: 'priorite' },
-      { label: 'Statut', key: 'statut' },
+      { label: 'Priorite', key: 'priorite', type: 'badge' as const },
+      { label: 'Statut', key: 'statut', type: 'badge' as const },
     ],
     formFields: [
       { label: 'Vehicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Vehicule #${option?.id}` },
@@ -366,9 +369,9 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Reference', key: 'reference_location' },
       { label: 'Client', key: 'client.nom' },
       { label: 'Vehicule', key: 'voiture.marque' },
-      { label: 'Debut', key: 'date_debut' },
-      { label: 'Fin', key: 'date_fin' },
-      { label: 'Statut', key: 'statut' },
+      { label: 'Debut', key: 'date_debut', type: 'date' as const },
+      { label: 'Fin', key: 'date_fin', type: 'date' as const },
+      { label: 'Statut', key: 'statut', type: 'badge' as const },
     ],
     formFields: [
       { label: 'Client', name: 'id_client', type: 'select', required: true, optionsEndpoint: '/clients', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Client #${option?.id}` },
@@ -397,9 +400,9 @@ export const modules: Record<string, ModuleDefinition> = {
     columns: [
       { label: 'Reference', key: 'reference' },
       { label: 'Designation', key: 'designation' },
-      { label: 'Prix unitaire', key: 'prix_unitaire' },
-      { label: 'Quantite', key: 'quantite_stock' },
-      { label: 'Seuil', key: 'seuil_alerte' },
+      { label: 'Prix unitaire', key: 'prix_unitaire', type: 'money' as const },
+      { label: 'Quantite', key: 'quantite_stock', type: 'number' as const },
+      { label: 'Seuil', key: 'seuil_alerte', type: 'number' as const },
     ],
     formFields: [
       { label: 'Reference', name: 'reference', required: true },
@@ -424,7 +427,7 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Prénom',    key: 'prenom' },
       { label: 'Poste',     key: 'poste' },
       { label: 'Téléphone', key: 'telephone' },
-      { label: 'Statut',    key: 'statut' },
+      { label: 'Statut',    key: 'statut', type: 'badge' as const },
     ],
     formFields: [
       { label: 'Nom',             name: 'nom',          required: true },
@@ -452,9 +455,9 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Véhicule', key: 'voiture.marque' },
       { label: 'Compagnie', key: 'compagnie' },
       { label: 'Type', key: 'type_assurance' },
-      { label: 'Début', key: 'date_debut' },
-      { label: 'Fin', key: 'date_fin' },
-      { label: 'Statut', key: 'statut' },
+      { label: 'Début', key: 'date_debut', type: 'date' as const },
+      { label: 'Fin', key: 'date_fin', type: 'date' as const },
+      { label: 'Statut', key: 'statut', type: 'badge' as const },
     ],
     formFields: [
       { label: 'Véhicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Véhicule #${option?.id}` },
@@ -468,6 +471,8 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Statut', name: 'statut' },
       { label: 'Notes', name: 'notes', type: 'textarea' },
     ],
+    exportRoute: 'assurances',
+    exportFilename: (item) => `assurance-${item.id}.pdf`,
     menu: { label: 'Assurances' },
   },
   carburant: {
@@ -480,10 +485,10 @@ export const modules: Record<string, ModuleDefinition> = {
     fields: ['Véhicule', 'Date', 'Km', 'Litres', 'Montant', 'Type'],
     columns: [
       { label: 'Véhicule', key: 'voiture.marque' },
-      { label: 'Date', key: 'date_plein' },
-      { label: 'Km', key: 'kilometrage_au_plein' },
-      { label: 'Litres', key: 'quantite_litres' },
-      { label: 'Montant (XOF)', key: 'montant_total' },
+      { label: 'Date', key: 'date_plein', type: 'date' as const },
+      { label: 'Km', key: 'kilometrage_au_plein', type: 'km' as const },
+      { label: 'Litres', key: 'quantite_litres', type: 'number' as const },
+      { label: 'Montant (XOF)', key: 'montant_total', type: 'money' as const },
       { label: 'Type', key: 'type_carburant' },
     ],
     formFields: [
@@ -510,9 +515,9 @@ export const modules: Record<string, ModuleDefinition> = {
     columns: [
       { label: 'Véhicule', key: 'voiture.marque' },
       { label: 'Type', key: 'type_controle' },
-      { label: 'Date contrôle', key: 'date_controle' },
-      { label: 'Expiration', key: 'date_expiration' },
-      { label: 'Résultat', key: 'resultat' },
+      { label: 'Date contrôle', key: 'date_controle', type: 'date' as const },
+      { label: 'Expiration', key: 'date_expiration', type: 'date' as const },
+      { label: 'Résultat', key: 'resultat', type: 'badge' as const },
     ],
     formFields: [
       { label: 'Véhicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Véhicule #${option?.id}` },
@@ -536,10 +541,10 @@ export const modules: Record<string, ModuleDefinition> = {
     fields: ['Véhicule', 'Date', 'Type', 'Statut', 'Montant'],
     columns: [
       { label: 'Véhicule', key: 'voiture.marque' },
-      { label: 'Date', key: 'date_sinistre' },
+      { label: 'Date', key: 'date_sinistre', type: 'date' as const },
       { label: 'Type', key: 'type_sinistre' },
-      { label: 'Statut', key: 'statut' },
-      { label: 'Dommages (XOF)', key: 'montant_dommages' },
+      { label: 'Statut', key: 'statut', type: 'badge' as const },
+      { label: 'Dommages (XOF)', key: 'montant_dommages', type: 'money' as const },
     ],
     formFields: [
       { label: 'Véhicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Véhicule #${option?.id}` },
@@ -554,6 +559,8 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Statut', name: 'statut' },
       { label: 'Notes', name: 'notes', type: 'textarea' },
     ],
+    exportRoute: 'sinistres',
+    exportFilename: (item) => `sinistre-${item.id}.pdf`,
     menu: { label: 'Sinistres' },
   },
   entretiens: {
@@ -567,9 +574,9 @@ export const modules: Record<string, ModuleDefinition> = {
     columns: [
       { label: 'Véhicule', key: 'voiture.marque' },
       { label: 'Type', key: 'type_entretien' },
-      { label: 'Date prévue', key: 'date_prevue' },
-      { label: 'Statut', key: 'statut' },
-      { label: 'Coût (XOF)', key: 'cout' },
+      { label: 'Date prévue', key: 'date_prevue', type: 'date' as const },
+      { label: 'Statut', key: 'statut', type: 'badge' as const },
+      { label: 'Coût (XOF)', key: 'cout', type: 'money' as const },
     ],
     formFields: [
       { label: 'Véhicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Véhicule #${option?.id}` },
@@ -583,6 +590,8 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Statut', name: 'statut' },
       { label: 'Notes', name: 'notes', type: 'textarea' },
     ],
+    exportRoute: 'entretiens',
+    exportFilename: (item) => `entretien-${item.id}.pdf`,
     menu: { label: 'Entretiens' },
   },
   reporting: {

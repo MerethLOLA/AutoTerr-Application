@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Assurance;
+use App\Services\DocumentExportService;
 use Illuminate\Http\Request;
 
 class AssuranceController extends Controller
@@ -92,5 +93,13 @@ class AssuranceController extends Controller
         $assurance->delete();
 
         return $this->apiDeleted();
+    }
+
+    public function export(Assurance $assurance, DocumentExportService $exportService)
+    {
+        $this->ensurePermission('view_voitures');
+        $this->logAction('export', 'assurance', $assurance, [], request());
+
+        return $exportService->assurance($assurance);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Sinistre;
+use App\Services\DocumentExportService;
 use Illuminate\Http\Request;
 
 class SinistreController extends Controller
@@ -101,5 +102,13 @@ class SinistreController extends Controller
         $sinistre->delete();
 
         return $this->apiDeleted();
+    }
+
+    public function export(Sinistre $sinistre, DocumentExportService $exportService)
+    {
+        $this->ensurePermission('view_voitures');
+        $this->logAction('export', 'sinistre', $sinistre, [], request());
+
+        return $exportService->sinistre($sinistre);
     }
 }

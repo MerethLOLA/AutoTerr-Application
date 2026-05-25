@@ -1,7 +1,8 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/lib/useAuth';
 import { readStoredAuth } from '@/lib/auth-storage';
 
@@ -180,7 +181,7 @@ export default function LoginEmployee() {
             </div>
 
             {/* ── Se souvenir de moi ── */}
-            <label className="flex cursor-pointer items-center gap-2.5 text-sm" style={{ color: '#516f90' }}>
+            <label className="flex cursor-pointer items-center gap-2.5 text-sm" style={{ color: '#6b7280' }}>
               <input
                 type="checkbox"
                 checked={remember}
@@ -209,18 +210,27 @@ export default function LoginEmployee() {
           {/* ── Séparateur ── */}
           <div className="my-6 flex items-center gap-3">
             <div className="h-px flex-1" style={{ backgroundColor: '#dfe3eb' }} />
-            <span className="text-xs font-semibold" style={{ color: '#516f90' }}>Accès sécurisé</span>
+            <span className="text-xs font-semibold" style={{ color: '#6b7280' }}>Accès sécurisé</span>
             <div className="h-px flex-1" style={{ backgroundColor: '#dfe3eb' }} />
           </div>
 
-          <p className="text-center text-xs leading-5" style={{ color: '#516f90' }}>
+          <p className="text-center text-xs leading-5" style={{ color: '#6b7280' }}>
             Session protégée par authentification JWT.<br />
             Réservé au personnel SunuPark autorisé.
           </p>
+
+          <div className="mt-4 text-center text-xs" style={{ color: '#6b7280' }}>
+            Vous êtes un client ?{' '}
+            <Link href="/login/client"
+              className="font-semibold underline-offset-2 hover:underline"
+              style={{ color: VIOLET_MID }}>
+              Espace client
+            </Link>
+          </div>
         </div>
 
         {/* Footer */}
-        <p className="mt-6 text-xs" style={{ color: '#516f90' }}>
+        <p className="mt-6 text-xs" style={{ color: '#6b7280' }}>
           © {new Date().getFullYear()} SunuPark — Tous droits réservés
         </p>
       </div>

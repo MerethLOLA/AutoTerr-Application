@@ -17,56 +17,54 @@ class VoitureController extends Controller
 {
     public function publicIndex(Request $request)
     {
-        $voitures = Voiture::query()
-            ->select(['id', 'marque', 'modele', 'annee', 'prix', 'kilometrage', 'statut', 'energie', 'image_principale', 'created_at'])
-            ->with('images:id,id_voiture,chemin')
+        $perPage = min((int) $request->input('per_page', 12), 48);
+
+        $paginator = Voiture::query()
+            ->select(['id', 'marque', 'modele', 'annee', 'prix', 'prix_vente', 'kilometrage', 'statut', 'type_usage', 'energie', 'image_principale', 'created_at'])
+            ->with(['images:id,id_voiture,chemin,ordre'])
             ->when($request->string('search')->toString(), function ($query, $term) {
                 $query->where(function ($inner) use ($term) {
                     $inner->where('marque', 'like', "%{$term}%")
-                        ->orWhere('modele', 'like', "%{$term}%")
-                        ->orWhere('numero_chassis', 'like', "%{$term}%");
+                        ->orWhere('modele', 'like', "%{$term}%");
                 });
+            })
+            ->when($request->string('energie')->toString(), fn ($q, $e) => $q->where('energie', $e))
+            ->when($request->string('type_usage')->toString(), function ($q, $t) {
+                if ($t === 'location') $q->pourLocation();
+                elseif ($t === 'vente') $q->pourVente();
             })
             ->where('statut', 'disponible')
             ->latest()
-            ->paginate(12);
+            ->paginate($perPage);
 
-        // Si c'est une requête API
-        if ($request->expectsJson()) {
-            return response()->json($voitures);
-        }
-
-        return view('catalogue.index', compact('voitures'));
+        return response()->json([
+            'data' => $paginator->items(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
+            ],
+        ]);
     }
 
-    public function publicShow(Voiture $voiture, Request $request)
+    public function publicShow(Voiture $voiture)
     {
         abort_if($voiture->statut !== 'disponible', 404);
 
-        $voiture->load(['images:id,id_voiture,chemin,vue', 'documents:id,id_voiture,numero_document,type_document,created_at']);
+        $voiture->load(['images:id,id_voiture,chemin,vue,ordre', 'documents:id,id_voiture,numero_document,type_document,created_at']);
 
-        // Si c'est une requête API
-        if ($request->expectsJson()) {
-            return response()->json($voiture);
-        }
-
-        return view('catalogue.show', compact('voiture'));
+        return response()->json($voiture);
     }
 
     public function create()
     {
         $this->ensurePermission('view_voitures');
 
-        return view('voitures.create', [
-            'voiture' => new Voiture([
-                'statut' => 'disponible',
-                'date_acquisition' => now()->toDateString(),
-                'numero_chassis' => $this->generateNumeroChassis(),
-            ]),
+        return response()->json([
             'origines' => OrigineMarque::query()->orderBy('nom')->get(['id', 'nom']),
             'typesVehicules' => TypeVehicule::query()->orderBy('nom')->get(['id', 'nom']),
             'fournisseurs' => Fournisseur::query()->orderBy('nom')->get(['id', 'nom']),
-            'isEdit' => false,
         ]);
     }
 
@@ -76,7 +74,7 @@ class VoitureController extends Controller
 
         $voitures = Voiture::query()
             ->select([
-                'id', 'marque', 'modele', 'annee', 'prix', 'kilometrage', 'statut',
+                'id', 'marque', 'modele', 'annee', 'prix', 'prix_vente', 'type_usage', 'kilometrage', 'statut',
                 'energie', 'image_principale', 'type_vehicule_id', 'origine_marque_id', 'id_fournisseur', 'created_at',
             ])
             ->with([
@@ -84,6 +82,7 @@ class VoitureController extends Controller
                 'typeVehicule:id,nom',
                 'origineMarque:id,nom',
                 'garantie:id_voiture,type_garantie,date_fin',
+                'images:id,id_voiture,chemin,ordre',
             ])
             ->when($request->string('search')->toString(), function ($query, $term) {
                 $query->where(function ($inner) use ($term) {
@@ -99,15 +98,7 @@ class VoitureController extends Controller
             ->latest()
             ->paginate(15);
 
-        if ($request->wantsJson()) {
-            return $this->apiCollection($voitures);
-        }
-
-        $origines = OrigineMarque::query()->orderBy('nom')->get(['id', 'nom']);
-        $typesVehicules = TypeVehicule::query()->orderBy('nom')->get(['id', 'nom']);
-        $energies = Voiture::query()->whereNotNull('energie')->distinct()->orderBy('energie')->pluck('energie');
-
-        return view('voitures.index', compact('voitures', 'origines', 'typesVehicules', 'energies'));
+        return $this->apiCollection($voitures);
     }
 
     public function store(VoitureRequest $request)
@@ -155,7 +146,7 @@ class VoitureController extends Controller
             ->with('success', 'Vehicule enregistre.');
     }
 
-    public function show(Request $request, Voiture $voiture)
+    public function show(Voiture $voiture)
     {
         $this->ensurePermission('view_voitures');
 
@@ -169,23 +160,18 @@ class VoitureController extends Controller
             'documents:id,id_voiture,id_vente,type_document,numero_document,date_document,date_expiration',
         ]);
 
-        if ($request->wantsJson()) {
-            return $this->apiItem($voiture);
-        }
-
-        return view('voitures.show', compact('voiture'));
+        return $this->apiItem($voiture);
     }
 
     public function edit(Voiture $voiture)
     {
         $this->ensurePermission('view_voitures');
 
-        return view('voitures.edit', [
+        return response()->json([
             'voiture' => $voiture,
             'origines' => OrigineMarque::query()->orderBy('nom')->get(['id', 'nom']),
             'typesVehicules' => TypeVehicule::query()->orderBy('nom')->get(['id', 'nom']),
             'fournisseurs' => Fournisseur::query()->orderBy('nom')->get(['id', 'nom']),
-            'isEdit' => true,
         ]);
     }
 

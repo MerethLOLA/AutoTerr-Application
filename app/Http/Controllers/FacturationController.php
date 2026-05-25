@@ -11,19 +11,12 @@ use Illuminate\Http\Request;
 
 class FacturationController extends Controller
 {
-    public function create(Request $request)
+    public function create()
     {
         $this->ensurePermission('manage_ventes');
 
-        return view('facturations.create', [
-            'facturation' => new Facturation([
-                'date_facture' => now()->toDateString(),
-                'date_echeance' => now()->addDays(7)->toDateString(),
-                'taux_tva' => 18,
-                'id_vente' => $request->integer('vente'),
-            ]),
+        return response()->json([
             'ventes' => Vente::query()->with(['client', 'voiture'])->orderByDesc('date_vente')->get(),
-            'isEdit' => false,
         ]);
     }
 
@@ -37,11 +30,7 @@ class FacturationController extends Controller
             ->latest('date_facture')
             ->paginate(15);
 
-        if ($request->wantsJson()) {
-            return $this->apiCollection($factures);
-        }
-
-        return view('facturations.index', compact('factures'));
+        return $this->apiCollection($factures);
     }
 
     public function store(FacturationRequest $request)
@@ -64,27 +53,22 @@ class FacturationController extends Controller
         return redirect()->route('facturations.show', $facture)->with('success', 'Facture enregistree.');
     }
 
-    public function show(Request $request, Facturation $facturation)
+    public function show(Facturation $facturation)
     {
         $this->ensurePermission('manage_ventes');
 
         $facturation->load(['vente.client', 'vente.voiture', 'paiements']);
 
-        if ($request->wantsJson()) {
-            return $this->apiItem($facturation);
-        }
-
-        return view('facturations.show', compact('facturation'));
+        return $this->apiItem($facturation);
     }
 
     public function edit(Facturation $facturation)
     {
         $this->ensurePermission('manage_ventes');
 
-        return view('facturations.edit', [
+        return response()->json([
             'facturation' => $facturation,
             'ventes' => Vente::query()->with(['client', 'voiture'])->orderByDesc('date_vente')->get(),
-            'isEdit' => true,
         ]);
     }
 

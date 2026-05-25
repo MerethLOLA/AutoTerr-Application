@@ -1,2 +1,5 @@
-*
-!.gitignore
+public/storage
+storage
+node_modules
+vendor
+.git

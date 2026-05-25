@@ -18,6 +18,13 @@ abstract class Controller
         abort_unless($user && $user->hasPermission($permission), 403, 'Permission insuffisante.');
     }
 
+    protected function ensureRole(string ...$roles): void
+    {
+        $user = auth()->user();
+
+        abort_unless($user && in_array($user->role, $roles, true), 403, 'Rôle insuffisant.');
+    }
+
     protected function logAction(string $action, string $module, ?Model $target = null, array $details = [], ?Request $request = null): void
     {
         app(ActionLogger::class)->log($action, $module, $target, $details, $request);

@@ -1,9 +1,11 @@
-'use client';
+﻿﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
+import { AUTH_CHANGED_EVENT } from '@/lib/auth-storage';
 import type { UserProfile } from '@/lib/types';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation, setLocale } from '@/lib/i18n';
 
 interface PasswordForm {
   current_password: string;
@@ -14,10 +16,15 @@ interface PasswordForm {
 type SettingsSection = 'generalite' | 'compte' | 'confidentialite';
 
 export default function SettingsPage() {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const _initUser: UserProfile | null = (() => {
+    try { const s = sessionStorage.getItem('user'); return s ? JSON.parse(s) : null; } catch { return null; }
+  })();
+  const [user, setUser] = useState<UserProfile | null>(_initUser);
+  const [loading, setLoading] = useState(_initUser === null);
+  const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState<SettingsSection>('generalite');
   const [savingPrefs, setSavingPrefs] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [loggingOutDevices, setLoggingOutDevices] = useState(false);
@@ -60,9 +67,10 @@ export default function SettingsPage() {
   }, []);
 
   const sections = useMemo(() => ([
-    { key: 'generalite' as const, label: 'Généralité', hint: 'Thème, langue et affichage' },
-    { key: 'compte' as const, label: 'Compte', hint: 'Identité et informations du profil' },
-    { key: 'confidentialite' as const, label: 'Confidentialité', hint: 'Mot de passe, session et accès' },
+    { key: 'generalite' as const, labelKey: 'settings.sections.general', hintKey: 'settings.sections.generalHint' },
+    { key: 'compte' as const, labelKey: 'settings.sections.account', hintKey: 'settings.sections.accountHint' },
+    { key: 'confidentialite' as const, labelKey: 'settings.sections.privacy', hintKey: 'settings.sections.privacyHint' },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   ]), []);
 
   function flash(msg: string, isError = false) {
@@ -71,13 +79,25 @@ export default function SettingsPage() {
     setTimeout(() => { setFeedback(null); setError(null); }, 4000);
   }
 
+  function applyTheme(theme: string) {
+    const sys = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const resolved = theme === 'system' ? sys : theme;
+    document.documentElement.classList.toggle('dark', resolved === 'dark');
+  }
+
   async function savePreferences() {
     setSavingPrefs(true);
     try {
-      const response = await apiClient.put<{ user: UserProfile }>('/user/preferences', preferences);
-      setUser(response.user);
-      const stored = localStorage.getItem('user');
-      if (stored) localStorage.setItem('user', JSON.stringify({ ...JSON.parse(stored), ...preferences }));
+      const response = await apiClient.put<{ data: { user: UserProfile }; message: string }>('/user/preferences', preferences);
+      const updatedUser = response.data?.user;
+      if (updatedUser) setUser(updatedUser);
+      const stored = sessionStorage.getItem('user');
+      if (stored) {
+        sessionStorage.setItem('user', JSON.stringify({ ...JSON.parse(stored), ...preferences }));
+        window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
+      }
+      applyTheme(preferences.theme);
+      setLocale(preferences.locale);
       flash('Préférences mises à jour.');
     } catch (err: any) {
       flash(err?.message || 'Impossible de sauvegarder les préférences.', true);
@@ -86,12 +106,37 @@ export default function SettingsPage() {
     }
   }
 
+  async function uploadPhoto(file: File) {
+    setUploadingPhoto(true);
+    try {
+      const fd = new FormData();
+      fd.append('photo', file);
+      const response = await apiClient.postForm<{ data: { profile_photo_url: string }; message: string }>('/user/photo', fd);
+      const url = response.data?.profile_photo_url;
+      setUser((u) => u ? { ...u, profile_photo_url: url } : u);
+      const stored = sessionStorage.getItem('user');
+      if (stored) {
+        sessionStorage.setItem('user', JSON.stringify({ ...JSON.parse(stored), profile_photo_url: url }));
+        window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
+      }
+      flash('Photo de profil mise à jour.');
+    } catch (err: any) {
+      flash(err?.message || 'Impossible de mettre à jour la photo.', true);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
   async function updateProfile() {
     setUpdatingProfile(true);
     try {
-      const response = await apiClient.put<{ user: UserProfile }>('/user/profile', editProfile);
-      setUser(response.user);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      const response = await apiClient.put<{ data: { user: UserProfile }; message: string }>('/user/profile', editProfile);
+      const updatedUser = response.data?.user;
+      if (updatedUser) {
+        setUser(updatedUser);
+        sessionStorage.setItem('user', JSON.stringify(updatedUser));
+        window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
+      }
       flash('Profil mis à jour.');
     } catch (err: any) {
       flash(err?.message || 'Impossible de mettre à jour le profil.', true);
@@ -138,8 +183,8 @@ export default function SettingsPage() {
     setDeletingAccount(true);
     try {
       await apiClient.delete('/user/account');
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('token');
       window.location.href = '/';
     } catch (err: any) {
       flash(err?.message || 'Impossible de supprimer le compte.', true);
@@ -182,13 +227,13 @@ export default function SettingsPage() {
           {/* Nav latérale */}
           <aside className="surface-panel p-3">
             {/* Avatar utilisateur */}
-            <div className="mb-3 flex items-center gap-3 rounded border border-[#dfe3eb] bg-[#f5f8fa] px-4 py-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ff6b35] text-sm font-bold text-white">
+            <div className="mb-3 flex items-center gap-3 rounded border border-[#dfe3eb] bg-[#f5f8fa] px-4 py-3 dark:border-slate-700 dark:bg-slate-800/60">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#516f90] text-sm font-bold text-white">
                 {(user?.name || 'U').charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[#33475b]">{user?.name || 'Utilisateur'}</p>
-                <p className="truncate text-xs text-[#516f90]">{user?.role || '-'}</p>
+                <p className="truncate text-sm font-semibold text-[#111827] dark:text-slate-100">{user?.name || 'Utilisateur'}</p>
+                <p className="truncate text-xs text-[#6b7280] dark:text-slate-400">{user?.role || '-'}</p>
               </div>
             </div>
 
@@ -200,13 +245,13 @@ export default function SettingsPage() {
                   onClick={() => setActiveSection(section.key)}
                   className={`w-full rounded px-3 py-2.5 text-left transition ${
                     activeSection === section.key
-                      ? 'bg-[#ff6b35]/[0.08] text-[#ff6b35]'
-                      : 'text-[#33475b] hover:bg-[#f5f8fa]'
+                      ? 'bg-[#f5f8fa] text-[#111827] dark:bg-slate-700 dark:text-slate-100'
+                      : 'text-[#111827] hover:bg-[#f5f8fa] dark:text-slate-200 dark:hover:bg-slate-700'
                   }`}
                 >
-                  <p className="text-sm font-semibold">{section.label}</p>
-                  <p className={`mt-0.5 text-xs ${activeSection === section.key ? 'text-[#ff6b35]/70' : 'text-[#516f90]'}`}>
-                    {section.hint}
+                  <p className="text-sm font-semibold">{t(section.labelKey)}</p>
+                  <p className={`mt-0.5 text-xs ${activeSection === section.key ? 'text-[#111827]/70' : 'text-[#6b7280]'}`}>
+                    {t(section.hintKey)}
                   </p>
                 </button>
               ))}
@@ -218,68 +263,70 @@ export default function SettingsPage() {
             {loading ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-16 animate-pulse rounded bg-[#f5f8fa]" />
+                  <div key={i} className="h-16 animate-pulse rounded bg-[#f5f8fa] dark:bg-slate-700" />
                 ))}
               </div>
             ) : (
               <>
-                {/* ── Généralité ── */}
+                {/* â”€â”€ Généralité â”€â”€ */}
                 {activeSection === 'generalite' && (
                   <div className="space-y-5">
-                    <div className="border-b border-[#dfe3eb] pb-4">
-                      <h2 className="text-base font-bold text-[#33475b]">Apparence et langue</h2>
-                      <p className="mt-1 text-sm text-[#516f90]">
+                    <div className="border-b border-[#dfe3eb] pb-4 dark:border-slate-700">
+                      <h2 className="text-base font-bold text-[#111827] dark:text-slate-100">Apparence et langue</h2>
+                      <p className="mt-1 text-sm text-[#6b7280] dark:text-slate-400">
                         Réglez le thème d'interface, la langue et les options d'affichage du compte.
                       </p>
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div>
-                        <label className="mb-1 block text-xs font-semibold text-[#33475b]">Thème</label>
+                        <label className="mb-1 block text-xs font-semibold text-[#111827] dark:text-slate-200">Thème</label>
                         <select
                           className="field-control"
                           value={preferences.theme}
-                          onChange={(e) => setPreferences((p) => ({ ...p, theme: e.target.value }))}
+                          onChange={(e) => { const val = e.target.value; setPreferences((p) => ({ ...p, theme: val })); applyTheme(val); }}
                         >
-                          <option value="dark">Sombre</option>
-                          <option value="light">Clair</option>
-                          <option value="system">Système</option>
+                          <option value="dark">{t('settings.appearance.dark')}</option>
+                          <option value="light">{t('settings.appearance.light')}</option>
+                          <option value="system">{t('settings.appearance.system')}</option>
                         </select>
-                        <p className="mt-1 text-xs text-[#516f90]">Définit le rendu général de l'application.</p>
+                        <p className="mt-1 text-xs text-[#6b7280] dark:text-slate-400 dark:text-slate-400">Définit le rendu général de l'application.</p>
                       </div>
 
                       <div>
-                        <label className="mb-1 block text-xs font-semibold text-[#33475b]">Langue</label>
+                        <label className="mb-1 block text-xs font-semibold text-[#111827] dark:text-slate-200">{t('settings.appearance.language')}</label>
                         <select
                           className="field-control"
                           value={preferences.locale}
-                          onChange={(e) => setPreferences((p) => ({ ...p, locale: e.target.value }))}
+                          onChange={(e) => {
+                            const loc = e.target.value;
+                            setPreferences((p) => ({ ...p, locale: loc }));
+                            setLocale(loc);
+                          }}
                         >
                           <option value="fr">Français</option>
                           <option value="en">English</option>
                           <option value="es">Español</option>
                         </select>
-                        <p className="mt-1 text-xs text-[#516f90]">Contrôle la langue des libellés et messages affichés.</p>
+                        <p className="mt-1 text-xs text-[#6b7280] dark:text-slate-400">{t('settings.appearance.languageHint')}</p>
                       </div>
                     </div>
 
                     {/* Résumé actuel */}
-                    <div className="rounded border border-[#dfe3eb] bg-[#f5f8fa] px-4 py-3">
-                      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#516f90]">Résumé actuel</p>
+                    <div className="rounded border border-[#dfe3eb] bg-[#f5f8fa] px-4 py-3 dark:border-slate-700 dark:bg-slate-800/60">
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#6b7280]">Résumé actuel</p>
                       <div className="grid gap-4 sm:grid-cols-3 text-sm">
                         <div>
-                          <p className="text-xs text-[#516f90]">Utilisateur</p>
-                          <p className="mt-0.5 font-semibold text-[#33475b]">{user?.name || '-'}</p>
+                          <p className="text-xs text-[#6b7280] dark:text-slate-400">Utilisateur</p>
+                          <p className="mt-0.5 font-semibold text-[#111827]">{user?.name || '-'}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-[#516f90]">Thème</p>
-                          <p className="mt-0.5 font-semibold text-[#33475b] capitalize">{preferences.theme}</p>
+                          <p className="text-xs text-[#6b7280] dark:text-slate-400">Thème</p>
+                          <p className="mt-0.5 font-semibold text-[#111827] capitalize dark:text-slate-100">{preferences.theme}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-[#516f90]">Langue</p>
-                          <p className="mt-0.5 font-semibold text-[#33475b]">
-                            {preferences.locale === 'fr' ? 'Français' : preferences.locale === 'en' ? 'English' : 'Español'}
-                          </p>
+                          <p className="text-xs text-[#6b7280] dark:text-slate-400">Langue</p>
+                          <p className="mt-0.5 font-semibold text-[#111827]">Français</p>
                         </div>
                       </div>
                     </div>
@@ -292,19 +339,66 @@ export default function SettingsPage() {
                   </div>
                 )}
 
-                {/* ── Compte ── */}
+                {/* â”€â”€ Compte â”€â”€ */}
                 {activeSection === 'compte' && (
                   <div className="space-y-5">
-                    <div className="border-b border-[#dfe3eb] pb-4">
-                      <h2 className="text-base font-bold text-[#33475b]">Informations du profil</h2>
-                      <p className="mt-1 text-sm text-[#516f90]">
+                    <div className="border-b border-[#dfe3eb] pb-4 dark:border-slate-700">
+                      <h2 className="text-base font-bold text-[#111827] dark:text-slate-100">Informations du profil</h2>
+                      <p className="mt-1 text-sm text-[#6b7280] dark:text-slate-400">
                         Mettez à jour votre identité, vos coordonnées et votre nom d'utilisateur.
                       </p>
                     </div>
 
+                    {/* Photo de profil */}
+                    <div className="flex items-center gap-5">
+                      <div className="relative shrink-0">
+                        {user?.profile_photo_url ? (
+                          <img
+                            src={user.profile_photo_url}
+                            alt={user.name}
+                            width={80} height={80}
+                            className="h-20 w-20 rounded-full object-cover border border-[#dfe3eb]"
+                          />
+                        ) : (
+                          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#516f90] text-2xl font-black text-white">
+                            {(user?.name || 'U').charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        {uploadingPhoto && (
+                          <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+                            <svg className="h-5 w-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#111827] dark:text-slate-100">{user?.name}</p>
+                        <p className="text-xs text-[#6b7280] dark:text-slate-400">JPG ou PNG · max 2 Mo</p>
+                        <label className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded border border-[#dfe3eb] bg-white px-3 py-1.5 text-xs font-semibold text-[#111827] dark:text-slate-200 transition hover:bg-[#f5f8fa]">
+                          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          Changer la photo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingPhoto}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) uploadPhoto(file);
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div>
-                        <label className="mb-1 block text-xs font-semibold text-[#33475b]">Nom complet</label>
+                        <label className="mb-1 block text-xs font-semibold text-[#111827] dark:text-slate-200">Nom complet</label>
                         <input
                           className="field-control"
                           type="text"
@@ -313,7 +407,7 @@ export default function SettingsPage() {
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-semibold text-[#33475b]">Nom d'utilisateur</label>
+                        <label className="mb-1 block text-xs font-semibold text-[#111827] dark:text-slate-200">Nom d'utilisateur</label>
                         <input
                           className="field-control"
                           type="text"
@@ -322,7 +416,7 @@ export default function SettingsPage() {
                         />
                       </div>
                       <div className="sm:col-span-2">
-                        <label className="mb-1 block text-xs font-semibold text-[#33475b]">Adresse e-mail</label>
+                        <label className="mb-1 block text-xs font-semibold text-[#111827] dark:text-slate-200">Adresse e-mail</label>
                         <input
                           className="field-control"
                           type="email"
@@ -333,20 +427,20 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Infos lecture seule */}
-                    <div className="rounded border border-[#dfe3eb] bg-[#f5f8fa] px-4 py-3">
-                      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#516f90]">Informations du compte</p>
+                    <div className="rounded border border-[#dfe3eb] bg-[#f5f8fa] px-4 py-3 dark:border-slate-700 dark:bg-slate-800/60">
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#6b7280]">Informations du compte</p>
                       <div className="grid gap-4 sm:grid-cols-3 text-sm">
                         <div>
-                          <p className="text-xs text-[#516f90]">Rôle</p>
-                          <p className="mt-0.5 font-semibold text-[#33475b] capitalize">{user?.role || '-'}</p>
+                          <p className="text-xs text-[#6b7280] dark:text-slate-400">Rôle</p>
+                          <p className="mt-0.5 font-semibold text-[#111827] capitalize dark:text-slate-100">{user?.role || '-'}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-[#516f90]">Thème actif</p>
-                          <p className="mt-0.5 font-semibold text-[#33475b] capitalize">{user?.theme || preferences.theme}</p>
+                          <p className="text-xs text-[#6b7280] dark:text-slate-400">Thème actif</p>
+                          <p className="mt-0.5 font-semibold text-[#111827] capitalize dark:text-slate-100">{user?.theme || preferences.theme}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-[#516f90]">Langue active</p>
-                          <p className="mt-0.5 font-semibold text-[#33475b]">{user?.locale || preferences.locale}</p>
+                          <p className="text-xs text-[#6b7280] dark:text-slate-400">Langue active</p>
+                          <p className="mt-0.5 font-semibold text-[#111827]">{user?.locale || preferences.locale}</p>
                         </div>
                       </div>
                     </div>
@@ -394,12 +488,12 @@ export default function SettingsPage() {
                   </div>
                 )}
 
-                {/* ── Confidentialité ── */}
+                {/* â”€â”€ Confidentialité â”€â”€ */}
                 {activeSection === 'confidentialite' && (
                   <div className="space-y-5">
-                    <div className="border-b border-[#dfe3eb] pb-4">
-                      <h2 className="text-base font-bold text-[#33475b]">Sécurité et accès</h2>
-                      <p className="mt-1 text-sm text-[#516f90]">
+                    <div className="border-b border-[#dfe3eb] pb-4 dark:border-slate-700">
+                      <h2 className="text-base font-bold text-[#111827] dark:text-slate-100">Sécurité et accès</h2>
+                      <p className="mt-1 text-sm text-[#6b7280] dark:text-slate-400">
                         Gérez le mot de passe, la session et les informations sensibles du compte.
                       </p>
                     </div>
@@ -407,9 +501,9 @@ export default function SettingsPage() {
                     <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
                       {/* Changement de mot de passe */}
                       <div className="space-y-4">
-                        <h3 className="text-sm font-bold text-[#33475b]">Changer le mot de passe</h3>
+                        <h3 className="text-sm font-bold text-[#111827] dark:text-slate-100">Changer le mot de passe</h3>
                         <div>
-                          <label className="mb-1 block text-xs font-semibold text-[#33475b]">Mot de passe actuel</label>
+                          <label className="mb-1 block text-xs font-semibold text-[#111827] dark:text-slate-200">Mot de passe actuel</label>
                           <input
                             className="field-control"
                             type="password"
@@ -418,7 +512,7 @@ export default function SettingsPage() {
                           />
                         </div>
                         <div>
-                          <label className="mb-1 block text-xs font-semibold text-[#33475b]">Nouveau mot de passe</label>
+                          <label className="mb-1 block text-xs font-semibold text-[#111827] dark:text-slate-200">Nouveau mot de passe</label>
                           <input
                             className="field-control"
                             type="password"
@@ -427,7 +521,7 @@ export default function SettingsPage() {
                           />
                         </div>
                         <div>
-                          <label className="mb-1 block text-xs font-semibold text-[#33475b]">Confirmation</label>
+                          <label className="mb-1 block text-xs font-semibold text-[#111827] dark:text-slate-200">Confirmation</label>
                           <input
                             className="field-control"
                             type="password"
@@ -449,9 +543,9 @@ export default function SettingsPage() {
 
                       {/* Sessions & confidentialité */}
                       <div className="space-y-4">
-                        <div className="rounded border border-[#dfe3eb] bg-[#f5f8fa] px-4 py-4">
-                          <h3 className="text-sm font-bold text-[#33475b]">Sessions actives</h3>
-                          <p className="mt-1 text-xs text-[#516f90]">
+                        <div className="rounded border border-[#dfe3eb] bg-[#f5f8fa] px-4 py-4 dark:border-slate-700 dark:bg-slate-800/60">
+                          <h3 className="text-sm font-bold text-[#111827] dark:text-slate-100">Sessions actives</h3>
+                          <p className="mt-1 text-xs text-[#6b7280] dark:text-slate-400 dark:text-slate-400">
                             Votre compte est connecté sur cette session. Déconnectez les autres appareils si nécessaire.
                           </p>
                           <button
@@ -464,9 +558,9 @@ export default function SettingsPage() {
                           </button>
                         </div>
 
-                        <div className="rounded border border-[#dfe3eb] bg-[#f5f8fa] px-4 py-4">
-                          <h3 className="text-sm font-bold text-[#33475b]">Confidentialité</h3>
-                          <ul className="mt-2 space-y-1.5 text-xs text-[#516f90]">
+                        <div className="rounded border border-[#dfe3eb] bg-[#f5f8fa] px-4 py-4 dark:border-slate-700 dark:bg-slate-800/60">
+                          <h3 className="text-sm font-bold text-[#111827] dark:text-slate-100">Confidentialité</h3>
+                          <ul className="mt-2 space-y-1.5 text-xs text-[#6b7280] dark:text-slate-400">
                             <li>• Les identifiants ne sont visibles qu'au propriétaire de la session.</li>
                             <li>• Le mot de passe n'est jamais affiché ni stocké en clair.</li>
                             <li>• La langue et le thème sont rattachés au profil utilisateur.</li>
@@ -484,3 +578,4 @@ export default function SettingsPage() {
     </DashboardLayout>
   );
 }
+

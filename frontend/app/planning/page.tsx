@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
@@ -57,14 +57,15 @@ function statutBadge(s: string): string {
     ouvert:      'bg-amber-100 text-amber-800',
     en_cours:    'bg-blue-100 text-blue-800',
     termine:     'bg-emerald-100 text-emerald-800',
-    annule:      'bg-[#f5f8fa] text-[#516f90]',
+    annule:      'bg-[#f5f8fa] text-[#6b7280]',
   };
-  return `inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold ${map[s] ?? 'bg-[#f5f8fa] text-[#516f90]'}`;
+  return `inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold ${map[s] ?? 'bg-[#f5f8fa] text-[#6b7280]'}`;
 }
 
 export default function PlanningPage() {
-  const [ots, setOts]           = useState<OT[]>([]);
-  const [loading, setLoading]   = useState(true);
+  const _initOts = apiClient.getCached<any>('/ordres-travail', { per_page: 200 });
+  const [ots, setOts]           = useState<OT[]>(_initOts?.data ?? _initOts ?? []);
+  const [loading, setLoading]   = useState(_initOts === null);
   const [error, setError]       = useState<string | null>(null);
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date()));
   const [selected, setSelected] = useState<OT | null>(null);
@@ -112,26 +113,43 @@ export default function PlanningPage() {
           </Link>
         </div>
 
+        {/* Stats rapides */}
+        {!loading && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { label: 'Cette semaine',  value: weekDays.flatMap(otForDay).length,                                    color: 'text-[#111827]' },
+              { label: 'En cours',       value: ots.filter((o) => o.statut === 'en_cours').length,                    color: 'text-blue-600' },
+              { label: 'En retard',      value: ots.filter((o) => o.deadline && o.deadline < isoDate(new Date()) && !['termine','annule'].includes(o.statut)).length, color: 'text-red-600' },
+              { label: 'Sans deadline',  value: noDeadline.length,                                                    color: 'text-amber-600' },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="surface-panel px-4 py-3">
+                <p className="text-xs text-[#6b7280]">{label}</p>
+                <p className={`mt-1 text-2xl font-black ${color}`}>{value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Navigation semaine */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setWeekStart((d) => addDays(d, -7))}
-            className="rounded border border-[#dfe3eb] px-3 py-1.5 text-xs font-medium text-[#33475b] transition hover:bg-[#f5f8fa]"
+            className="rounded border border-[#dfe3eb] px-3 py-1.5 text-xs font-medium text-[#111827] transition hover:bg-[#f5f8fa]"
           >
             ← Semaine préc.
           </button>
-          <span className="text-sm font-semibold text-[#33475b]">
+          <span className="text-sm font-semibold text-[#111827]">
             {fmtDay(weekStart)} — {fmtDay(addDays(weekStart, 6))}
           </span>
           <button
             onClick={() => setWeekStart((d) => addDays(d, 7))}
-            className="rounded border border-[#dfe3eb] px-3 py-1.5 text-xs font-medium text-[#33475b] transition hover:bg-[#f5f8fa]"
+            className="rounded border border-[#dfe3eb] px-3 py-1.5 text-xs font-medium text-[#111827] transition hover:bg-[#f5f8fa]"
           >
             Semaine suiv. →
           </button>
           <button
             onClick={() => setWeekStart(startOfWeek(new Date()))}
-            className="ml-2 rounded border border-[#dfe3eb] px-3 py-1.5 text-xs font-medium text-[#516f90] transition hover:bg-[#f5f8fa]"
+            className="ml-2 rounded border border-[#dfe3eb] px-3 py-1.5 text-xs font-medium text-[#6b7280] transition hover:bg-[#f5f8fa]"
           >
             Aujourd&apos;hui
           </button>
@@ -158,7 +176,7 @@ export default function PlanningPage() {
                 return (
                   <div key={i} className={`rounded border ${isToday ? 'border-[#2d1b3d]' : 'border-[#dfe3eb]'} bg-white`}>
                     {/* Header jour */}
-                    <div className={`rounded-t px-2 py-1.5 text-center text-xs font-bold ${isToday ? 'text-white' : 'text-[#516f90]'}`}
+                    <div className={`rounded-t px-2 py-1.5 text-center text-xs font-bold ${isToday ? 'text-white' : 'text-[#6b7280]'}`}
                       style={{ backgroundColor: isToday ? VIOLET : '#f5f8fa' }}>
                       {DAYS_FR[i]}<br />
                       <span className="font-normal">{fmtDay(day)}</span>
@@ -175,8 +193,8 @@ export default function PlanningPage() {
                             onClick={() => setSelected(ot)}
                             className={`w-full rounded border-l-2 px-2 py-1.5 text-left transition hover:opacity-80 ${priorityColor(ot.priorite)}`}
                           >
-                            <p className="truncate text-xs font-bold text-[#33475b]">{ot.reference_ot}</p>
-                            <p className="truncate text-xs text-[#516f90]">
+                            <p className="truncate text-xs font-bold text-[#111827]">{ot.reference_ot}</p>
+                            <p className="truncate text-xs text-[#6b7280]">
                               {ot.voiture ? `${ot.voiture.marque} ${ot.voiture.modele}` : '-'}
                             </p>
                             <span className={statutBadge(ot.statut)}>{ot.statut.replace('_', ' ')}</span>
@@ -205,8 +223,8 @@ export default function PlanningPage() {
                   className="flex w-full items-center justify-between px-5 py-3 text-left hover:bg-[#f5f8fa]"
                 >
                   <div>
-                    <p className="text-sm font-semibold text-[#33475b]">{ot.reference_ot}</p>
-                    <p className="text-xs text-[#516f90]">{ot.voiture ? `${ot.voiture.marque} ${ot.voiture.modele}` : '-'}</p>
+                    <p className="text-sm font-semibold text-[#111827]">{ot.reference_ot}</p>
+                    <p className="text-xs text-[#6b7280]">{ot.voiture ? `${ot.voiture.marque} ${ot.voiture.modele}` : '-'}</p>
                   </div>
                   <span className={statutBadge(ot.statut)}>{ot.statut.replace('_', ' ')}</span>
                 </button>
@@ -221,42 +239,42 @@ export default function PlanningPage() {
             <div className="w-full max-w-sm rounded-sm bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-start justify-between border-b border-[#dfe3eb] px-5 py-4">
                 <div>
-                  <p className="text-xs font-semibold text-[#516f90]">Ordre de travail</p>
-                  <h3 className="text-base font-bold text-[#33475b]">{selected.reference_ot}</h3>
+                  <p className="text-xs font-semibold text-[#6b7280]">Ordre de travail</p>
+                  <h3 className="text-base font-bold text-[#111827]">{selected.reference_ot}</h3>
                 </div>
-                <button onClick={() => setSelected(null)} className="text-[#516f90] hover:text-[#33475b]">✕</button>
+                <button onClick={() => setSelected(null)} className="text-[#6b7280] hover:text-[#111827]">✕</button>
               </div>
               <div className="space-y-3 px-5 py-4 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-xs text-[#516f90]">Statut</span>
+                  <span className="text-xs text-[#6b7280]">Statut</span>
                   <span className={statutBadge(selected.statut)}>{selected.statut.replace('_', ' ')}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-xs text-[#516f90]">Priorité</span>
-                  <span className="font-semibold text-[#33475b]">{selected.priorite}</span>
+                  <span className="text-xs text-[#6b7280]">Priorité</span>
+                  <span className="font-semibold text-[#111827]">{selected.priorite}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-xs text-[#516f90]">Véhicule</span>
-                  <span className="font-semibold text-[#33475b]">
+                  <span className="text-xs text-[#6b7280]">Véhicule</span>
+                  <span className="font-semibold text-[#111827]">
                     {selected.voiture ? `${selected.voiture.marque} ${selected.voiture.modele}` : '-'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-xs text-[#516f90]">Technicien</span>
-                  <span className="font-semibold text-[#33475b]">
+                  <span className="text-xs text-[#6b7280]">Technicien</span>
+                  <span className="font-semibold text-[#111827]">
                     {selected.technicien ? `${selected.technicien.nom}${selected.technicien.prenom ? ' ' + selected.technicien.prenom : ''}` : '-'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-xs text-[#516f90]">Deadline</span>
-                  <span className="font-semibold text-[#33475b]">
+                  <span className="text-xs text-[#6b7280]">Deadline</span>
+                  <span className="font-semibold text-[#111827]">
                     {selected.deadline ? new Date(selected.deadline).toLocaleDateString('fr-FR') : 'Non fixée'}
                   </span>
                 </div>
-                <p className="border-t border-[#dfe3eb] pt-3 text-xs leading-relaxed text-[#516f90]">{selected.description}</p>
+                <p className="border-t border-[#dfe3eb] pt-3 text-xs leading-relaxed text-[#6b7280]">{selected.description}</p>
               </div>
               <div className="border-t border-[#dfe3eb] px-5 py-3">
-                <Link href="/atelier" className="text-xs font-semibold text-[#ff6b35] hover:underline">
+                <Link href="/atelier" className="text-xs font-semibold text-[#111827] hover:underline">
                   Voir tous les OT →
                 </Link>
               </div>

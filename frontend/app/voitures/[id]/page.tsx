@@ -2,9 +2,10 @@
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
+import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useParams } from 'next/navigation';
 
 const STORAGE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '');
 function imgUrl(p?: string | null) {
@@ -24,10 +25,12 @@ const STATUT: Record<string, { label: string; cls: string }> = {
 
 export default function VoitureDetailPage() {
   const { id } = useParams();
-  const router = useRouter();
-  const [voiture, setVoiture] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const _initV = id ? apiClient.getCached<any>(`/voitures/${id}`) : null;
+  const [voiture, setVoiture] = useState<any>(_initV?.data ?? _initV ?? null);
+  const [loading, setLoading] = useState(_initV === null);
   const [selected, setSelected] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const thumbsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -37,6 +40,30 @@ export default function VoitureDetailPage() {
       .catch(() => setVoiture(null))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const gallery: any[] = voiture?.images ?? [];
+  const images: any[] = gallery.length > 0
+    ? gallery
+    : voiture?.image_principale
+      ? [{ id: 'main', chemin: voiture.image_principale }]
+      : [];
+  const count = images.length;
+
+  const goTo = useCallback((i: number) => {
+    setSelected(i);
+    const el = thumbsRef.current?.children[i] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  }, []);
+
+  const prev = useCallback(() => goTo((selected - 1 + count) % count), [goTo, selected, count]);
+  const next = useCallback(() => goTo((selected + 1) % count), [goTo, selected, count]);
+
+  // Auto-avance toutes les 4 secondes (pause au survol)
+  useEffect(() => {
+    if (count <= 1 || paused) return;
+    const timer = setInterval(() => setSelected((s) => (s + 1) % count), 4000);
+    return () => clearInterval(timer);
+  }, [count, paused]);
 
   if (loading) {
     return (
@@ -60,9 +87,8 @@ export default function VoitureDetailPage() {
     return (
       <DashboardLayout>
         <div className="surface-panel py-20 text-center">
-          <p className="text-3xl">🚗</p>
-          <p className="mt-3 font-semibold text-slate-600">Véhicule introuvable.</p>
-          <Link href="/voitures" className="mt-4 inline-block text-sm font-bold text-[#ff6b35] hover:underline">
+          <p className="font-semibold text-slate-600">Véhicule introuvable.</p>
+          <Link href="/voitures" className="mt-4 inline-block text-sm font-bold text-[#111827] hover:underline">
             ← Retour à la liste
           </Link>
         </div>
@@ -70,8 +96,6 @@ export default function VoitureDetailPage() {
     );
   }
 
-  const images: any[] = voiture.images ?? [];
-  const mainImage = imgUrl(images[selected]?.chemin ?? voiture.image_principale);
   const st = STATUT[voiture.statut] ?? { label: voiture.statut, cls: 'bg-slate-100 text-slate-600 border-slate-200' };
   const dispo = voiture.statut === 'disponible';
 
@@ -93,19 +117,35 @@ export default function VoitureDetailPage() {
 
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-slate-500">
-          <Link href="/voitures" className="font-semibold hover:text-[#002d54]">Véhicules</Link>
+          <Link href="/voitures" className="font-semibold hover:text-[#111827]">Véhicules</Link>
           <span>/</span>
           <span className="font-bold text-slate-800">{voiture.marque} {voiture.modele}</span>
         </nav>
 
         <div className="grid gap-8 lg:grid-cols-2">
 
-          {/* ── Galerie ── */}
+          {/* ── Galerie carousel ── */}
           <div className="space-y-3">
-            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
-              {mainImage ? (
-                <img src={mainImage} alt={`${voiture.marque} ${voiture.modele}`}
-                  className="h-full w-full object-cover" />
+            <div
+              className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 select-none"
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
+            >
+              {images.length > 0 ? (
+                images.map((img: any, i: number) => imgUrl(img.chemin) ? (
+                  <Image
+                    key={img.id ?? i}
+                    src={imgUrl(img.chemin)!}
+                    alt={`${voiture.marque} ${voiture.modele} — photo ${i + 1}`}
+                    fill
+                    className="object-cover"
+                    style={{
+                      opacity: i === selected ? 1 : 0,
+                      transition: 'opacity 0.5s ease',
+                      zIndex: i === selected ? 1 : 0,
+                    }}
+                  />
+                ) : null)
               ) : (
                 <div className="flex h-full flex-col items-center justify-center gap-2 text-slate-300">
                   <svg className="h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,28 +155,72 @@ export default function VoitureDetailPage() {
                   <span className="text-sm">Aucune photo disponible</span>
                 </div>
               )}
+
               {/* Statut badge */}
               <span className={`absolute left-3 top-3 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${st.cls}`}>
                 {st.label}
               </span>
-              {/* Compteur photo */}
-              {images.length > 1 && (
-                <span className="absolute bottom-3 right-3 rounded-full bg-black/50 px-2 py-0.5 text-xs font-bold text-white">
-                  {selected + 1} / {images.length}
-                </span>
+
+              {/* Flèches de navigation */}
+              {count > 1 && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Photo précédente"
+                    onClick={prev}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/65"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Photo suivante"
+                    onClick={next}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/65"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+
+                  {/* Indicateurs */}
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+                    {images.map((_: any, i: number) => (
+                      <button
+                        key={i}
+                        type="button"
+                        aria-label={`Photo ${i + 1}`}
+                        onClick={() => goTo(i)}
+                        className={`rounded-full transition-all duration-300 ${
+                          i === selected ? 'h-2 w-6 bg-white' : 'h-2 w-2 bg-white/50 hover:bg-white/80'
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Compteur */}
+                  <span className="absolute bottom-3 right-3 rounded-full bg-black/50 px-2 py-0.5 text-xs font-bold text-white">
+                    {selected + 1} / {count}
+                  </span>
+                </>
               )}
             </div>
 
             {/* Miniatures */}
-            {images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
+            {count > 1 && (
+              <div ref={thumbsRef} className="flex gap-2 overflow-x-auto pb-1">
                 {images.map((img: any, i: number) => (
-                  <button key={img.id ?? i} onClick={() => setSelected(i)}
-                    className={`shrink-0 overflow-hidden rounded-xl border-2 transition ${
-                      selected === i ? 'border-[#ff6b35] shadow-md' : 'border-slate-100 hover:border-slate-300'
-                    }`}>
-                    <img src={imgUrl(img.chemin) ?? ''} alt={`vue ${i + 1}`}
-                      className="h-16 w-20 object-cover" />
+                  <button
+                    key={img.id ?? i}
+                    type="button"
+                    onClick={() => goTo(i)}
+                    className={`shrink-0 overflow-hidden rounded-xl border-2 transition-all ${
+                      selected === i ? 'border-slate-700 shadow-md scale-105' : 'border-slate-100 hover:border-slate-300'
+                    }`}
+                  >
+                    {imgUrl(img.chemin) && <Image src={imgUrl(img.chemin)!} alt={`vue ${i + 1}`} width={80} height={64} className="object-cover" />}
                   </button>
                 ))}
               </div>
@@ -151,18 +235,31 @@ export default function VoitureDetailPage() {
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
                 {voiture.annee}{voiture.energie ? ` · ${voiture.energie}` : ''}
               </p>
-              <h1 className="mt-1 text-3xl font-black text-[#002d54]">
+              <h1 className="mt-1 text-3xl font-black text-[#111827]">
                 {voiture.marque} {voiture.modele}
               </h1>
             </div>
 
             {/* Prix */}
             <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Prix de vente</p>
-              <p className="mt-1 text-4xl font-black text-slate-900">
-                {money(voiture.prix)}
-                <span className="ml-2 text-base font-bold text-slate-400">XOF</span>
-              </p>
+              {voiture.type_usage !== 'vente' && voiture.prix != null && (
+                <div className="mb-3">
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Tarif location</p>
+                  <p className="mt-1 text-3xl font-black text-slate-900">
+                    {money(voiture.prix)}
+                    <span className="ml-2 text-base font-bold text-slate-400">XOF/jour</span>
+                  </p>
+                </div>
+              )}
+              {voiture.type_usage !== 'location' && (
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Prix de vente</p>
+                  <p className="mt-1 text-3xl font-black text-slate-900">
+                    {voiture.prix_vente != null ? money(voiture.prix_vente) : '—'}
+                    <span className="ml-2 text-base font-bold text-slate-400">XOF</span>
+                  </p>
+                </div>
+              )}
               {voiture.garantie && (
                 <p className="mt-2 text-xs font-semibold text-emerald-600">
                   ✓ Garantie {voiture.garantie.type_garantie} jusqu&apos;au {voiture.garantie.date_fin}
@@ -174,7 +271,7 @@ export default function VoitureDetailPage() {
             {dispo ? (
               <div className="space-y-2">
                 <Link href={`/ventes?voiture_id=${voiture.id}`}
-                  className="flex items-center justify-center gap-2 rounded-2xl bg-[#ff6b35] px-6 py-4 text-sm font-black text-white shadow-lg shadow-[#ff6b35]/20 transition hover:bg-[#e85c29] active:scale-95">
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-[#33475b] bg-white px-6 py-4 text-sm font-black text-[#111827] shadow-sm transition hover:bg-[#f5f8fa] active:scale-95">
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -182,7 +279,7 @@ export default function VoitureDetailPage() {
                   Créer une vente pour ce véhicule
                 </Link>
                 <Link href={`/locations?voiture_id=${voiture.id}`}
-                  className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-[#002d54] transition hover:bg-slate-50">
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-[#111827] transition hover:bg-slate-50">
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
@@ -247,7 +344,7 @@ export default function VoitureDetailPage() {
               {voiture.ventes.map((v: any) => (
                 <div key={v.id} className="flex items-center justify-between py-3 text-sm">
                   <span className="font-semibold text-slate-700">{v.reference_vente}</span>
-                  <span className="font-black text-[#002d54]">{money(v.prix_final)} XOF</span>
+                  <span className="font-black text-[#111827]">{money(v.prix_final)} XOF</span>
                 </div>
               ))}
             </div>

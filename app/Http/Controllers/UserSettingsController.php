@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Demande;
 use App\Models\NotificationInterne;
 use App\Models\Facturation;
 use App\Models\Location;
@@ -14,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class UserSettingsController extends Controller
@@ -82,6 +84,28 @@ class UserSettingsController extends Controller
         ]);
     }
 
+    public function uploadPhoto(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'photo' => ['required', 'image', 'max:2048'],
+        ]);
+
+        if ($user->profile_photo_path) {
+            Storage::disk('public')->delete($user->profile_photo_path);
+        }
+
+        $path = $request->file('photo')->store('profile_photos', 'public');
+        $user->update(['profile_photo_path' => $path]);
+
+        return $this->apiItem([
+            'profile_photo_url' => $user->profilePhotoUrl(),
+        ], 200, [
+            'message' => 'Photo de profil mise à jour',
+        ]);
+    }
+
     public function updatePassword(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -98,8 +122,8 @@ class UserSettingsController extends Controller
         }
 
         $user->forceFill([
-            'password' => $data['new_password'],
-            'password_hash' => $data['new_password'],
+            'password'      => Hash::make($data['new_password']),
+            'password_hash' => Hash::make($data['new_password']),
         ])->save();
 
         return $this->apiItem([], 200, [
@@ -166,6 +190,7 @@ class UserSettingsController extends Controller
             'factures_impayees' => Facturation::query()->whereIn('statut', ['impayee', 'partiellement_payee', 'en_retard'])->count(),
             'reservations' => Location::query()->where('statut', 'planifiee')->count(),
             'alertes_stock' => PieceStock::query()->whereColumn('quantite_stock', '<=', 'seuil_alerte')->count(),
+            'demandes_en_attente' => Demande::query()->where('statut', 'en_attente')->count(),
             'unread_total' => NotificationInterne::query()->whereNull('lue_at')->count(),
         ]);
     }

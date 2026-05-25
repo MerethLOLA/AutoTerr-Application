@@ -7,6 +7,7 @@ interface NotificationCounts {
   factures_impayees?: number;
   reservations?: number;
   alertes_stock?: number;
+  demandes_en_attente?: number;
 }
 
 /**

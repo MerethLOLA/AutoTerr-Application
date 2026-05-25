@@ -256,4 +256,12 @@ export interface ReportingPayload {
     retours_mois?: number;
   };
   paymentModes?: Array<{ mode_paiement: string; total: number; montant: number }>;
+  conformiteStats?: {
+    assurances_expirant?: number;
+    assurances_expirees?: number;
+    sinistres_ouverts?: number;
+    entretiens_a_venir?: number;
+    cout_entretien_mois?: number;
+    cout_carburant_mois?: number;
+  };
 }

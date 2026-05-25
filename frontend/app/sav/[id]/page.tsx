@@ -39,14 +39,14 @@ function badge(value: string) {
     ouvert: 'bg-amber-100 text-amber-800',
     en_cours: 'bg-blue-100 text-blue-800',
     resolu: 'bg-emerald-100 text-emerald-800',
-    ferme: 'bg-[#f5f8fa] text-[#516f90]',
-    basse: 'bg-[#f5f8fa] text-[#516f90]',
+    ferme: 'bg-[#f5f8fa] text-[#6b7280]',
+    basse: 'bg-[#f5f8fa] text-[#6b7280]',
     normale: 'bg-blue-100 text-blue-800',
     haute: 'bg-orange-100 text-orange-800',
     urgente: 'bg-red-100 text-red-800',
     terminee: 'bg-emerald-100 text-emerald-800',
   };
-  return `inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${map[value] ?? 'bg-[#f5f8fa] text-[#516f90]'}`;
+  return `inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${map[value] ?? 'bg-[#f5f8fa] text-[#6b7280]'}`;
 }
 
 function fmt(minutes: number | null) {
@@ -64,8 +64,9 @@ export default function TicketSavDetailPage() {
   const params = useParams();
   const id = params.id as string;
 
-  const [ticket, setTicket] = useState<TicketSav | null>(null);
-  const [loading, setLoading] = useState(true);
+  const _initSav = apiClient.getCached<{ data: TicketSav }>(`/tickets-sav/${id}`);
+  const [ticket, setTicket] = useState<TicketSav | null>(_initSav?.data ?? null);
+  const [loading, setLoading] = useState(_initSav === null);
   const [error, setError] = useState<string | null>(null);
   const [statut, setStatut] = useState('');
   const [priorite, setPriorite] = useState('');
@@ -129,10 +130,10 @@ export default function TicketSavDetailPage() {
         {/* En-tête */}
         <div className="page-header">
           <div>
-            <nav className="mb-1 flex items-center gap-1.5 text-xs text-[#516f90]">
-              <Link href="/sav" className="hover:text-[#33475b]">SAV</Link>
+            <nav className="mb-1 flex items-center gap-1.5 text-xs text-[#6b7280]">
+              <Link href="/sav" className="hover:text-[#111827]">SAV</Link>
               <span>/</span>
-              <span className="font-semibold text-[#33475b]">{ticket.reference_ticket}</span>
+              <span className="font-semibold text-[#111827]">{ticket.reference_ticket}</span>
             </nav>
             <h1 className="page-title">{ticket.objet}</h1>
           </div>
@@ -155,7 +156,7 @@ export default function TicketSavDetailPage() {
             {ticket.description && (
               <section className="surface-panel p-5">
                 <h2 className="section-title mb-3">Description</h2>
-                <p className="text-sm text-[#516f90] whitespace-pre-wrap">{ticket.description}</p>
+                <p className="text-sm text-[#6b7280] whitespace-pre-wrap">{ticket.description}</p>
               </section>
             )}
 
@@ -165,7 +166,7 @@ export default function TicketSavDetailPage() {
                 <h2 className="section-title">
                   Interventions
                   {ticket.interventions && ticket.interventions.length > 0 && (
-                    <span className="ml-2 rounded bg-[#f5f8fa] px-2 py-0.5 text-xs text-[#516f90]">
+                    <span className="ml-2 rounded bg-[#f5f8fa] px-2 py-0.5 text-xs text-[#6b7280]">
                       {ticket.interventions.length}
                     </span>
                   )}
@@ -185,12 +186,12 @@ export default function TicketSavDetailPage() {
                   <tbody>
                     {!ticket.interventions || ticket.interventions.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-5 py-8 text-sm text-[#516f90]">Aucune intervention enregistrée.</td>
+                        <td colSpan={5} className="px-5 py-8 text-sm text-[#6b7280]">Aucune intervention enregistrée.</td>
                       </tr>
                     ) : (
                       ticket.interventions.map((inv) => (
                         <tr key={inv.id} className="table-row">
-                          <td className="table-cell pl-5 font-medium text-[#33475b]">{fmtDate(inv.date_intervention)}</td>
+                          <td className="table-cell pl-5 font-medium text-[#111827]">{fmtDate(inv.date_intervention)}</td>
                           <td className="table-cell">{name(inv.employe)}</td>
                           <td className="table-cell max-w-xs truncate">{inv.description || '-'}</td>
                           <td className="table-cell"><span className={badge(inv.statut)}>{inv.statut}</span></td>
@@ -220,8 +221,8 @@ export default function TicketSavDetailPage() {
                   { label: 'Date résolution', value: fmtDate(ticket.date_resolution) },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between gap-3">
-                    <dt className="text-[#516f90]">{label}</dt>
-                    <dd className="text-right font-medium text-[#33475b]">{value}</dd>
+                    <dt className="text-[#6b7280]">{label}</dt>
+                    <dd className="text-right font-medium text-[#111827]">{value}</dd>
                   </div>
                 ))}
               </dl>
@@ -232,7 +233,7 @@ export default function TicketSavDetailPage() {
               <h2 className="section-title mb-4">Mettre à jour</h2>
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-[#33475b]">Statut</label>
+                  <label className="mb-1 block text-xs font-semibold text-[#111827]">Statut</label>
                   <select className="field-control" value={statut} onChange={(e) => setStatut(e.target.value)}>
                     {STATUTS_TICKET.map((s) => (
                       <option key={s} value={s}>{s.replace('_', ' ')}</option>
@@ -240,7 +241,7 @@ export default function TicketSavDetailPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-[#33475b]">Priorité</label>
+                  <label className="mb-1 block text-xs font-semibold text-[#111827]">Priorité</label>
                   <select className="field-control" value={priorite} onChange={(e) => setPriorite(e.target.value)}>
                     {PRIORITES.map((p) => (
                       <option key={p} value={p}>{p}</option>

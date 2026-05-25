@@ -23,11 +23,7 @@ class ClientController extends Controller
             ->latest()
             ->paginate(15);
 
-        if ($request->wantsJson()) {
-            return $this->apiCollection($clients);
-        }
-
-        return view('clients.index', compact('clients'));
+        return $this->apiCollection($clients);
     }
 
     public function store(ClientRequest $request)
@@ -43,17 +39,13 @@ class ClientController extends Controller
         ]);
     }
 
-    public function show(Request $request, Client $client)
+    public function show(Client $client)
     {
         $this->ensurePermission('view_clients');
 
-        $client->load(['ventes.facturation', 'paiements', 'documents', 'vendeurAttribue']);
+        $client->load(['ventes.facturation', 'paiements', 'locations', 'documents', 'vendeurAttribue']);
 
-        if ($request->wantsJson()) {
-            return $this->apiItem($client);
-        }
-
-        return view('clients.show', compact('client'));
+        return $this->apiItem($client);
     }
 
     public function update(ClientRequest $request, Client $client)

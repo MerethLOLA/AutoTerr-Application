@@ -2,6 +2,7 @@
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -23,11 +24,16 @@ const STATUTS  = ['disponible', 'vendu', 'en_location', 'reserve', 'en_reparatio
 const ETATS    = ['neuf', 'occasion', 'accidente'];
 const ENERGIES = ['essence', 'diesel', 'hybride', 'electrique', 'gaz'];
 const BOITES   = ['manuelle', 'automatique', 'semi-automatique'];
+const TYPE_USAGES = [
+  { value: 'location', label: 'Location uniquement' },
+  { value: 'vente',    label: 'Vente uniquement' },
+  { value: 'les_deux', label: 'Location & Vente' },
+];
 
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-semibold text-[#33475b]">{label}</label>
+      <label className="mb-1 block text-xs font-semibold text-[#111827]">{label}</label>
       {children}
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
@@ -38,8 +44,10 @@ export default function EditVoiturePage() {
   const { id }  = useParams();
   const router  = useRouter();
 
-  const [options, setOptions]         = useState<FormOptions>({ types_vehicules: [], origines_marques: [], fournisseurs: [] });
-  const [loading, setLoading]         = useState(true);
+  const _initOpts = apiClient.getCached<FormOptions>('/voitures/form-options');
+  const _initVoiture = id ? apiClient.getCached<any>(`/voitures/${id}`) : null;
+  const [options, setOptions]         = useState<FormOptions>(_initOpts ?? { types_vehicules: [], origines_marques: [], fournisseurs: [] });
+  const [loading, setLoading]         = useState(_initOpts === null || _initVoiture === null);
   const [saving, setSaving]           = useState(false);
   const [errors, setErrors]           = useState<Record<string, string>>({});
   const [globalError, setGlobalError] = useState('');
@@ -56,6 +64,7 @@ export default function EditVoiturePage() {
 
   const [form, setForm] = useState({
     marque: '', modele: '', annee: '', couleur: '', prix: '',
+    prix_vente: '', type_usage: 'les_deux',
     kilometrage: '', numero_chassis: '', date_acquisition: '',
     statut: 'disponible', etat: '', energie: '', type_boite: '',
     type_vehicule_id: '', origine_marque_id: '', id_fournisseur: '',
@@ -76,6 +85,8 @@ export default function EditVoiturePage() {
         annee:             String(v.annee      ?? ''),
         couleur:           v.couleur           ?? '',
         prix:              String(v.prix       ?? ''),
+        prix_vente:        String(v.prix_vente ?? ''),
+        type_usage:        v.type_usage        ?? 'les_deux',
         kilometrage:       String(v.kilometrage ?? ''),
         numero_chassis:    v.numero_chassis    ?? '',
         date_acquisition:  v.date_acquisition  ?? '',
@@ -96,6 +107,16 @@ export default function EditVoiturePage() {
   function set(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => { const n = { ...e }; delete n[key]; return n; });
+  }
+
+  function setTypeUsage(value: string) {
+    setForm((f) => ({
+      ...f,
+      type_usage: value,
+      prix:       value === 'vente'    ? '' : f.prix,
+      prix_vente: value === 'location' ? '' : f.prix_vente,
+    }));
+    setErrors((e) => { const n = { ...e }; delete n.type_usage; return n; });
   }
 
   const addFiles = useCallback((files: FileList | File[]) => {
@@ -139,9 +160,17 @@ export default function EditVoiturePage() {
     setGlobalError('');
     setErrors({});
 
+    const isLocation = form.type_usage === 'location' || form.type_usage === 'les_deux';
+    const isVente    = form.type_usage === 'vente'    || form.type_usage === 'les_deux';
+
     const fd = new FormData();
     fd.append('_method', 'PUT');
-    Object.entries(form).forEach(([k, v]) => { if (v) fd.append(k, v); });
+    Object.entries(form).forEach(([k, v]) => {
+      if (k === 'prix' || k === 'prix_vente') return; // gérés séparément
+      if (v) fd.append(k, v);
+    });
+    fd.append('prix',       isLocation ? (form.prix       || '') : '');
+    fd.append('prix_vente', isVente    ? (form.prix_vente || '') : '');
     pendingFiles.forEach((f) => fd.append('images[]', f));
 
     try {
@@ -185,12 +214,12 @@ export default function EditVoiturePage() {
         {/* En-tête */}
         <div className="page-header">
           <div>
-            <nav className="mb-1 flex items-center gap-1.5 text-xs text-[#516f90]">
-              <Link href="/voitures" className="hover:text-[#33475b]">Véhicules</Link>
+            <nav className="mb-1 flex items-center gap-1.5 text-xs text-[#6b7280]">
+              <Link href="/voitures" className="hover:text-[#111827]">Véhicules</Link>
               <span>/</span>
-              <Link href={`/voitures/${id}`} className="hover:text-[#33475b]">{form.marque} {form.modele}</Link>
+              <Link href={`/voitures/${id}`} className="hover:text-[#111827]">{form.marque} {form.modele}</Link>
               <span>/</span>
-              <span className="font-semibold text-[#33475b]">Modifier</span>
+              <span className="font-semibold text-[#111827]">Modifier</span>
             </nav>
             <h1 className="page-title">Modifier le véhicule</h1>
           </div>
@@ -276,14 +305,32 @@ export default function EditVoiturePage() {
             </div>
           </section>
 
-          {/* ── Section 3 : Prix & Acquisition ── */}
+          {/* ── Section 3 : Usage & Prix ── */}
           <section className="surface-panel p-6">
-            <h2 className="section-title mb-5">Prix & Acquisition</h2>
+            <h2 className="section-title mb-5">Usage & Prix</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Field label="Prix de vente (XOF) *" error={errors.prix}>
-                <input className="field-control" type="number" min="0"
-                  value={form.prix} onChange={(e) => set('prix', e.target.value)} required />
+
+              <Field label="Usage du véhicule *" error={errors.type_usage}>
+                <select className="field-control" value={form.type_usage}
+                  onChange={(e) => setTypeUsage(e.target.value)} required>
+                  {TYPE_USAGES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
               </Field>
+
+              {(form.type_usage === 'location' || form.type_usage === 'les_deux') && (
+                <Field label="Tarif location (XOF / jour)" error={errors.prix}>
+                  <input className="field-control" type="number" min="0"
+                    value={form.prix} onChange={(e) => set('prix', e.target.value)} placeholder="0" />
+                </Field>
+              )}
+
+              {(form.type_usage === 'vente' || form.type_usage === 'les_deux') && (
+                <Field label="Prix de vente (XOF)" error={errors.prix_vente}>
+                  <input className="field-control" type="number" min="0"
+                    value={form.prix_vente} onChange={(e) => set('prix_vente', e.target.value)} placeholder="0" />
+                </Field>
+              )}
+
               <Field label="Date d'acquisition" error={errors.date_acquisition}>
                 <input className="field-control" type="date"
                   value={form.date_acquisition} onChange={(e) => set('date_acquisition', e.target.value)} />
@@ -313,7 +360,7 @@ export default function EditVoiturePage() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="section-title">Photos du véhicule</h2>
-                <p className="mt-0.5 text-xs text-[#516f90]">
+                <p className="mt-0.5 text-xs text-[#6b7280]">
                   {totalPhotos} photo{totalPhotos !== 1 ? 's' : ''} · JPEG, PNG, GIF · Max 5 Mo
                 </p>
               </div>
@@ -322,13 +369,13 @@ export default function EditVoiturePage() {
             {/* Photos existantes */}
             {existingImages.length > 0 && (
               <div className="mb-4">
-                <p className="mb-2 text-xs font-semibold text-[#516f90] uppercase tracking-wide">Photos actuelles</p>
+                <p className="mb-2 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Photos actuelles</p>
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                   {existingImages.map((img, i) => (
                     <div key={img.id} className="group relative aspect-square overflow-hidden rounded border border-[#dfe3eb] bg-[#f5f8fa]">
-                      <img src={imgUrl(img.chemin) ?? ''} alt={`photo ${i + 1}`} className="h-full w-full object-cover" />
+                      {imgUrl(img.chemin) && <Image src={imgUrl(img.chemin)!} alt={`photo ${i + 1}`} fill className="object-cover" />}
                       {i === 0 && existingImages[0] && (
-                        <span className="absolute left-1 top-1 rounded bg-[#ff6b35] px-1.5 py-0.5 text-[9px] font-bold text-white">
+                        <span className="absolute left-1 top-1 rounded bg-slate-600 px-1.5 py-0.5 text-[9px] font-bold text-white">
                           Principale
                         </span>
                       )}
@@ -361,18 +408,18 @@ export default function EditVoiturePage() {
               onClick={() => fileInputRef.current?.click()}
               className={`cursor-pointer rounded border-2 border-dashed p-6 text-center transition
                 ${dragging
-                  ? 'border-[#ff6b35] bg-[#ff6b35]/5'
-                  : 'border-[#cbd6e2] bg-[#f5f8fa] hover:border-[#ff6b35]/50'
+                  ? 'border-[#33475b] bg-slate-600/5'
+                  : 'border-[#cbd6e2] bg-[#f5f8fa] hover:border-[#33475b]/50'
                 }`}
             >
               <svg className="mx-auto mb-2 h-8 w-8 text-[#cbd6e2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M12 4v16m8-8H4" />
               </svg>
-              <p className="text-sm font-semibold text-[#33475b]">
+              <p className="text-sm font-semibold text-[#111827]">
                 {dragging ? 'Déposez ici' : 'Ajouter de nouvelles photos'}
               </p>
-              <p className="mt-0.5 text-xs text-[#516f90]">Cliquez ou glissez-déposez</p>
+              <p className="mt-0.5 text-xs text-[#6b7280]">Cliquez ou glissez-déposez</p>
               <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
                 onChange={(e) => e.target.files && addFiles(e.target.files)} />
             </div>
@@ -380,12 +427,12 @@ export default function EditVoiturePage() {
             {/* Aperçus nouvelles photos */}
             {pendingPreviews.length > 0 && (
               <div className="mt-4">
-                <p className="mb-2 text-xs font-semibold text-[#516f90] uppercase tracking-wide">
+                <p className="mb-2 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">
                   Nouvelles photos à ajouter ({pendingPreviews.length})
                 </p>
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                   {pendingPreviews.map((src, i) => (
-                    <div key={i} className="group relative aspect-square overflow-hidden rounded border border-[#ff6b35]/40 bg-[#f5f8fa]">
+                    <div key={i} className="group relative aspect-square overflow-hidden rounded border border-[#33475b]/40 bg-[#f5f8fa]">
                       <img src={src} alt={`nouvelle ${i + 1}`} className="h-full w-full object-cover" />
                       <span className="absolute left-1 top-1 rounded bg-[#253342]/70 px-1.5 py-0.5 text-[9px] font-bold text-white">
                         Nouveau

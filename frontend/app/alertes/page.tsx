@@ -73,13 +73,13 @@ function AlerteCard({ title, items, dateKey, descKey, color }: {
         {items.map((item) => (
           <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
             <div>
-              <p className="text-sm font-semibold text-[#33475b]">
+              <p className="text-sm font-semibold text-[#111827]">
                 {item.voiture ? `${item.voiture.marque} ${item.voiture.modele}` : '-'}
               </p>
-              <p className="text-xs text-[#516f90]">{(item as any)[descKey] ?? '-'}</p>
+              <p className="text-xs text-[#6b7280]">{(item as any)[descKey] ?? '-'}</p>
             </div>
             <div className="flex items-center gap-2 text-right">
-              <span className="text-xs text-[#516f90]">{fmtDate((item as any)[dateKey])}</span>
+              <span className="text-xs text-[#6b7280]">{fmtDate((item as any)[dateKey])}</span>
               <UrgencyBadge date={(item as any)[dateKey]} />
             </div>
           </div>
@@ -90,15 +90,15 @@ function AlerteCard({ title, items, dateKey, descKey, color }: {
 }
 
 export default function AlertesPage() {
-  const [data, setData]       = useState<AlertesData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const _initAlertes = apiClient.getCached<any>('/alertes/expirations');
+  const [data, setData]       = useState<AlertesData | null>(_initAlertes?.data ?? _initAlertes ?? null);
+  const [loading, setLoading] = useState(_initAlertes === null);
   const [error, setError]     = useState<string | null>(null);
 
   useEffect(() => {
     apiClient.get<any>('/alertes/expirations')
-      .then((res) => setData(res?.data ?? res))
-      .catch((err: any) => setError(err?.message || 'Impossible de charger les alertes'))
-      .finally(() => setLoading(false));
+      .then((res) => { setData(res?.data ?? res); setLoading(false); })
+      .catch((err: any) => { setError(err?.message || 'Impossible de charger les alertes'); setLoading(false); });
   }, []);
 
   return (
@@ -139,7 +139,7 @@ export default function AlertesPage() {
                   </svg>
                 </div>
                 <p className="text-sm font-semibold text-emerald-700">Tout est en ordre !</p>
-                <p className="mt-1 text-xs text-[#516f90]">Aucune assurance, contrôle technique ou entretien n&apos;expire dans les 30 prochains jours.</p>
+                <p className="mt-1 text-xs text-[#6b7280]">Aucune assurance, contrôle technique ou entretien n&apos;expire dans les 30 prochains jours.</p>
               </div>
             ) : (
               <div className="space-y-4">

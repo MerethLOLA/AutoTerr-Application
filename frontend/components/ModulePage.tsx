@@ -1,9 +1,11 @@
-'use client';
+﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
-import { ModuleDefinition, ModuleFormField } from '@/lib/modules';
+import { ModuleColumn, ModuleDefinition, ModuleFormField } from '@/lib/modules';
+import { useRole } from '@/lib/useRole';
 import { useCallback, useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 interface ModulePageProps {
@@ -19,11 +21,97 @@ function getValue(item: any, key: string) {
   return key.split('.').reduce((value, segment) => value?.[segment], item);
 }
 
-function formatValue(value: any) {
+const BADGE_MAP: Record<string, { bg: string; text: string; label: string }> = {
+  disponible:   { bg: '#dcfce7', text: '#166534', label: 'Disponible' },
+  vendue:       { bg: '#ede9fe', text: '#5b21b6', label: 'Vendue' },
+  reservee:     { bg: '#fef9c3', text: '#854d0e', label: 'Réservée' },
+  en_location:  { bg: '#ffedd5', text: '#9a3412', label: 'En location' },
+  hors_service: { bg: '#fee2e2', text: '#991b1b', label: 'Hors service' },
+  en_cours:     { bg: '#dbeafe', text: '#1e40af', label: 'En cours' },
+  planifie:     { bg: '#fef9c3', text: '#854d0e', label: 'Planifié' },
+  planifiee:    { bg: '#fef9c3', text: '#854d0e', label: 'Planifiée' },
+  realise:      { bg: '#dcfce7', text: '#166534', label: 'Réalisé' },
+  resolu:       { bg: '#dcfce7', text: '#166534', label: 'Résolu' },
+  payee:        { bg: '#dcfce7', text: '#166534', label: 'Payée' },
+  active:       { bg: '#dcfce7', text: '#166534', label: 'Active' },
+  clos:         { bg: '#f1f5f9', text: '#475569', label: 'Clos' },
+  annule:       { bg: '#fee2e2', text: '#991b1b', label: 'Annulé' },
+  annulee:      { bg: '#fee2e2', text: '#991b1b', label: 'Annulée' },
+  rejete:       { bg: '#fee2e2', text: '#991b1b', label: 'Rejeté' },
+  expiree:      { bg: '#fee2e2', text: '#991b1b', label: 'Expirée' },
+  ouvert:       { bg: '#ffedd5', text: '#9a3412', label: 'Ouvert' },
+  impayee:      { bg: '#fee2e2', text: '#991b1b', label: 'Impayée' },
+  partielle:    { bg: '#fef9c3', text: '#854d0e', label: 'Partielle' },
+  haute:        { bg: '#fee2e2', text: '#991b1b', label: 'Haute' },
+  urgente:      { bg: '#fecdd3', text: '#9f1239', label: 'Urgente' },
+  moyenne:      { bg: '#fef9c3', text: '#854d0e', label: 'Moyenne' },
+  normale:      { bg: '#dbeafe', text: '#1e40af', label: 'Normale' },
+  basse:        { bg: '#dcfce7', text: '#166534', label: 'Basse' },
+  favorable:    { bg: '#dcfce7', text: '#166534', label: 'Favorable' },
+  defavorable:  { bg: '#fee2e2', text: '#991b1b', label: 'Défavorable' },
+};
+
+function formatValue(value: any): string {
   if (value === null || value === undefined || value === '') return '-';
   if (typeof value === 'number') return new Intl.NumberFormat('fr-FR').format(value);
-  if (typeof value === 'object') return value.nom || value.reference || value.id || '-';
+  if (typeof value === 'object') return String(value.nom || value.reference || value.id || '-');
   return String(value);
+}
+
+function renderCell(value: any, type?: ModuleColumn['type']) {
+  if (value === null || value === undefined || value === '') {
+    return <span className="text-slate-300">—</span>;
+  }
+
+  if (type === 'date') {
+    const d = new Date(String(value));
+    return isNaN(d.getTime())
+      ? String(value)
+      : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  if (type === 'money') {
+    const num = Number(value);
+    if (isNaN(num)) return String(value);
+    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(num) + ' XOF';
+  }
+
+  if (type === 'km') {
+    const num = Number(value);
+    if (isNaN(num)) return String(value);
+    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(num) + ' km';
+  }
+
+  if (type === 'number') {
+    const num = Number(value);
+    if (isNaN(num)) return String(value);
+    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(num);
+  }
+
+  if (type === 'badge') {
+    const key = String(value).toLowerCase();
+    const entry = BADGE_MAP[key];
+    return (
+      <span
+        style={{ backgroundColor: entry?.bg ?? '#f1f5f9', color: entry?.text ?? '#475569' }}
+        className="inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide"
+      >
+        {entry?.label ?? String(value)}
+      </span>
+    );
+  }
+
+  if (typeof value === 'number') return new Intl.NumberFormat('fr-FR').format(value);
+  if (typeof value === 'object') return String(value.nom || value.reference || value.id || '-');
+
+  const str = String(value);
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+  }
+  return str;
 }
 
 function metricCards(data: any) {
@@ -38,7 +126,7 @@ function metricCards(data: any) {
   ].filter((metric) => metric.value !== undefined && metric.value !== null);
 }
 
-function normalizeFieldValue(value: any, type?: ModuleFormField['type']) {
+function normalizeFieldValue(value: any) {
   if (value === null || value === undefined) return '';
   return String(value);
 }
@@ -58,6 +146,10 @@ function getInitialFormValues(mod: ModuleDefinition) {
 }
 
 export default function ModulePage({ module: mod }: ModulePageProps) {
+  const { canWrite } = useRole();
+  const moduleSlug = mod.endpoint?.replace(/^\//, '') ?? '';
+  const hasWriteAccess = canWrite(moduleSlug);
+
   const [items, setItems]               = useState<any[]>([]);
   const [payload, setPayload]           = useState<any>(null);
   const [loading, setLoading]           = useState(Boolean(mod.endpoint && mod.status === 'api-ready'));
@@ -79,7 +171,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
   const [downloadingId, setDownloadingId] = useState<number | string | null>(null);
 
   const visibleFormFields = mod.formFields?.filter((f) => !f.hidden) ?? [];
-  const columns = mod.columns ?? mod.fields.slice(0, 5).map((f) => ({
+  const columns: ModuleColumn[] = mod.columns ?? mod.fields.slice(0, 5).map((f) => ({
     label: f,
     key: f.toLowerCase().split(' ').join('_'),
   }));
@@ -168,8 +260,8 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
     const nextValues = mod.formFields.reduce<Record<string, string>>((acc, field) => {
       const val = getValue(item, field.name);
       acc[field.name] = val === undefined
-        ? normalizeFieldValue(field.defaultValue, field.type)
-        : normalizeFieldValue(val, field.type);
+        ? normalizeFieldValue(field.defaultValue)
+        : normalizeFieldValue(val);
       return acc;
     }, {});
     setFileValues({});
@@ -288,27 +380,29 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                 </p>
               )}
             </div>
-            <button
-              className="btn-primary disabled:cursor-not-allowed disabled:bg-slate-300 shrink-0"
-              disabled={!mod.formFields}
-              onClick={beginCreate}
-              type="button"
-            >
-              {showForm && isEditing ? 'Ajouter un nouvel élément' : mod.primaryAction}
-            </button>
+            {hasWriteAccess && (
+              <button
+                className="btn-primary disabled:cursor-not-allowed disabled:bg-slate-300 shrink-0"
+                disabled={!mod.formFields}
+                onClick={beginCreate}
+                type="button"
+              >
+                {showForm && isEditing ? 'Ajouter un nouvel élément' : mod.primaryAction}
+              </button>
+            )}
           </div>
 
           <div className="p-5">
 
             {/* Formulaire création / édition */}
-            {showForm && mod.formFields && (
+            {showForm && mod.formFields && hasWriteAccess && (
               <form className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-5" onSubmit={handleCreate}>
                 <div className="mb-4 flex items-center justify-between gap-4">
-                  <h3 className="text-sm font-bold text-[#002d54]">
+                  <h3 className="text-sm font-bold text-[#111827]">
                     {isEditing ? "Modifier l'élément" : 'Nouvel élément'}
                   </h3>
                   {isEditing && (
-                    <span className="rounded-full bg-[#ff6b35]/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#ff6b35]">
+                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-600">
                       Édition
                     </span>
                   )}
@@ -316,7 +410,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   {visibleFormFields.map((field) => (
-                    <label key={field.name} className="text-sm font-semibold text-[#1A3C5E]">
+                    <label key={field.name} className="text-sm font-semibold text-[#111827]">
                       {field.label}
                       {field.type === 'select' ? (
                         <select
@@ -403,8 +497,8 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
               <div className="grid gap-4 md:grid-cols-3">
                 {metricCards(payload?.data ?? payload).map((metric) => (
                   <div key={metric.label} className="surface-muted p-5">
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1A3C5E]">{metric.label}</p>
-                    <p className="mt-2 text-2xl font-black text-[#002D54]">{formatValue(metric.value)}</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#111827]">{metric.label}</p>
+                    <p className="mt-2 text-2xl font-black text-[#111827]">{formatValue(metric.value)}</p>
                   </div>
                 ))}
               </div>
@@ -452,18 +546,19 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                           <tr key={item.id || index} className="table-row">
                             {columns.map((col, ci) => (
                               <td key={col.key} className={`table-cell ${ci === 0 ? 'pl-5 font-medium text-slate-800' : ''}`}>
-                                {col.key === 'image_principale' || col.key.includes('chemin') ? (
+                                {col.type === 'image' || col.key === 'image_principale' || col.key.includes('chemin') ? (
                                   getValue(item, col.key) ? (
-                                    <img
+                                    <Image
                                       src={`${(process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '')}/storage/${getValue(item, col.key)}`}
                                       alt="photo"
+                                      width={56} height={40}
                                       className="h-10 w-14 rounded-lg object-cover border border-slate-200"
                                     />
                                   ) : (
                                     <div className="flex h-10 w-14 items-center justify-center rounded-lg bg-slate-100 text-[10px] text-slate-400">—</div>
                                   )
                                 ) : (
-                                  formatValue(getValue(item, col.key))
+                                  renderCell(getValue(item, col.key), col.type)
                                 )}
                               </td>
                             ))}
@@ -472,7 +567,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                                 {mod.detailRoute && (
                                   <Link
                                     href={`/${mod.detailRoute}/${item.id}`}
-                                    className="text-xs font-semibold text-[#002d54] hover:text-[#ff6b35] transition-colors"
+                                    className="text-xs font-semibold text-[#111827] hover:text-slate-900 transition-colors"
                                   >
                                     Voir
                                   </Link>
@@ -483,7 +578,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                                     title="Imprimer / Télécharger PDF"
                                     disabled={downloadingId === item.id}
                                     onClick={() => handleExport(item)}
-                                    className="inline-flex items-center gap-1 rounded border border-[#dfe3eb] bg-white px-2 py-1 text-xs font-semibold text-[#33475b] transition hover:border-[#2d1b3d] hover:bg-[#2d1b3d] hover:text-white disabled:opacity-40"
+                                    className="inline-flex items-center gap-1 rounded border border-[#dfe3eb] bg-white px-2 py-1 text-xs font-semibold text-[#111827] transition hover:border-[#2d1b3d] hover:bg-[#2d1b3d] hover:text-white disabled:opacity-40"
                                   >
                                     {downloadingId === item.id ? (
                                       '…'
@@ -497,22 +592,24 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                                     )}
                                   </button>
                                 )}
-                                {mod.formFields && (
+                                {hasWriteAccess && mod.formFields && (
                                   <button
                                     type="button"
-                                    className="text-xs font-semibold text-slate-500 hover:text-[#002d54] transition-colors"
+                                    className="text-xs font-semibold text-slate-500 hover:text-[#111827] transition-colors"
                                     onClick={() => beginEdit(item)}
                                   >
                                     Modifier
                                   </button>
                                 )}
-                                <button
-                                  type="button"
-                                  className="text-xs font-semibold text-red-500 hover:text-red-700 transition-colors"
-                                  onClick={() => handleDelete(item.id)}
-                                >
-                                  Supprimer
-                                </button>
+                                {hasWriteAccess && (
+                                  <button
+                                    type="button"
+                                    className="text-xs font-semibold text-red-500 hover:text-red-700 transition-colors"
+                                    onClick={() => handleDelete(item.id)}
+                                  >
+                                    Supprimer
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -528,7 +625,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-500">Lignes par page :</span>
                       <select
-                        className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700 outline-none focus:border-[#ff6b35]"
+                        className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700 outline-none focus:border-[#33475b]"
                         value={perPage}
                         onChange={(e) => setPerPage(Number(e.target.value))}
                       >

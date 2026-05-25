@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\Assurance;
+use App\Models\Entretien;
 use App\Models\Facturation;
 use App\Models\Garantie;
 use App\Models\Location;
 use App\Models\Paiement;
+use App\Models\Sinistre;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -22,24 +25,9 @@ class DocumentExportService
     {
         $facturation->loadMissing(['vente.client', 'vente.voiture', 'paiements']);
 
-        return Pdf::loadView('pdf.document', [
-            'title' => 'Facture',
-            'entreprise' => self::ENTREPRISE,
-            'rows' => [
-                'Numero facture' => $facturation->numero_facture,
-                'Date facture' => optional($facturation->date_facture)->format('Y-m-d'),
-                'Client' => $facturation->vente?->client?->nom_complet,
-                'Vehicule' => trim(($facturation->vente?->voiture?->marque ?? '').' '.($facturation->vente?->voiture?->modele ?? '')),
-                'Reference vente' => $facturation->vente?->reference_vente,
-                'Montant HT' => $facturation->montant_ht.' XOF',
-                'TVA' => $facturation->taux_tva.' %',
-                'Montant TTC' => $facturation->montant_ttc.' XOF',
-                'Montant paye' => number_format($facturation->montant_paye, 0, ',', ' ').' XOF',
-                'Reste a payer' => number_format(max($facturation->reste_a_payer, 0), 0, ',', ' ').' XOF',
-                'Date echeance' => optional($facturation->date_echeance)->format('Y-m-d'),
-                'Statut' => $facturation->statut,
-            ],
-        ])->download("facture-{$facturation->numero_facture}.pdf");
+        return Pdf::loadView('pdf.facture', [
+            'facture' => $facturation,
+        ])->setPaper('a4')->download("facture-{$facturation->numero_facture}.pdf");
     }
 
     public function paiement(Paiement $paiement): Response
@@ -96,5 +84,75 @@ class DocumentExportService
                 'Date fin' => optional($garantie->date_fin)->format('Y-m-d'),
             ],
         ])->download("garantie-{$garantie->id}.pdf");
+    }
+
+    public function assurance(Assurance $assurance): Response
+    {
+        $assurance->loadMissing(['voiture', 'gestionnaire']);
+
+        $vehicule = trim(($assurance->voiture?->marque ?? '').' '.($assurance->voiture?->modele ?? ''));
+
+        return Pdf::loadView('pdf.document', [
+            'title' => 'Attestation d\'assurance',
+            'entreprise' => self::ENTREPRISE,
+            'rows' => [
+                'Compagnie' => $assurance->compagnie,
+                'Numero police' => $assurance->numero_police ?? '-',
+                'Type assurance' => $assurance->type_assurance,
+                'Vehicule' => $vehicule,
+                'Date debut' => optional($assurance->date_debut)->format('d/m/Y'),
+                'Date fin' => optional($assurance->date_fin)->format('d/m/Y'),
+                'Prime' => $assurance->montant_prime ? number_format($assurance->montant_prime, 0, ',', ' ').' XOF' : '-',
+                'Statut' => $assurance->statut,
+                'Gestionnaire' => $assurance->gestionnaire ? trim(($assurance->gestionnaire->nom ?? '').' '.($assurance->gestionnaire->prenom ?? '')) : '-',
+            ],
+        ])->download("assurance-{$assurance->id}.pdf");
+    }
+
+    public function sinistre(Sinistre $sinistre): Response
+    {
+        $sinistre->loadMissing(['voiture', 'client', 'assurance']);
+
+        $vehicule = trim(($sinistre->voiture?->marque ?? '').' '.($sinistre->voiture?->modele ?? ''));
+
+        return Pdf::loadView('pdf.document', [
+            'title' => 'Declaration de sinistre',
+            'entreprise' => self::ENTREPRISE,
+            'rows' => [
+                'Numero declaration' => $sinistre->numero_declaration ?? '-',
+                'Type sinistre' => $sinistre->type_sinistre,
+                'Date sinistre' => optional($sinistre->date_sinistre)->format('d/m/Y'),
+                'Vehicule' => $vehicule,
+                'Client' => $sinistre->client ? trim(($sinistre->client->nom ?? '').' '.($sinistre->client->prenom ?? '')) : '-',
+                'Assurance' => $sinistre->assurance ? $sinistre->assurance->compagnie.' ('.$sinistre->assurance->numero_police.')' : '-',
+                'Montant dommages' => $sinistre->montant_dommages ? number_format($sinistre->montant_dommages, 0, ',', ' ').' XOF' : '-',
+                'Statut' => $sinistre->statut,
+                'Description' => $sinistre->description,
+            ],
+        ])->download("sinistre-{$sinistre->id}.pdf");
+    }
+
+    public function entretien(Entretien $entretien): Response
+    {
+        $entretien->loadMissing(['voiture', 'technicien']);
+
+        $vehicule = trim(($entretien->voiture?->marque ?? '').' '.($entretien->voiture?->modele ?? ''));
+
+        return Pdf::loadView('pdf.document', [
+            'title' => 'Fiche d\'entretien',
+            'entreprise' => self::ENTREPRISE,
+            'rows' => [
+                'Type entretien' => $entretien->type_entretien,
+                'Vehicule' => $vehicule,
+                'Technicien' => $entretien->technicien ? trim(($entretien->technicien->nom ?? '').' '.($entretien->technicien->prenom ?? '')) : '-',
+                'Date prevue' => optional($entretien->date_prevue)->format('d/m/Y') ?? '-',
+                'Date realise' => optional($entretien->date_realise)->format('d/m/Y') ?? '-',
+                'Kilometrage prevu' => $entretien->kilometrage_prevu ? number_format($entretien->kilometrage_prevu, 0, ',', ' ').' km' : '-',
+                'Kilometrage realise' => $entretien->kilometrage_realise ? number_format($entretien->kilometrage_realise, 0, ',', ' ').' km' : '-',
+                'Cout' => $entretien->cout ? number_format($entretien->cout, 0, ',', ' ').' XOF' : '-',
+                'Statut' => $entretien->statut,
+                'Notes' => $entretien->notes ?? '-',
+            ],
+        ])->download("entretien-{$entretien->id}.pdf");
     }
 }

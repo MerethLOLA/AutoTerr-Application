@@ -128,17 +128,16 @@ class ReportingController extends Controller
                 ->count(),
             'entretiens_a_venir' => Entretien::query()
                 ->where('statut', 'planifie')
-                ->whereBetween('date_entretien', [now()->toDateString(), now()->addDays(30)->toDateString()])
+                ->whereBetween('date_prevue', [now()->toDateString(), now()->addDays(30)->toDateString()])
                 ->count(),
             'cout_entretien_mois' => (float) Entretien::query()
-                ->whereMonth('date_entretien', now()->month)
-                ->whereYear('date_entretien', now()->year)
-                ->selectRaw('COALESCE(SUM(cout_main_oeuvre + cout_pieces), 0) as total')
-                ->value('total'),
+                ->whereMonth('date_realise', now()->month)
+                ->whereYear('date_realise', now()->year)
+                ->sum('cout'),
             'cout_carburant_mois' => (float) Carburant::query()
                 ->whereMonth('date_plein', now()->month)
                 ->whereYear('date_plein', now()->year)
-                ->sum('cout'),
+                ->sum('montant_total'),
         ];
 
         $data = compact(
@@ -153,11 +152,7 @@ class ReportingController extends Controller
             'conformiteStats',
         );
 
-        if ($request->wantsJson()) {
-            return $this->apiItem($data);
-        }
-
-        return view('reporting.index', $data);
+        return $this->apiItem($data);
     }
 
     public function export(Request $request): StreamedResponse
@@ -178,6 +173,18 @@ class ReportingController extends Controller
             ['Stock', 'References', PieceStock::query()->count()],
             ['Stock', 'Alertes stock', PieceStock::query()->whereColumn('quantite_stock', '<=', 'seuil_alerte')->count()],
             ['Stock', 'Valeur stock', (float) PieceStock::query()->selectRaw('COALESCE(SUM(prix_unitaire * quantite_stock), 0) as total')->value('total')],
+            ['Assurances', 'Total assurances actives', Assurance::query()->where('statut', 'active')->count()],
+            ['Assurances', 'Expirant dans 30 jours', Assurance::query()->whereBetween('date_fin', [now()->toDateString(), now()->addDays(30)->toDateString()])->where('statut', '!=', 'annulee')->count()],
+            ['Assurances', 'Expirees', Assurance::query()->where('date_fin', '<', now()->toDateString())->where('statut', '!=', 'annulee')->count()],
+            ['Sinistres', 'Sinistres declares', Sinistre::query()->count()],
+            ['Sinistres', 'Sinistres ouverts', Sinistre::query()->whereNotIn('statut', ['clos', 'annule', 'rejete'])->count()],
+            ['Sinistres', 'Montant total dommages', (float) Sinistre::query()->sum('montant_dommages')],
+            ['Entretiens', 'Total entretiens', Entretien::query()->count()],
+            ['Entretiens', 'Entretiens planifies', Entretien::query()->where('statut', 'planifie')->count()],
+            ['Entretiens', 'Cout entretiens mois en cours', (float) Entretien::query()->whereMonth('date_realise', now()->month)->whereYear('date_realise', now()->year)->sum('cout')],
+            ['Carburant', 'Total pleins', \App\Models\Carburant::query()->count()],
+            ['Carburant', 'Cout carburant mois en cours', (float) \App\Models\Carburant::query()->whereMonth('date_plein', now()->month)->whereYear('date_plein', now()->year)->sum('montant_total')],
+            ['Carburant', 'Volume total litres', (float) \App\Models\Carburant::query()->sum('quantite_litres')],
         ];
 
         return response()->streamDownload(function () use ($rows) {

@@ -1,6 +1,24 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --font-inter: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* ── Marquee stats ───────────────────────────────────────────────────────── */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 18s linear infinite;
+  will-change: transform;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
 
 /* ── Scrollbars invisibles ───────────────────────────────────────────────── */
 * {
@@ -19,7 +37,7 @@
 
   body {
     background: #f5f8fa;
-    @apply text-slate-900;
+    @apply text-slate-900 dark:bg-slate-900 dark:text-slate-100;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -35,12 +53,16 @@
     }
   }
 
+  button, [role="button"], a, label[for], select {
+    cursor: pointer;
+  }
+
   :focus:not(:focus-visible) {
     outline: none;
   }
 
   :focus-visible {
-    outline: 2px solid #ff6b35;
+    outline: 2px solid #33475b;
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -57,91 +79,104 @@
 
   /* ── Shell ──────────────────────────────────────────────────────────────── */
   .app-shell {
-    @apply min-h-screen text-slate-900;
+    @apply min-h-screen text-slate-900 dark:text-slate-100;
     background: #f5f8fa;
   }
+  .dark .app-shell { background: #0f172a; }
 
   /* ── Cartes / Surfaces ──────────────────────────────────────────────────── */
   .surface-panel {
-    @apply rounded-lg border border-[#dfe3eb] bg-white shadow-sm;
+    @apply rounded-lg border border-[#dfe3eb] bg-white shadow-sm
+           dark:border-slate-700 dark:bg-slate-800;
   }
 
   .surface-muted {
-    @apply rounded-lg border border-[#dfe3eb]/70 bg-[#f5f8fa];
+    @apply rounded-lg border border-[#dfe3eb]/70 bg-[#f5f8fa]
+           dark:border-slate-700/70 dark:bg-slate-800/60;
   }
 
-  /* Hero panel : remplacé par header léger style HubSpot */
   .hero-panel {
-    @apply rounded-lg border border-[#dfe3eb] bg-white p-6 sm:p-7;
+    @apply rounded-lg border border-[#dfe3eb] bg-white p-6 sm:p-7
+           dark:border-slate-700 dark:bg-slate-800;
   }
 
   /* ── Typographie ─────────────────────────────────────────────────────────── */
   .eyebrow {
-    @apply text-xs font-bold uppercase tracking-[0.18em] text-[#516f90];
+    @apply text-xs font-bold uppercase tracking-[0.18em] text-[#6b7280] dark:text-slate-400;
   }
 
   .metric-card {
     @apply rounded-lg border border-[#dfe3eb] bg-white p-5 shadow-sm transition
-      hover:shadow-md hover:border-[#cbd6e2];
+      hover:shadow-md hover:border-[#cbd6e2]
+      dark:border-slate-700 dark:bg-slate-800 dark:hover:border-slate-600;
   }
 
   .metric-label {
-    @apply text-xs font-bold uppercase tracking-[0.14em] text-[#516f90];
+    @apply text-xs font-bold uppercase tracking-[0.14em] text-[#6b7280] dark:text-slate-400;
   }
 
   .section-title {
-    @apply text-lg font-bold text-[#33475b];
+    @apply text-lg font-bold text-[#111827] dark:text-slate-100;
   }
 
-  /* ── En-tête de page (style HubSpot) ───────────────────────────────────── */
+  /* ── En-tête de page ───────────────────────────────────────────────────── */
   .page-header {
     @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between;
   }
 
   .page-title {
-    @apply text-2xl font-black text-[#33475b];
+    @apply text-2xl font-black text-[#111827] dark:text-slate-100;
   }
 
   .page-subtitle {
-    @apply mt-0.5 text-sm text-[#516f90];
+    @apply mt-0.5 text-sm text-[#6b7280] dark:text-slate-400;
   }
 
   /* ── Champs de formulaire ────────────────────────────────────────────────── */
   .field-control {
     @apply w-full rounded border border-[#cbd6e2] bg-white px-3 py-2
-      text-sm text-[#33475b] outline-none transition
+      text-sm text-[#111827] outline-none transition
       placeholder:text-[#99acc2]
       hover:border-[#99acc2]
-      focus:border-[#ff6b35]
-      focus-visible:ring-2 focus-visible:ring-[#ff6b35]/30 focus-visible:ring-offset-1
-      disabled:cursor-not-allowed disabled:bg-[#f5f8fa] disabled:text-[#99acc2];
+      focus:border-[#33475b]
+      focus-visible:ring-2 focus-visible:ring-[#33475b]/20 focus-visible:ring-offset-1
+      disabled:cursor-not-allowed disabled:bg-[#f5f8fa] disabled:text-[#99acc2]
+      dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100
+      dark:placeholder:text-slate-500
+      dark:hover:border-slate-500 dark:focus:border-slate-400
+      dark:disabled:bg-slate-800 dark:disabled:text-slate-500;
   }
 
   /* ── Boutons ─────────────────────────────────────────────────────────────── */
   .btn-primary {
     @apply inline-flex h-9 items-center justify-center rounded
-      bg-[#ff6b35] px-4 text-sm font-semibold text-white transition
-      hover:bg-[#e85c29]
+      border border-[#33475b] bg-white px-4 text-sm font-semibold text-[#111827] transition
+      hover:bg-[#f5f8fa]
       focus:outline-none
-      focus-visible:ring-2 focus-visible:ring-[#ff6b35] focus-visible:ring-offset-2
+      focus-visible:ring-2 focus-visible:ring-[#33475b]/30 focus-visible:ring-offset-2
       active:scale-95
-      disabled:cursor-not-allowed disabled:bg-[#dfe3eb] disabled:text-[#99acc2] disabled:active:scale-100;
+      disabled:cursor-not-allowed disabled:border-[#dfe3eb] disabled:bg-[#dfe3eb] disabled:text-[#99acc2] disabled:active:scale-100
+      dark:border-slate-500 dark:bg-slate-700 dark:text-slate-100
+      dark:hover:bg-slate-600 dark:disabled:border-slate-700 dark:disabled:bg-slate-800 dark:disabled:text-slate-600;
   }
 
   .btn-secondary {
     @apply inline-flex h-9 items-center justify-center rounded
-      border border-[#cbd6e2] bg-white px-4 text-sm font-semibold text-[#33475b] transition
-      hover:bg-[#f5f8fa] hover:border-[#99acc2] hover:text-[#33475b]
+      border border-[#cbd6e2] bg-white px-4 text-sm font-semibold text-[#111827] transition
+      hover:bg-[#f5f8fa] hover:border-[#99acc2] hover:text-[#111827]
       focus:outline-none
-      focus-visible:ring-2 focus-visible:ring-[#253342]/30 focus-visible:ring-offset-2;
+      focus-visible:ring-2 focus-visible:ring-[#253342]/30 focus-visible:ring-offset-2
+      dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100
+      dark:hover:bg-slate-600 dark:hover:border-slate-500;
   }
 
   .btn-ghost {
     @apply inline-flex h-9 items-center justify-center rounded
-      px-3 text-sm font-semibold text-[#516f90] transition
-      hover:bg-[#f5f8fa] hover:text-[#33475b]
+      px-3 text-sm font-semibold text-[#6b7280] transition
+      hover:bg-[#f5f8fa] hover:text-[#111827]
       focus:outline-none
-      focus-visible:ring-2 focus-visible:ring-[#253342]/30 focus-visible:ring-offset-1;
+      focus-visible:ring-2 focus-visible:ring-[#253342]/30 focus-visible:ring-offset-1
+      dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-100;
   }
 
   .btn-danger {
@@ -150,7 +185,8 @@
       hover:bg-red-700
       focus:outline-none
       focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2
-      active:scale-95;
+      active:scale-95
+      dark:focus-visible:ring-offset-slate-900;
   }
 
   /* ── Badges ──────────────────────────────────────────────────────────────── */
@@ -160,19 +196,22 @@
 
   /* ── Tableaux ────────────────────────────────────────────────────────────── */
   .table-header {
-    @apply border-b border-[#dfe3eb] py-3 pr-4 text-left text-xs font-bold uppercase tracking-wide text-[#516f90] bg-[#f5f8fa];
+    @apply border-b border-[#dfe3eb] py-3 pr-4 text-left text-xs font-bold uppercase tracking-wide text-[#6b7280] bg-[#f5f8fa]
+           dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-400;
   }
 
   .table-cell {
-    @apply py-3 pr-4 text-sm text-[#33475b];
+    @apply py-3 pr-4 text-sm text-[#111827] dark:text-slate-200;
   }
 
   .table-row {
-    @apply border-b border-[#dfe3eb] transition last:border-b-0 hover:bg-[#f5f8fa];
+    @apply border-b border-[#dfe3eb] transition last:border-b-0 hover:bg-[#f5f8fa]
+           dark:border-slate-700 dark:hover:bg-slate-700/50;
   }
 
   .card {
-    @apply rounded-lg border border-[#dfe3eb] bg-white shadow-sm;
+    @apply rounded-lg border border-[#dfe3eb] bg-white shadow-sm
+           dark:border-slate-700 dark:bg-slate-800;
   }
 }
 
@@ -192,6 +231,16 @@
   to   { opacity: 1; transform: translateX(0); }
 }
 
+@keyframes carouselFromRight {
+  from { opacity: 0; transform: translateX(48px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes carouselFromLeft {
+  from { opacity: 0; transform: translateX(-48px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50%       { transform: translateY(-6px); }
@@ -202,6 +251,6 @@
   .anim-up-2 { animation: fadeUp    0.6s 0.12s ease both; }
   .anim-up-3 { animation: fadeUp    0.6s 0.24s ease both; }
   .anim-up-4 { animation: fadeUp    0.6s 0.36s ease both; }
-  .anim-fade { animation: fadeIn    0.8s ease both; }
+  .anim-fade { animation: fadeIn 0.8s ease both; }
   .float     { animation: float     4.0s ease-in-out infinite; }
 }

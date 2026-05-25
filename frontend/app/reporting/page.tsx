@@ -9,35 +9,31 @@ function money(value?: number) {
   return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(value || 0));
 }
 
-function fmtDate(d: string | null | undefined) {
-  if (!d) return '-';
-  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
-}
 
 function StatRow({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
     <div className="flex items-start justify-between gap-4 py-3 border-b border-[#dfe3eb] last:border-0">
       <div>
-        <p className="text-sm text-[#33475b]">{label}</p>
-        {sub && <p className="text-xs text-[#516f90]">{sub}</p>}
+        <p className="text-sm text-[#111827]">{label}</p>
+        {sub && <p className="text-xs text-[#6b7280]">{sub}</p>}
       </div>
-      <p className="text-sm font-bold text-[#33475b] tabular-nums">{value}</p>
+      <p className="text-sm font-bold text-[#111827] tabular-nums">{value}</p>
     </div>
   );
 }
 
 export default function ReportingPage() {
-  const [payload, setPayload] = useState<ReportingPayload | null>(null);
-  const [loading, setLoading] = useState(true);
+  const _initRep = apiClient.getCached<ReportingPayload>('/reporting');
+  const [payload, setPayload] = useState<ReportingPayload | null>(_initRep);
+  const [loading, setLoading] = useState(_initRep === null);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     apiClient.get<ReportingPayload>('/reporting')
-      .then((data) => { if (mounted) setPayload(data); })
-      .catch(() => { if (mounted) setError('Impossible de charger le reporting'); })
-      .finally(() => { if (mounted) setLoading(false); });
+      .then((data) => { if (mounted) { setPayload(data); setLoading(false); } })
+      .catch(() => { if (mounted) { setError('Impossible de charger le reporting'); setLoading(false); } });
     return () => { mounted = false; };
   }, []);
 
@@ -107,8 +103,8 @@ export default function ReportingPage() {
                 { label: 'Reste à encaisser',     value: `${money(fin?.reste_global)} XOF` },
               ].map(({ label, value }) => (
                 <div key={label} className="surface-panel p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#516f90]">{label}</p>
-                  <p className="mt-2 text-xl font-black text-[#33475b]">{value}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">{label}</p>
+                  <p className="mt-2 text-xl font-black text-[#111827]">{value}</p>
                 </div>
               ))}
             </div>
@@ -145,7 +141,7 @@ export default function ReportingPage() {
             <section className="surface-panel">
               <div className="border-b border-[#dfe3eb] px-5 py-4">
                 <h2 className="section-title">Ventes mensuelles — {payload.year}</h2>
-                <p className="mt-0.5 text-xs text-[#516f90]">Nombre de ventes et montant encaissé par mois.</p>
+                <p className="mt-0.5 text-xs text-[#6b7280]">Nombre de ventes et montant encaissé par mois.</p>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
@@ -162,18 +158,18 @@ export default function ReportingPage() {
                       const pct = totalAmount > 0 ? Math.round((Number(item.amount) / totalAmount) * 100) : 0;
                       return (
                         <tr key={item.label} className="table-row">
-                          <td className="table-cell pl-5 font-medium text-[#33475b]">{item.label}</td>
+                          <td className="table-cell pl-5 font-medium text-[#111827]">{item.label}</td>
                           <td className="table-cell">{item.count}</td>
                           <td className="table-cell tabular-nums">{money(item.amount)} XOF</td>
                           <td className="table-cell">
                             <div className="flex items-center gap-2">
                               <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[#dfe3eb]">
                                 <div
-                                  className="h-full rounded-full bg-[#ff6b35]"
+                                  className="h-full rounded-full bg-[#33475b]"
                                   style={{ width: `${pct}%` }}
                                 />
                               </div>
-                              <span className="text-xs text-[#516f90]">{pct}%</span>
+                              <span className="text-xs text-[#6b7280]">{pct}%</span>
                             </div>
                           </td>
                         </tr>
@@ -181,9 +177,9 @@ export default function ReportingPage() {
                     })}
                     {/* Total */}
                     <tr className="border-t border-[#dfe3eb] bg-[#f5f8fa]">
-                      <td className="table-cell pl-5 font-bold text-[#33475b]">Total</td>
-                      <td className="table-cell font-bold text-[#33475b]">{totalSales}</td>
-                      <td className="table-cell font-bold text-[#33475b] tabular-nums">{money(totalAmount)} XOF</td>
+                      <td className="table-cell pl-5 font-bold text-[#111827]">Total</td>
+                      <td className="table-cell font-bold text-[#111827]">{totalSales}</td>
+                      <td className="table-cell font-bold text-[#111827] tabular-nums">{money(totalAmount)} XOF</td>
                       <td className="table-cell"></td>
                     </tr>
                   </tbody>

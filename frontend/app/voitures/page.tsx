@@ -2,6 +2,7 @@
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -13,25 +14,40 @@ function money(v: number) {
   return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(v);
 }
 
+interface VoitureImage { id: number; chemin: string; ordre?: number; }
 interface Voiture {
   id: number;
   marque: string;
   modele: string;
   annee?: number;
-  prix: number;
+  prix?: number | null;
+  prix_vente?: number | null;
+  type_usage?: string;
   kilometrage?: number;
   statut: string;
   energie?: string;
   image_principale?: string;
+  images?: VoitureImage[];
 }
 
 const STATUT: Record<string, { label: string; cls: string }> = {
-  disponible:   { label: 'Disponible',   cls: 'bg-emerald-100 text-emerald-700' },
-  vendu:        { label: 'Vendu',        cls: 'bg-red-100 text-red-700' },
-  en_location:  { label: 'En location',  cls: 'bg-blue-100 text-blue-700' },
-  reserve:      { label: 'Réservé',      cls: 'bg-amber-100 text-amber-700' },
-  en_reparation:{ label: 'En réparation',cls: 'bg-purple-100 text-purple-700' },
+  disponible:    { label: 'Disponible',    cls: 'bg-emerald-100 text-emerald-700' },
+  vendu:         { label: 'Vendu',         cls: 'bg-red-100 text-red-700' },
+  en_location:   { label: 'En location',   cls: 'bg-blue-100 text-blue-700' },
+  reserve:       { label: 'Réservé',       cls: 'bg-amber-100 text-amber-700' },
+  en_reparation: { label: 'En réparation', cls: 'bg-purple-100 text-purple-700' },
 };
+
+function buildPhotos(v: Voiture): string[] {
+  const fromGallery = (v.images ?? [])
+    .slice()
+    .sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0))
+    .map((img) => imgUrl(img.chemin))
+    .filter(Boolean) as string[];
+  if (fromGallery.length > 0) return fromGallery.slice(0, 6);
+  const main = imgUrl(v.image_principale);
+  return main ? [main] : [];
+}
 
 function CardSkeleton() {
   return (
@@ -47,17 +63,119 @@ function CardSkeleton() {
   );
 }
 
+function VoitureCard({ v }: { v: Voiture }) {
+  const photos = buildPhotos(v);
+  const multi  = photos.length > 1;
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (!multi) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % photos.length), 2500);
+    return () => clearInterval(t);
+  }, [multi, photos.length]);
+
+  const st   = STATUT[v.statut] ?? { label: v.statut, cls: 'bg-slate-100 text-slate-600' };
+  const dispo = v.statut === 'disponible';
+
+  return (
+    <Link href={`/voitures/${v.id}`}
+      className="group flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl">
+
+      {/* ── Zone photo ── */}
+      <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl bg-slate-100">
+        {photos.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-slate-300">
+            <svg className="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2}
+                d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5M5 11H3a1 1 0 00-1 1v1a1 1 0 001 1h2m14-2h2a1 1 0 011 1v1a1 1 0 01-1 1h-2" />
+            </svg>
+          </div>
+        ) : photos.map((src, i) => (
+          <Image
+            key={i}
+            src={src}
+            alt={`${v.marque} ${v.modele}`}
+            fill
+            className="object-cover transition-opacity duration-500"
+            style={{ opacity: i === idx ? 1 : 0 }}
+          />
+        ))}
+
+        {/* Gradient bas pour dots */}
+        {multi && (
+          <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/40 to-transparent" />
+        )}
+
+        {/* Badge statut */}
+        <span className={`absolute right-2 top-2 z-10 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide shadow ${st.cls}`}>
+          {st.label}
+        </span>
+
+        {/* Dots */}
+        {multi && (
+          <div className="absolute bottom-2.5 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
+            {photos.map((_, i) => (
+              <span
+                key={i}
+                className="block rounded-full bg-white transition-all duration-300"
+                style={{ width: i === idx ? 16 : 5, height: 4, opacity: i === idx ? 1 : 0.5 }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Infos ── */}
+      <div className="flex flex-1 flex-col p-4">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+          {[v.annee, v.energie].filter(Boolean).join(' · ')}
+        </p>
+        <h3 className={`mt-1 text-base font-black transition-colors ${dispo ? 'text-[#111827]' : 'text-slate-600'}`}>
+          {v.marque} {v.modele}
+        </h3>
+        <p className="mt-0.5 text-xs text-slate-400">
+          {v.kilometrage != null ? `${money(v.kilometrage)} km` : 'Kilométrage N/D'}
+        </p>
+        <p className="mt-auto pt-3 text-xl font-black text-slate-900">
+          {v.type_usage === 'vente'
+            ? <>{v.prix_vente ? money(v.prix_vente) : '—'} <span className="text-xs font-bold text-slate-400">XOF</span></>
+            : v.type_usage === 'location'
+              ? <>{v.prix ? money(v.prix) : '—'} <span className="text-xs font-bold text-slate-400">XOF/j</span></>
+              : <>
+                  {v.prix ? <span className="text-sm">{money(v.prix)} <span className="text-xs font-bold text-slate-400">XOF/j</span></span> : null}
+                  {v.prix && v.prix_vente ? <span className="text-slate-300 mx-1">·</span> : null}
+                  {v.prix_vente ? <span className="text-sm">{money(v.prix_vente)} <span className="text-xs font-bold text-slate-400">XOF</span></span> : null}
+                  {!v.prix && !v.prix_vente ? <span className="text-base">— <span className="text-xs font-bold text-slate-400">XOF</span></span> : null}
+                </>
+          }
+        </p>
+        <div className={`mt-3 rounded-xl py-2 text-center text-xs font-bold transition ${
+          dispo
+            ? 'border border-[#33475b] bg-white text-[#111827] group-hover:bg-[#f5f8fa]'
+            : 'bg-slate-100 text-slate-500'
+        }`}>
+          {dispo ? 'Voir & créer une vente →' : 'Consulter →'}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export default function VoituresPage() {
-  const [items, setItems] = useState<Voiture[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [dSearch, setDSearch] = useState('');
-  const [energie, setEnergie] = useState('');
-  const [statut, setStatut] = useState('');
-  const [page, setPage] = useState(1);
+  const _initVoitures = apiClient.getCached<any>('/voitures', { page: 1 });
+  const [items, setItems]         = useState<Voiture[]>(_initVoitures?.data ?? []);
+  const [loading, setLoading]     = useState(_initVoitures === null);
+  const [error, setError]         = useState<string | null>(null);
+  const [search, setSearch]       = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return new URLSearchParams(window.location.search).get('search') ?? '';
+  });
+  const [dSearch, setDSearch]     = useState('');
+  const [energie, setEnergie]     = useState('');
+  const [statut, setStatut]       = useState('');
+  const [page, setPage]           = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [total, setTotal]         = useState(0);
 
   useEffect(() => {
     const t = setTimeout(() => { setDSearch(search); setPage(1); }, 300);
@@ -68,9 +186,9 @@ export default function VoituresPage() {
     let mounted = true;
     setLoading(true);
     const params: Record<string, any> = { page };
-    if (dSearch)  params.search  = dSearch;
-    if (energie)  params.energie = energie;
-    if (statut)   params.statut  = statut;
+    if (dSearch) params.search  = dSearch;
+    if (energie) params.energie = energie;
+    if (statut)  params.statut  = statut;
 
     apiClient.get<any>('/voitures', params)
       .then((res) => {
@@ -108,7 +226,6 @@ export default function VoituresPage() {
         {/* Filtres */}
         <div className="surface-panel p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            {/* Recherche */}
             <div className="relative flex-1">
               <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -122,12 +239,9 @@ export default function VoituresPage() {
               />
               {search && (
                 <button onClick={() => setSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
-                  ✕
-                </button>
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">✕</button>
               )}
             </div>
-            {/* Énergie */}
             <select className="field-control sm:w-44" value={energie}
               onChange={(e) => { setEnergie(e.target.value); setPage(1); }}>
               <option value="">Toutes énergies</option>
@@ -135,7 +249,6 @@ export default function VoituresPage() {
                 <option key={e} value={e}>{e.charAt(0).toUpperCase() + e.slice(1)}</option>
               ))}
             </select>
-            {/* Statut */}
             <select className="field-control sm:w-44" value={statut}
               onChange={(e) => { setStatut(e.target.value); setPage(1); }}>
               <option value="">Tous statuts</option>
@@ -143,17 +256,16 @@ export default function VoituresPage() {
                 <option key={k} value={k}>{v.label}</option>
               ))}
             </select>
-            {/* Reset */}
             {hasFilters && (
               <button onClick={() => { setSearch(''); setEnergie(''); setStatut(''); setPage(1); }}
-                className="shrink-0 text-sm font-bold text-[#ff6b35] hover:underline">
+                className="shrink-0 text-sm font-bold text-[#111827] hover:underline">
                 Effacer
               </button>
             )}
           </div>
         </div>
 
-        {/* Grille de cards */}
+        {/* Grille */}
         {error ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">{error}</div>
         ) : loading ? (
@@ -162,68 +274,17 @@ export default function VoituresPage() {
           </div>
         ) : items.length === 0 ? (
           <div className="surface-panel py-20 text-center">
-            <p className="text-2xl">🚗</p>
-            <p className="mt-3 font-semibold text-slate-500">Aucun véhicule trouvé.</p>
+            <p className="font-semibold text-slate-500">Aucun véhicule trouvé.</p>
             {hasFilters && (
               <button onClick={() => { setSearch(''); setEnergie(''); setStatut(''); }}
-                className="mt-3 text-sm font-bold text-[#ff6b35] hover:underline">
+                className="mt-3 text-sm font-bold text-[#111827] hover:underline">
                 Effacer les filtres
               </button>
             )}
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {items.map((v) => {
-              const st = STATUT[v.statut] ?? { label: v.statut, cls: 'bg-slate-100 text-slate-600' };
-              const photo = imgUrl(v.image_principale);
-              const dispo = v.statut === 'disponible';
-              return (
-                <Link key={v.id} href={`/voitures/${v.id}`}
-                  className="group flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
-                  {/* Photo */}
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl bg-slate-100">
-                    {photo ? (
-                      <img src={photo} alt={`${v.marque} ${v.modele}`}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-slate-300">
-                        <svg className="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2}
-                            d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5M5 11H3a1 1 0 00-1 1v1a1 1 0 001 1h2m14-2h2a1 1 0 011 1v1a1 1 0 01-1 1h-2" />
-                        </svg>
-                      </div>
-                    )}
-                    <span className={`absolute right-2 top-2 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${st.cls}`}>
-                      {st.label}
-                    </span>
-                  </div>
-
-                  {/* Infos */}
-                  <div className="flex flex-1 flex-col p-4">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                      {[v.annee, v.energie].filter(Boolean).join(' · ')}
-                    </p>
-                    <h3 className={`mt-1 text-base font-black transition-colors ${dispo ? 'text-[#002d54] group-hover:text-[#ff6b35]' : 'text-slate-600'}`}>
-                      {v.marque} {v.modele}
-                    </h3>
-                    <p className="mt-0.5 text-xs text-slate-400">
-                      {v.kilometrage != null ? `${money(v.kilometrage)} km` : 'Kilométrage N/D'}
-                    </p>
-                    <p className="mt-auto pt-3 text-xl font-black text-slate-900">
-                      {money(v.prix)}{' '}
-                      <span className="text-xs font-bold text-slate-400">XOF</span>
-                    </p>
-                    <div className={`mt-3 rounded-xl py-2 text-center text-xs font-bold transition ${
-                      dispo
-                        ? 'bg-[#ff6b35] text-white group-hover:bg-[#e85c29]'
-                        : 'bg-slate-100 text-slate-500'
-                    }`}>
-                      {dispo ? 'Voir & créer une vente →' : 'Consulter →'}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+            {items.map((v) => <VoitureCard key={v.id} v={v} />)}
           </div>
         )}
 
@@ -231,12 +292,12 @@ export default function VoituresPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-3">
             <button onClick={() => setPage((p) => p - 1)} disabled={page === 1}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-[#002d54] transition hover:bg-slate-50 disabled:opacity-40">
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-[#111827] transition hover:bg-slate-50 disabled:opacity-40">
               ← Précédent
             </button>
             <span className="text-sm text-slate-500">Page {page} / {totalPages}</span>
             <button onClick={() => setPage((p) => p + 1)} disabled={page === totalPages}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-[#002d54] transition hover:bg-slate-50 disabled:opacity-40">
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-[#111827] transition hover:bg-slate-50 disabled:opacity-40">
               Suivant →
             </button>
           </div>

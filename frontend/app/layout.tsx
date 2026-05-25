@@ -1,12 +1,6 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-});
+import { LanguageInitializer } from '@/components/LanguageInitializer';
 
 export const metadata: Metadata = {
   title: 'SunuPark - Gestion de parc automobile',
@@ -16,8 +10,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={inter.variable} suppressHydrationWarning>
+    <html lang="fr" suppressHydrationWarning>
+      <head>
+        <meta charSet="utf-8" />
+        {/* Applique le thème AVANT hydratation pour éviter le flash */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var u=sessionStorage.getItem('user');var t=u?JSON.parse(u).theme:null;var sys=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';var r=t==='system'?sys:(t||'light');if(r==='dark')document.documentElement.classList.add('dark');}catch(e){}})();` }} />
+      </head>
       <body>
+        <LanguageInitializer />
         {children}
       </body>
     </html>

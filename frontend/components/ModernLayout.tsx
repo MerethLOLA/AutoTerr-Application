@@ -1,5 +1,6 @@
-'use client';
+﻿'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -24,7 +25,7 @@ export default function ModernLayout({ children }: ModernLayoutProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
+    const userData = sessionStorage.getItem('user');
     if (userData) {
       try {
         setUser(JSON.parse(userData));
@@ -37,9 +38,9 @@ export default function ModernLayout({ children }: ModernLayoutProps) {
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    localStorage.removeItem('userId');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('userId');
     router.push('/');
   };
 
@@ -100,12 +101,13 @@ export default function ModernLayout({ children }: ModernLayoutProps) {
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors group"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center overflow-hidden">
+                <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center overflow-hidden">
                   {user?.profile_photo_path ? (
-                    <img
-                      src={getPhotoUrl(user.profile_photo_path) || undefined}
+                    <Image
+                      src={getPhotoUrl(user.profile_photo_path) || ''}
                       alt={user.name}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
                     />
                   ) : (
                     <span className="text-white text-xs font-bold">
@@ -171,3 +173,4 @@ export default function ModernLayout({ children }: ModernLayoutProps) {
     </div>
   );
 }
+
