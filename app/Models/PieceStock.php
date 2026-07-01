@@ -17,6 +17,7 @@ class PieceStock extends Model
         'reference',
         'designation',
         'description',
+        'image',
         'prix_unitaire',
         'quantite_stock',
         'seuil_alerte',

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
@@ -222,6 +222,7 @@ export default function EditVoiturePage() {
               <span className="font-semibold text-[#111827]">Modifier</span>
             </nav>
             <h1 className="page-title">Modifier le véhicule</h1>
+            <p className="page-subtitle">Mettez à jour les informations et le statut du véhicule.</p>
           </div>
           <div className="flex gap-2">
             <Link href={`/voitures/${id}`} className="btn-secondary">Annuler</Link>
@@ -408,11 +409,11 @@ export default function EditVoiturePage() {
               onClick={() => fileInputRef.current?.click()}
               className={`cursor-pointer rounded border-2 border-dashed p-6 text-center transition
                 ${dragging
-                  ? 'border-[#33475b] bg-slate-600/5'
-                  : 'border-[#cbd6e2] bg-[#f5f8fa] hover:border-[#33475b]/50'
+                  ? 'border-[#374151] bg-slate-600/5'
+                  : 'border-[#e8ecf0] bg-[#f5f8fa] hover:border-[#374151]/50'
                 }`}
             >
-              <svg className="mx-auto mb-2 h-8 w-8 text-[#cbd6e2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="mx-auto mb-2 h-8 w-8 text-[#e8ecf0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M12 4v16m8-8H4" />
               </svg>
@@ -432,9 +433,9 @@ export default function EditVoiturePage() {
                 </p>
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                   {pendingPreviews.map((src, i) => (
-                    <div key={i} className="group relative aspect-square overflow-hidden rounded border border-[#33475b]/40 bg-[#f5f8fa]">
+                    <div key={i} className="group relative aspect-square overflow-hidden rounded border border-[#374151]/40 bg-[#f5f8fa]">
                       <img src={src} alt={`nouvelle ${i + 1}`} className="h-full w-full object-cover" />
-                      <span className="absolute left-1 top-1 rounded bg-[#253342]/70 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                      <span className="absolute left-1 top-1 rounded bg-[#185FA5]/70 px-1.5 py-0.5 text-[9px] font-bold text-white">
                         Nouveau
                       </span>
                       <button

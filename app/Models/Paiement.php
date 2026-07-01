@@ -21,6 +21,7 @@ class Paiement extends Model
         'reste',
         'id_facture',
         'id_vente',
+        'id_location',
         'id_client',
     ];
 
@@ -45,6 +46,11 @@ class Paiement extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class, 'id_client');
+    }
+
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'id_location');
     }
 
     public function scopeDuMois($query, $mois = null, $annee = null)

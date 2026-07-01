@@ -105,19 +105,18 @@ export default function AlertesPage() {
     <DashboardLayout>
       <div className="space-y-6">
 
-        {/* En-tête */}
         <div className="page-header">
           <div>
-            <p className="eyebrow">Conformité</p>
-            <h1 className="page-title mt-0.5">Alertes & Expirations</h1>
+            <h1 className="page-title mt-0.5">Alertes &amp; Expirations</h1>
             <p className="page-subtitle">Suivez les assurances, contrôles techniques et entretiens à renouveler.</p>
           </div>
-          {data && (
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-xl font-black text-red-700">
-              {data.total_alertes}
-            </div>
-          )}
         </div>
+
+        {data && (
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-xl font-black text-red-700">
+            {data.total_alertes}
+          </div>
+        )}
 
         {loading && (
           <div className="space-y-3">

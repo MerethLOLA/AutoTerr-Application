@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
@@ -235,7 +235,7 @@ export default function VoitureDetailPage() {
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
                 {voiture.annee}{voiture.energie ? ` · ${voiture.energie}` : ''}
               </p>
-              <h1 className="mt-1 text-3xl font-black text-[#111827]">
+              <h1 className="page-title mt-1">
                 {voiture.marque} {voiture.modele}
               </h1>
             </div>
@@ -271,7 +271,7 @@ export default function VoitureDetailPage() {
             {dispo ? (
               <div className="space-y-2">
                 <Link href={`/ventes?voiture_id=${voiture.id}`}
-                  className="flex items-center justify-center gap-2 rounded-2xl border border-[#33475b] bg-white px-6 py-4 text-sm font-black text-[#111827] shadow-sm transition hover:bg-[#f5f8fa] active:scale-95">
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-[#374151] bg-white px-6 py-4 text-sm font-black text-[#111827] shadow-sm transition hover:bg-[#f5f8fa] active:scale-95">
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -300,7 +300,7 @@ export default function VoitureDetailPage() {
                 Modifier
               </Link>
               <Link href={`/voitures/${voiture.id}/historique`}
-                className="flex-1 rounded-xl border border-[#2d1b3d] bg-[#2d1b3d]/5 py-2.5 text-center text-sm font-bold text-[#2d1b3d] transition hover:bg-[#2d1b3d]/10">
+                className="flex-1 rounded-xl border border-[#185FA5] bg-[#185FA5]/5 py-2.5 text-center text-sm font-bold text-[#185FA5] transition hover:bg-[#185FA5]/10">
                 Historique
               </Link>
               <Link href={`/garanties?voiture_id=${voiture.id}`}

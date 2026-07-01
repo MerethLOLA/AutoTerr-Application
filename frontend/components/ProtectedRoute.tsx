@@ -1,7 +1,7 @@
 'use client';
 
-import { readStoredAuth } from '@/lib/auth-storage';
-import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface ProtectedRouteProps {
@@ -18,55 +18,32 @@ export function ProtectedRoute({
   unauthorizedRedirect = '/dashboard',
 }: ProtectedRouteProps) {
   const router = useRouter();
-  const [allowed, setAllowed] = useState<boolean | null>(() => {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-
-    const { token, user } = readStoredAuth();
-
-    if (!token || !user) {
-      return false;
-    }
-
-    if (allowedRoles && !allowedRoles.includes(user.role)) {
-      return false;
-    }
-
-    return true;
-  });
+  const { data: session, status } = useSession();
+  const role = (session?.user as any)?.role ?? '';
 
   useEffect(() => {
-    const { token, user } = readStoredAuth();
-
-    if (!token || !user) {
-      setAllowed(false);
+    if (status === 'loading') return;
+    if (status === 'unauthenticated') {
       router.push(guestRedirect);
       return;
     }
-
-    if (allowedRoles && !allowedRoles.includes(user.role)) {
-      setAllowed(false);
-      router.push(user.role === 'client' ? '/espace-client' : unauthorizedRedirect);
-      return;
+    if (allowedRoles && !allowedRoles.includes(role)) {
+      router.push(role === 'client' ? '/espace-client' : unauthorizedRedirect);
     }
+  }, [status, role, router, allowedRoles, guestRedirect, unauthorizedRedirect]);
 
-    setAllowed(true);
-  }, [router, allowedRoles, guestRedirect, unauthorizedRedirect]);
-
-  if (allowed === null) {
+  if (status === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-100 px-6">
         <div className="rounded-2xl bg-white p-6 text-sm font-semibold text-slate-600 shadow-sm">
-          Verification de la session...
+          Vérification de la session…
         </div>
       </div>
     );
   }
 
-  if (!allowed) {
-    return null;
-  }
+  if (status === 'unauthenticated') return null;
+  if (allowedRoles && !allowedRoles.includes(role)) return null;
 
   return <>{children}</>;
 }

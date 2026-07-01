@@ -1,5 +1,5 @@
 /**
- * Types centralisés pour l'application SunuPark
+ * Types centralisés pour l'application AutoTerr
  * Ce fichier regroupe les interfaces utilisées par plusieurs modules
  */
 
@@ -229,6 +229,7 @@ export interface ReportingPayload {
   year: number;
   voituresDisponibles?: number;
   salesMonthly?: Array<{ label: string; count: number; amount: number }>;
+  locationsMonthly?: Array<{ label: string; count: number; amount: number }>;
   financeStats?: {
     encaissements_mois?: number;
     factures_impayees?: number;
@@ -264,4 +265,10 @@ export interface ReportingPayload {
     cout_entretien_mois?: number;
     cout_carburant_mois?: number;
   };
+  utilisateurs_inscrits?: number;
+  en_attente_validation?: number;
+  ventes_par_marque?: Array<{ marque: string; count: number; pct: number }>;
+  top_vendeurs?: Array<{ prenom: string; nom: string; poste?: string; count: number; total: number }>;
+  activite_recente?: Array<{ type: string; label: string; sub: string; at: string }>;
+  dernieres_voitures?: Array<{ id: number; marque: string; modele: string; annee?: number; prix_vente?: number; prix?: number; statut: string; image_principale?: string; energie?: string; vendeur?: string | null }>;
 }

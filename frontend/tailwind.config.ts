@@ -1,4 +1,4 @@
-import type { Config } from 'tailwindcss';
+﻿import type { Config } from 'tailwindcss';
 import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
 
@@ -13,10 +13,10 @@ const config: Config = {
         sans: ['var(--font-inter)', 'system-ui', ...defaultTheme.fontFamily.sans],
       },
       colors: {
-        primary:    '#ff6b35',
-        'hub-dark': '#253342',
-        'hub-text': '#33475b',
-        'hub-muted':'#516f90',
+        primary:    '#185FA5',
+        'hub-dark': '#185FA5',
+        'hub-text': '#374151',
+        'hub-muted':'#6b7280',
         'hub-bdr':  '#dfe3eb',
         'hub-bg':   '#f5f8fa',
       },

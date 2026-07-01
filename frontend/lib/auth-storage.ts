@@ -1,6 +1,6 @@
 ﻿import type { User } from '@/lib/types';
 
-export const AUTH_CHANGED_EVENT = 'sunupark-auth-changed';
+export const AUTH_CHANGED_EVENT = 'autoterr-auth-changed';
 
 export interface StoredAuthState {
   token: string | null;

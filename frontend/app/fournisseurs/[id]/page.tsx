@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
@@ -118,14 +118,14 @@ export default function FournisseurDetailPage() {
         {/* En-tête */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#2d1b3d] text-xl font-black text-white">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#185FA5] text-xl font-black text-white">
               {(fournisseur.nom[0] ?? '?').toUpperCase()}
             </div>
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
                 {fournisseur.pays_origine ?? 'Fournisseur'}
               </p>
-              <h1 className="text-2xl font-black text-slate-900">{fournisseur.nom}</h1>
+              <h1 className="page-title">{fournisseur.nom}</h1>
             </div>
           </div>
           <Link href={`/voitures/new?fournisseur_id=${fournisseur.id}`} className="btn-primary text-sm shrink-0">
@@ -164,7 +164,7 @@ export default function FournisseurDetailPage() {
               <div className="flex items-baseline justify-between gap-4 border-b border-slate-100 py-2.5 last:border-0">
                 <span className="shrink-0 text-xs font-semibold text-slate-500">Site web</span>
                 <a href={fournisseur.lien} target="_blank" rel="noopener noreferrer"
-                  className="text-right text-xs font-semibold text-[#2d1b3d] hover:underline break-all">
+                  className="text-right text-xs font-semibold text-[#185FA5] hover:underline break-all">
                   {fournisseur.lien}
                 </a>
               </div>
@@ -193,7 +193,7 @@ export default function FournisseurDetailPage() {
                     <Link
                       key={v.id}
                       href={`/voitures/${v.id}`}
-                      className="group flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3 transition hover:border-[#2d1b3d] hover:bg-white"
+                      className="group flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3 transition hover:border-[#185FA5] hover:bg-white"
                     >
                       {thumb ? (
                         <Image src={thumb} alt="" width={64} height={48} className="h-12 w-16 shrink-0 rounded-lg object-cover border border-slate-200" />
@@ -201,7 +201,7 @@ export default function FournisseurDetailPage() {
                         <div className="flex h-12 w-16 shrink-0 items-center justify-center rounded-lg bg-slate-200 text-xs text-slate-400">—</div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-slate-800 group-hover:text-[#2d1b3d]">
+                        <p className="truncate text-sm font-bold text-slate-800 group-hover:text-[#185FA5]">
                           {v.marque} {v.modele}
                         </p>
                         <p className="text-xs text-slate-400">{[v.annee, v.energie].filter(Boolean).join(' · ')}</p>
@@ -214,7 +214,7 @@ export default function FournisseurDetailPage() {
                           ) : null}
                         </div>
                       </div>
-                      <svg className="h-4 w-4 shrink-0 text-slate-300 group-hover:text-[#2d1b3d]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 shrink-0 text-slate-300 group-hover:text-[#185FA5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </Link>

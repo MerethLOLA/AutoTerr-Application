@@ -11,19 +11,12 @@ interface Voiture {
   id: number; marque: string; modele: string; annee?: number;
   prix?: number; prix_vente?: number; energie?: string; kilometrage?: number;
   statut?: string; type_usage?: string; image_principale?: string;
-  images?: VoitureImage[];
+  images?: VoitureImage[]; likes_count?: number;
 }
 interface Meta { current_page: number; last_page: number; total: number; per_page: number; }
 
-const VIOLET = '#2d1b3d';
-const ENERGIES = ['Essence', 'Diesel', 'Hybride', 'Électrique', 'GPL'];
-
-const HERO_PHOTOS = [
-  '/yaris-cross-header_Large-Landscape.webp',
-  '/22d530df7698c8e2f6bb46563dfd7230.jpeg',
-  '/8c6302a174b589edb3f51f132ab99092.jpeg',
-  '/f683ce4a053ae9b946648652725ea080.png',
-];
+const ENERGIES   = ['Essence', 'Diesel', 'Hybride', 'Électrique', 'GPL'];
+const SORT_OPTS  = ['Les plus récents', 'Prix croissant', 'Prix décroissant', 'Kilométrage'];
 
 function money(v?: number) {
   return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(v ?? 0);
@@ -33,331 +26,383 @@ function imgUrl(p?: string | null) {
   if (p.startsWith('http')) return p;
   return `${(process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '')}/storage/${p}`;
 }
-
 function buildPhotos(v: Voiture): string[] {
   const fromGallery = (v.images ?? [])
-    .slice()
-    .sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0))
-    .map((img) => imgUrl(img.chemin))
-    .filter(Boolean) as string[];
-  if (fromGallery.length > 0) return fromGallery.slice(0, 6);
+    .slice().sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0))
+    .map((img) => imgUrl(img.chemin)).filter(Boolean) as string[];
+  if (fromGallery.length > 0) return fromGallery.slice(0, 4);
   const main = imgUrl(v.image_principale);
   return main ? [main] : [];
 }
 
+// ── Car Card ──────────────────────────────────────────────────────────────────
 function VehicleCard({ v }: { v: Voiture }) {
   const photos = buildPhotos(v);
-  const multi  = photos.length > 1;
   const [idx, setIdx] = useState(0);
+  const [liked, setLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(v.likes_count ?? 0);
+  const [likeLoading, setLikeLoading] = useState(false);
 
   useEffect(() => {
-    if (!multi) return;
+    if (photos.length < 2) return;
     const t = setInterval(() => setIdx((i) => (i + 1) % photos.length), 2500);
     return () => clearInterval(t);
-  }, [multi, photos.length]);
+  }, [photos.length]);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(`sp_like_${v.id}`) === '1') setLiked(true);
+    } catch {}
+  }, [v.id]);
+
+  async function toggleLike(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (likeLoading) return;
+    setLikeLoading(true);
+    try {
+      const base = (process.env.NEXT_PUBLIC_API_URL ?? '/api');
+      const res = await fetch(`${base}/voitures/${v.id}/like`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setLiked(data.liked);
+        setLikesCount(data.likes_count);
+        try {
+          if (data.liked) localStorage.setItem(`sp_like_${v.id}`, '1');
+          else localStorage.removeItem(`sp_like_${v.id}`);
+        } catch {}
+      }
+    } catch {}
+    setLikeLoading(false);
+  }
 
   const isLocation = v.type_usage === 'location' || v.type_usage === 'les_deux';
   const isVente    = v.type_usage === 'vente'    || v.type_usage === 'les_deux';
+  const badge = v.type_usage === 'les_deux' ? null
+    : v.type_usage === 'location' ? { label: 'Location', style: { background: '#FAEEDA', color: '#854F0B' } }
+    : { label: 'Vente', style: { background: '#EAF3DE', color: '#3B6D11' } };
 
   return (
     <Link
       href={`/catalogue/${v.id}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-[#ede8f4] bg-white transition-all duration-200 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-[#2d1b3d]/10"
+      style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#fff', border: '0.5px solid #e8ecf0', borderRadius: 8, textDecoration: 'none', transition: 'box-shadow .15s' }}
+      className="hover:shadow-md"
     >
-      {/* ── Zone photo ── */}
-      <div className="relative h-52 overflow-hidden bg-[#f3f0f7]">
-
+      {/* Image */}
+      <div style={{ height: 110, background: '#E6F1FB', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {photos.length === 0 ? (
-          <div className="flex h-full items-center justify-center">
-            <svg className="h-14 w-14 text-[#c9a8e8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2}
-                d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5" />
-            </svg>
-          </div>
+          <svg width={36} height={36} fill="none" stroke="#378ADD" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2}
+              d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5" />
+          </svg>
         ) : photos.map((src, i) => (
-          <Image
-            key={i}
-            src={src}
-            alt={`${v.marque} ${v.modele}`}
-            fill
+          <Image key={i} src={src} alt={`${v.marque} ${v.modele}`} fill
             className="object-cover transition-opacity duration-500"
-            style={{ opacity: i === idx ? 1 : 0 }}
-          />
+            style={{ opacity: i === idx ? 1 : 0 }} />
         ))}
 
-        {/* Gradient bas pour lisibilité dots */}
-        {multi && (
-          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/40 to-transparent" />
-        )}
-
-        {/* Badge type usage */}
-        <div className="absolute left-2.5 top-2.5 z-10 flex gap-1.5">
-          {v.type_usage === 'location' && (
-            <span className="rounded-full bg-blue-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow">Location</span>
-          )}
-          {v.type_usage === 'vente' && (
-            <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow">Vente</span>
-          )}
-          {v.type_usage === 'les_deux' && (
-            <span className="rounded-full bg-[#2d1b3d] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow">Location · Vente</span>
-          )}
-        </div>
-
-        {/* Badge énergie */}
-        {v.energie && (
-          <span className="absolute right-2.5 top-2.5 z-10 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold text-[#2d1b3d] shadow backdrop-blur-sm">
-            {v.energie}
+        {/* Badge type */}
+        {badge && (
+          <span style={{ position: 'absolute', top: 8, left: 8, fontSize: 10, padding: '2px 8px', borderRadius: 20, fontWeight: 500, ...badge.style }}>
+            {badge.label}
           </span>
         )}
-
-        {/* Dots de navigation */}
-        {multi && (
-          <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
-            {photos.map((_, i) => (
-              <span
-                key={i}
-                className="block rounded-full bg-white transition-all duration-300"
-                style={{ width: i === idx ? 18 : 5, height: 4, opacity: i === idx ? 1 : 0.55 }}
-              />
-            ))}
-          </div>
+        {v.type_usage === 'les_deux' && (
+          <span style={{ position: 'absolute', top: 8, left: 8, fontSize: 10, padding: '2px 8px', borderRadius: 20, fontWeight: 500, background: '#E6F1FB', color: '#185FA5' }}>
+            Location · Vente
+          </span>
         )}
-
+        {/* Heart */}
+        <button
+          onClick={toggleLike}
+          aria-label={liked ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+          style={{
+            position: 'absolute', top: 8, right: 8,
+            minWidth: 24, height: 24,
+            borderRadius: 12,
+            background: liked ? '#FEF2F2' : '#fff',
+            border: `0.5px solid ${liked ? '#FECACA' : '#e8ecf0'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: likeLoading ? 'default' : 'pointer',
+            color: liked ? '#EF4444' : '#9ca3af',
+            padding: '0 5px', gap: 3,
+            opacity: likeLoading ? 0.6 : 1,
+            transition: 'all .15s',
+          }}
+        >
+          <svg width={12} height={12} fill={liked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+          {likesCount > 0 && <span style={{ fontSize: 10, fontWeight: 500 }}>{likesCount}</span>}
+        </button>
       </div>
 
-      {/* ── Infos véhicule ── */}
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-[#9ca3af]">{v.marque}</p>
-          <p className="mt-0.5 font-black leading-tight text-[#111827]">
-            {v.modele}{v.annee && <span className="ml-1.5 text-sm font-normal text-[#9ca3af]">{v.annee}</span>}
-          </p>
+      {/* Info */}
+      <div style={{ padding: '10px 12px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: '#111827', marginBottom: 2 }}>{v.marque} {v.modele} {v.annee}</div>
+        <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8 }}>
+          {v.type_usage === 'location' ? 'Location' : v.type_usage === 'vente' ? 'Vente' : 'Location · Vente'}{v.energie ? ` · ${v.energie}` : ''}
         </div>
 
-        {v.kilometrage !== undefined && (
-          <p className="flex items-center gap-1 text-xs text-[#6b7280]">
-            <svg className="h-3.5 w-3.5 shrink-0 text-[#c9a8e8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            {money(v.kilometrage)} km
-          </p>
-        )}
+        {/* Specs */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          {v.energie && (
+            <span style={{ fontSize: 11, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 3 }}>
+              <svg width={12} height={12} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+              </svg>
+              {v.energie}
+            </span>
+          )}
+          {v.kilometrage !== undefined && (
+            <span style={{ fontSize: 11, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 3 }}>
+              <svg width={12} height={12} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              {money(v.kilometrage)} km
+            </span>
+          )}
+        </div>
 
-        <div className="mt-auto flex items-end justify-between gap-2 border-t border-[#f3f4f6] pt-3">
-          <div className="flex flex-col gap-0.5">
-            {isLocation && v.prix && (
-              <div className="flex items-baseline gap-1">
-                <span className="text-lg font-black text-[#2d1b3d]">{money(v.prix)}</span>
-                <span className="text-xs text-[#9ca3af]">XOF/j</span>
-              </div>
-            )}
-            {isVente && v.prix_vente && (
-              <div className="flex items-baseline gap-1">
-                <span className={`font-black ${isLocation ? 'text-sm text-emerald-700' : 'text-lg text-[#2d1b3d]'}`}>
-                  {money(v.prix_vente)}
-                </span>
-                <span className="text-xs text-[#9ca3af]">{isLocation ? 'XOF achat' : 'XOF'}</span>
-              </div>
-            )}
-          </div>
-          <span
-            className="shrink-0 rounded-xl px-3.5 py-2 text-xs font-black text-white shadow-sm transition group-hover:opacity-90"
-            style={{ backgroundColor: VIOLET }}
-          >
-            Voir →
-          </span>
+        {/* Prix */}
+        <div style={{ marginBottom: 8, marginTop: 'auto' }}>
+          {isLocation && v.prix && (
+            <div style={{ fontSize: 15, fontWeight: 500, color: '#185FA5' }}>{money(v.prix)} XOF<span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 400 }}>/j</span></div>
+          )}
+          {isVente && v.prix_vente && (
+            <div style={{ fontSize: isLocation ? 13 : 15, fontWeight: 500, color: isLocation ? '#3B6D11' : '#185FA5' }}>{money(v.prix_vente)} XOF{isLocation && <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 400 }}> achat</span>}</div>
+          )}
+        </div>
+
+        {/* Boutons */}
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button style={{ flex: 1, fontSize: 11, padding: '5px 0', borderRadius: 6, cursor: 'pointer', border: '0.5px solid #e8ecf0', background: 'transparent', color: '#374151' }}>
+            Voir détails
+          </button>
+          <button style={{ flex: 1, fontSize: 11, padding: '5px 0', borderRadius: 6, cursor: 'pointer', border: '0.5px solid #185FA5', background: '#185FA5', color: '#E6F1FB' }}>
+            Contacter
+          </button>
         </div>
       </div>
     </Link>
   );
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function CataloguePage() {
   const _initCat = apiClient.getCached<any>('/voitures/public', { page: 1, per_page: 12 });
   const [voitures, setVoitures] = useState<Voiture[]>(_initCat?.data ?? []);
   const [meta, setMeta]         = useState<Meta | null>(_initCat?.meta ?? null);
-  const [loading, setLoading]     = useState(_initCat === null);
-  const [page, setPage]           = useState(1);
-  const [search, setSearch]       = useState('');
-  const [energie, setEnergie]     = useState('');
+  const [loading, setLoading]   = useState(_initCat === null);
+  const [page, setPage]         = useState(1);
+  const [search, setSearch]     = useState('');
+  const [energie, setEnergie]   = useState('');
   const [typeUsage, setTypeUsage] = useState('');
+  const [sortVal, setSortVal]   = useState(SORT_OPTS[0]);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [heroIndex, setHeroIndex] = useState(0);
-
-  useEffect(() => {
-    const t = setInterval(() => setHeroIndex((i) => (i + 1) % HERO_PHOTOS.length), 3500);
-    return () => clearInterval(t);
-  }, []);
 
   const load = useCallback(async (p: number, q: string, e: string, t: string) => {
     setLoading(true);
     try {
-      const res: any = await apiClient.getPublicVoitures({
-        page: p,
-        search: q || undefined,
-        energie: e || undefined,
-        type_usage: t || undefined,
-        per_page: 12,
-      });
+      const res: any = await apiClient.getPublicVoitures({ page: p, search: q || undefined, energie: e || undefined, type_usage: t || undefined, per_page: 12 });
       setVoitures(res?.data ?? []);
       setMeta(res?.meta ?? null);
-    } catch {
-      setVoitures([]);
-    } finally {
-      setLoading(false);
-    }
+    } catch { setVoitures([]); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { load(1, '', '', ''); }, [load]);
 
   function onSearch(v: string) {
-    setSearch(v);
-    setPage(1);
+    setSearch(v); setPage(1);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => load(1, v, energie, typeUsage), 400);
   }
-
-  function onEnergie(v: string) {
-    setEnergie(v);
-    setPage(1);
-    load(1, search, v, typeUsage);
-  }
-
-  function onTypeUsage(v: string) {
-    setTypeUsage(v);
-    setPage(1);
-    load(1, search, energie, v);
-  }
-
-  function goPage(p: number) {
-    setPage(p);
-    load(p, search, energie, typeUsage);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+  function onEnergie(v: string)    { setEnergie(v);    setPage(1); load(1, search, v, typeUsage); }
+  function onTypeUsage(v: string)  { setTypeUsage(v);  setPage(1); load(1, search, energie, v); }
+  function goPage(p: number)       { setPage(p); load(p, search, energie, typeUsage); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  function reset()                 { setSearch(''); setEnergie(''); setTypeUsage(''); setPage(1); load(1, '', '', ''); }
 
   return (
     <PublicLayout>
 
-      {/* ── Hero avec slideshow ── */}
-      <section className="relative flex items-center overflow-hidden" style={{ minHeight: 300 }}>
-        <div className="absolute inset-0">
-          {HERO_PHOTOS.map((src, i) => (
-            <Image
-              key={src}
-              src={src}
-              alt=""
-              fill
-              priority={i === 0}
-              className="object-cover object-center transition-opacity duration-1000"
-              style={{ opacity: heroIndex === i ? 1 : 0 }}
-            />
-          ))}
-          <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${VIOLET}f2 0%, ${VIOLET}c0 55%, ${VIOLET}80 100%)` }} />
-        </div>
-        <div className="relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#c9a8e8]">Notre sélection</p>
-          <h1 className="mt-1 text-4xl font-black text-white">Catalogue</h1>
-          <p className="mt-2 max-w-lg text-sm text-white/70">
-            Découvrez notre flotte disponible à la location et à la vente.
-            {meta && (
-              <span className="ml-1 font-semibold text-[#c9a8e8]">
-                {meta.total} véhicule{meta.total > 1 ? 's' : ''} disponible{meta.total > 1 ? 's' : ''}.
-              </span>
-            )}
-          </p>
-          <div className="mt-5 flex gap-1.5">
-            {HERO_PHOTOS.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setHeroIndex(i)}
-                className="h-1 rounded-full transition-all duration-300"
-                style={{ width: heroIndex === i ? 24 : 6, backgroundColor: heroIndex === i ? '#fff' : 'rgba(255,255,255,0.3)' }}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-
-        {/* ── Filtres ── */}
-        <div className="mb-8 flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-48">
-            <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#99acc2]"
-              fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m0 0A7 7 0 105.65 5.65a7 7 0 0011.3 11.3z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Rechercher marque, modèle…"
-              value={search}
-              onChange={(e) => onSearch(e.target.value)}
-              className="w-full rounded-lg border border-[#dfe3eb] bg-white py-2.5 pl-9 pr-4 text-sm text-[#33475b] placeholder:text-[#99acc2] focus:border-[#5b2d8e] focus:outline-none focus:ring-2 focus:ring-[#5b2d8e]/20"
-            />
-          </div>
-
+      {/* ── Hero ── */}
+      <div style={{ background: '#E6F1FB', padding: '28px 20px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: 22, fontWeight: 500, color: '#0C447C', marginBottom: 6 }}>
+          Trouvez votre véhicule idéal
+        </h1>
+        <p style={{ fontSize: 13, color: '#185FA5', marginBottom: 16 }}>
+          {meta ? `Plus de ${meta.total} véhicule${meta.total > 1 ? 's' : ''} disponible${meta.total > 1 ? 's' : ''} au Sénégal` : 'Parcourez notre flotte disponible'}
+        </p>
+        {/* Search bar */}
+        <div style={{ display: 'flex', gap: 8, maxWidth: 560, margin: '0 auto', background: '#fff', border: '0.5px solid #B5D4F4', borderRadius: 8, padding: '8px 12px', alignItems: 'center' }}>
+          <svg width={16} height={16} fill="none" stroke="#6b7280" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Marque, modèle, mot-clé..."
+            value={search}
+            onChange={(e) => onSearch(e.target.value)}
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, background: 'transparent', color: '#111827' }}
+          />
+          <div style={{ width: '0.5px', height: 20, background: '#dfe3eb' }} />
           <select
             value={typeUsage}
             onChange={(e) => onTypeUsage(e.target.value)}
-            className="rounded-lg border border-[#dfe3eb] bg-white px-3 py-2.5 text-sm text-[#33475b] focus:border-[#5b2d8e] focus:outline-none focus:ring-2 focus:ring-[#5b2d8e]/20"
+            style={{ border: 'none', outline: 'none', fontSize: 13, background: 'transparent', color: '#6b7280', cursor: 'pointer' }}
           >
             <option value="">Location & Vente</option>
-            <option value="location">Location uniquement</option>
-            <option value="vente">Vente uniquement</option>
+            <option value="location">Location</option>
+            <option value="vente">Vente</option>
           </select>
-
+          <div style={{ width: '0.5px', height: 20, background: '#dfe3eb' }} />
           <select
             value={energie}
             onChange={(e) => onEnergie(e.target.value)}
-            className="rounded-lg border border-[#dfe3eb] bg-white px-3 py-2.5 text-sm text-[#33475b] focus:border-[#5b2d8e] focus:outline-none focus:ring-2 focus:ring-[#5b2d8e]/20"
+            style={{ border: 'none', outline: 'none', fontSize: 13, background: 'transparent', color: '#6b7280', cursor: 'pointer' }}
           >
             <option value="">Toutes énergies</option>
             {ENERGIES.map((e) => <option key={e} value={e}>{e}</option>)}
           </select>
+          <button
+            onClick={() => load(page, search, energie, typeUsage)}
+            style={{ background: '#185FA5', color: '#E6F1FB', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            Rechercher
+          </button>
+        </div>
+      </div>
+
+      {/* ── Stats bar ── */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 40, padding: '14px 20px', borderBottom: '0.5px solid #e8ecf0' }}>
+        {[
+          { num: meta?.total ?? '—', lbl: 'Véhicules disponibles' },
+          { num: voitures.filter((v) => v.type_usage === 'vente' || v.type_usage === 'les_deux').length || '—', lbl: 'À la vente' },
+          { num: voitures.filter((v) => v.type_usage === 'location' || v.type_usage === 'les_deux').length || '—', lbl: 'À la location' },
+        ].map((s) => (
+          <div key={s.lbl} style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 18, fontWeight: 500, color: '#185FA5' }}>{s.num}</div>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>{s.lbl}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Body (sidebar + main) ── */}
+      <div style={{ display: 'flex' }}>
+
+        {/* Sidebar filtres */}
+        <aside style={{ width: 200, minWidth: 200, borderRight: '0.5px solid #e8ecf0', padding: 16, fontSize: 12 }}>
+
+          <p style={{ fontSize: 12, fontWeight: 500, color: '#6b7280', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Carburant</p>
+          {ENERGIES.map((e) => (
+            <label key={e} style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#111827', marginBottom: 5, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={energie === '' || energie === e}
+                onChange={() => onEnergie(energie === e ? '' : e)}
+                style={{ accentColor: '#185FA5' }}
+              />
+              {e}
+            </label>
+          ))}
+
+          <p style={{ fontSize: 12, fontWeight: 500, color: '#6b7280', margin: '14px 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Type</p>
+          {[{ v: '', l: 'Tous' }, { v: 'location', l: 'Location' }, { v: 'vente', l: 'Vente' }].map((o) => (
+            <label key={o.v} style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#111827', marginBottom: 5, cursor: 'pointer' }}>
+              <input type="radio" name="typeUsage" checked={typeUsage === o.v} onChange={() => onTypeUsage(o.v)} style={{ accentColor: '#185FA5' }} />
+              {o.l}
+            </label>
+          ))}
+
+          <p style={{ fontSize: 12, fontWeight: 500, color: '#6b7280', margin: '14px 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Kilométrage</p>
+          {[{ l: 'Moins de 50 000 km', v: '50000' }, { l: '50 000 – 150 000', v: '150000' }, { l: 'Plus de 150 000', v: 'all' }].map((o) => (
+            <label key={o.v} style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#111827', marginBottom: 5, cursor: 'pointer' }}>
+              <input type="checkbox" style={{ accentColor: '#185FA5' }} />
+              {o.l}
+            </label>
+          ))}
 
           {(search || energie || typeUsage) && (
-            <button onClick={() => { setSearch(''); setEnergie(''); setTypeUsage(''); load(1, '', '', ''); }}
-              className="rounded-lg border border-[#dfe3eb] bg-white px-4 py-2.5 text-sm font-semibold text-[#6b7280] hover:border-[#2d1b3d] hover:text-[#2d1b3d]">
-              Réinitialiser
+            <button
+              onClick={reset}
+              style={{ width: '100%', marginTop: 16, padding: '6px 0', fontSize: 12, border: '0.5px solid #dfe3eb', borderRadius: 6, background: 'transparent', color: '#6b7280', cursor: 'pointer' }}
+            >
+              Réinitialiser les filtres
             </button>
           )}
+        </aside>
+
+        {/* Main content */}
+        <div style={{ flex: 1, padding: 16 }}>
+
+          {/* Toolbar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <span style={{ fontSize: 13, color: '#6b7280' }}>
+              {meta ? `${meta.total} véhicule${meta.total > 1 ? 's' : ''} trouvé${meta.total > 1 ? 's' : ''}` : 'Chargement…'}
+            </span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <select
+                value={sortVal}
+                onChange={(e) => setSortVal(e.target.value)}
+                style={{ fontSize: 12, padding: '4px 8px', border: '0.5px solid #dfe3eb', borderRadius: 6, background: 'transparent', color: '#374151', cursor: 'pointer' }}
+              >
+                {SORT_OPTS.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Grille */}
+          {loading ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} style={{ height: 240, background: '#E6F1FB', borderRadius: 8, border: '0.5px solid #e8ecf0' }} className="animate-pulse" />
+              ))}
+            </div>
+          ) : voitures.length === 0 ? (
+            <div style={{ padding: '60px 0', textAlign: 'center' }}>
+              <svg style={{ width: 48, height: 48, color: '#9ca3af', margin: '0 auto 12px', display: 'block' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5" />
+              </svg>
+              <p style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>Aucun véhicule trouvé</p>
+              <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>Modifiez vos filtres ou revenez plus tard.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
+              {voitures.map((v) => <VehicleCard key={v.id} v={v} />)}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {meta && meta.last_page > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 20 }}>
+              <button
+                onClick={() => goPage(page - 1)}
+                disabled={page <= 1}
+                style={{ width: 30, height: 30, border: '0.5px solid #dfe3eb', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, cursor: page <= 1 ? 'not-allowed' : 'pointer', background: 'transparent', color: '#374151', opacity: page <= 1 ? 0.4 : 1 }}
+              >
+                ‹
+              </button>
+              {Array.from({ length: Math.min(meta.last_page, 7) }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => goPage(p)}
+                  style={{ width: 30, height: 30, border: '0.5px solid', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, cursor: 'pointer', borderColor: p === page ? '#185FA5' : '#dfe3eb', background: p === page ? '#185FA5' : 'transparent', color: p === page ? '#E6F1FB' : '#374151' }}
+                >
+                  {p}
+                </button>
+              ))}
+              {meta.last_page > 7 && <button style={{ width: 30, height: 30, border: '0.5px solid #dfe3eb', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, cursor: 'default', background: 'transparent', color: '#9ca3af' }}>…</button>}
+              <button
+                onClick={() => goPage(page + 1)}
+                disabled={page >= meta.last_page}
+                style={{ width: 30, height: 30, border: '0.5px solid #dfe3eb', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, cursor: page >= meta.last_page ? 'not-allowed' : 'pointer', background: 'transparent', color: '#374151', opacity: page >= meta.last_page ? 0.4 : 1 }}
+              >
+                ›
+              </button>
+            </div>
+          )}
         </div>
-
-        {/* ── Grille ── */}
-        {loading ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-72 animate-pulse rounded-xl border border-[#ede8f4] bg-[#f3f0f7]" />
-            ))}
-          </div>
-        ) : voitures.length === 0 ? (
-          <div className="py-24 text-center">
-            <svg className="mx-auto mb-4 h-12 w-12 text-[#c9a8e8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5" />
-            </svg>
-            <p className="font-semibold text-[#6b7280]">Aucun véhicule trouvé</p>
-            <p className="mt-1 text-sm text-[#99acc2]">Modifiez vos filtres ou revenez plus tard.</p>
-          </div>
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {voitures.map((v) => <VehicleCard key={v.id} v={v} />)}
-          </div>
-        )}
-
-        {/* ── Pagination ── */}
-        {meta && meta.last_page > 1 && (
-          <div className="mt-10 flex items-center justify-center gap-2">
-            <button onClick={() => goPage(page - 1)} disabled={page <= 1}
-              className="rounded-lg border border-[#dfe3eb] px-4 py-2 text-sm font-semibold text-[#33475b] disabled:opacity-30 hover:border-[#2d1b3d]">
-              ← Précédent
-            </button>
-            <span className="px-4 text-sm text-[#6b7280]">Page {page} / {meta.last_page}</span>
-            <button onClick={() => goPage(page + 1)} disabled={page >= meta.last_page}
-              className="rounded-lg border border-[#dfe3eb] px-4 py-2 text-sm font-semibold text-[#33475b] disabled:opacity-30 hover:border-[#2d1b3d]">
-              Suivant →
-            </button>
-          </div>
-        )}
       </div>
     </PublicLayout>
   );

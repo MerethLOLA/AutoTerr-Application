@@ -142,6 +142,7 @@ export default function OrdreTravailDetailPage() {
               <span className="font-semibold text-[#111827]">{ordre.reference_ot}</span>
             </nav>
             <h1 className="page-title">Ordre de travail</h1>
+            <p className="page-subtitle">Détail des interventions, pièces utilisées et avancement.</p>
           </div>
           <div className="flex items-center gap-2">
             <span className={badge(ordre.statut)}>{ordre.statut.replace('_', ' ')}</span>

@@ -20,12 +20,24 @@
 <body>
     <div class="page">
         <div class="header">
-            <p class="eyebrow">Document export</p>
-            <h1>{{ $title }}</h1>
-            <div class="meta">
-                {{ $entreprise['nom'] }}<br>
-                {{ $entreprise['adresse'] }}<br>
-                NINEA: {{ $entreprise['ninea'] }} | RCCM: {{ $entreprise['rccm'] }}
+            <table style="width:100%; border-collapse:collapse;">
+                <tr>
+                    <td style="width:200px; vertical-align:middle; border:none; padding:0;">
+                        <div style="overflow:hidden; width:190px; height:56px;">
+                            <img src="{{ public_path('logo.png') }}" alt="AutoTerr"
+                                 style="width:190px; height:auto; margin-top:-160px; display:block;">
+                        </div>
+                    </td>
+                    <td style="vertical-align:middle; text-align:right; border:none; padding:0; color:#fff;">
+                        <p class="eyebrow" style="text-align:right; margin:0 0 4px;">Document export</p>
+                        <p style="margin:0; font-size:18px; font-weight:bold;">{{ $title }}</p>
+                    </td>
+                </tr>
+            </table>
+            <div class="meta" style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.2);">
+                {{ $entreprise['nom'] }} &nbsp;|&nbsp;
+                {{ $entreprise['adresse'] }} &nbsp;|&nbsp;
+                NINEA: {{ $entreprise['ninea'] }} &nbsp;|&nbsp; RCCM: {{ $entreprise['rccm'] }}
             </div>
         </div>
 
@@ -41,7 +53,7 @@
                 </tbody>
             </table>
 
-            <p class="footer">Document genere depuis SunuPark.</p>
+            <p class="footer">Document genere depuis AutoTerr.</p>
         </div>
     </div>
 </body>

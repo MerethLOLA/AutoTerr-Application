@@ -5,10 +5,14 @@ namespace App\Http\Controllers;
 use App\Http\Requests\LocationRequest;
 use App\Models\Client;
 use App\Models\EtatLieuLocation;
+use App\Models\Facturation;
 use App\Models\Location;
+use App\Models\Paiement;
 use App\Models\Voiture;
+use App\Services\BusinessReferenceService;
 use App\Services\DocumentExportService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class LocationController extends Controller
@@ -56,12 +60,13 @@ class LocationController extends Controller
 
         $locations = Location::query()
             ->select([
-                'id', 'reference_location', 'id_client', 'id_voiture', 'date_debut',
+                'id', 'reference_location', 'id_client', 'id_voiture', 'id_agent', 'date_debut',
                 'date_fin', 'date_retour_effective', 'tarif_journalier', 'statut', 'created_at',
             ])
             ->with([
                 'client:id,nom,prenom',
                 'voiture:id,marque,modele,statut',
+                'agent:id,nom,prenom',
             ])
             ->withCount('etatsDesLieux')
             ->when($request->filled('statut'), fn ($query) => $query->where('statut', $request->string('statut')->toString()))
@@ -113,7 +118,7 @@ class LocationController extends Controller
         ]);
     }
 
-    public function store(LocationRequest $request)
+    public function store(LocationRequest $request, BusinessReferenceService $referenceService)
     {
         $this->ensurePermission('manage_location');
         $data = $request->validated();
@@ -127,6 +132,28 @@ class LocationController extends Controller
         $voiture->update([
             'statut' => in_array($location->statut, ['planifiee', 'en_cours'], true) ? 'loue' : 'disponible',
         ]);
+
+        // Auto-génération de la facture si tarif > 0
+        $tarif = (float) $location->tarif_journalier;
+        if ($tarif > 0) {
+            $jours      = max(1, (int) ceil($location->date_debut->diffInSeconds($location->date_fin) / 86400));
+            $tauxTva    = (float) ($data['taux_tva'] ?? 18.0);
+            $montantHt  = round($tarif * $jours, 2);
+            $montantTtc = round($montantHt * (1 + $tauxTva / 100), 2);
+
+            Facturation::query()->create([
+                'numero_facture' => $referenceService->nextFacture(),
+                'date_facture'   => now()->toDateString(),
+                'montant'        => $montantHt,
+                'montant_ht'     => $montantHt,
+                'taux_tva'       => $tauxTva,
+                'montant_ttc'    => $montantTtc,
+                'statut'         => 'impayee',
+                'id_location'    => $location->id,
+                'date_echeance'  => $data['date_echeance'] ?? null,
+            ]);
+        }
+
         $this->logAction('create', 'location', $location, $data, $request);
         $this->resetDashboardCache();
 
@@ -134,7 +161,7 @@ class LocationController extends Controller
             return redirect()->route('locations.show', $location)->with('success', 'Location creee.');
         }
 
-        return $this->apiItem($location->load(['client', 'voiture']), 201, [
+        return $this->apiItem($location->load(['client', 'voiture', 'facturation.paiements']), 201, [
             'message' => 'Location creee',
         ]);
     }
@@ -147,6 +174,7 @@ class LocationController extends Controller
             'client:id,nom,prenom',
             'voiture:id,marque,modele',
             'etatsDesLieux:id,id_location,type_etat,description,date_etat',
+            'facturation.paiements',
         ]);
 
         return $this->apiItem($location);
@@ -173,7 +201,7 @@ class LocationController extends Controller
         $data = $request->validated();
         $originalVoitureId = $location->id_voiture;
 
-        if ((int) $originalVoitureId !== (int) $data['id_voiture']) {
+        if (isset($data['id_voiture']) && (int) $originalVoitureId !== (int) $data['id_voiture']) {
             $nouvelleVoiture = Voiture::query()->findOrFail($data['id_voiture']);
             abort_if($nouvelleVoiture->statut !== 'disponible', 422, 'Le vehicule selectionne n est pas disponible.');
             $location->voiture?->update(['statut' => 'disponible']);
@@ -259,5 +287,105 @@ class LocationController extends Controller
         $this->logAction('export', 'location', $location, [], request());
 
         return $exportService->location($location);
+    }
+
+    public function generateFacture(Request $request, Location $location, BusinessReferenceService $referenceService)
+    {
+        $this->ensurePermission('manage_location');
+        abort_if($location->statut === 'annulee', 422, 'Impossible de facturer une location annulée.');
+        abort_if($location->facturation()->exists(), 422, 'Une facture existe déjà pour cette location.');
+
+        $data = $request->validate([
+            'taux_tva'        => 'nullable|numeric|min:0|max:100',
+            'tarif_journalier'=> 'nullable|numeric|min:0',
+            'date_echeance'   => 'nullable|date',
+            'observations'    => 'nullable|string|max:2000',
+        ]);
+
+        $debut = $location->date_debut;
+        $fin   = $location->date_fin;
+        $jours = max(1, (int) ceil($debut->diffInSeconds($fin) / 86400));
+
+        $tarif      = (float) ($data['tarif_journalier'] ?? $location->tarif_journalier);
+        $montantHt  = round($tarif * $jours, 2);
+        $tauxTva    = (float) ($data['taux_tva'] ?? 18.0);
+        $montantTtc = round($montantHt * (1 + $tauxTva / 100), 2);
+
+        $facture = Facturation::query()->create([
+            'numero_facture' => $referenceService->nextFacture(),
+            'date_facture'   => now()->toDateString(),
+            'montant'        => $montantHt,
+            'montant_ht'     => $montantHt,
+            'taux_tva'       => $tauxTva,
+            'montant_ttc'    => $montantTtc,
+            'statut'         => 'impayee',
+            'id_location'    => $location->id,
+            'date_echeance'  => $data['date_echeance'] ?? null,
+            'observations'   => $data['observations'] ?? null,
+        ]);
+
+        $this->logAction('create', 'facture_location', $facture, $facture->toArray(), $request);
+
+        return $this->apiItem($facture->load('paiements'), 201, [
+            'message' => 'Facture générée avec succès',
+        ]);
+    }
+
+    public function getFacture(Location $location)
+    {
+        $this->ensurePermission('manage_location');
+
+        $facture = $location->facturation()->with('paiements')->first();
+        abort_if(! $facture, 404, 'Aucune facture pour cette location.');
+
+        return $this->apiItem($facture);
+    }
+
+    public function addPaiement(Request $request, Location $location)
+    {
+        $this->ensurePermission('manage_location');
+
+        $facture = $location->facturation()->first();
+        abort_if(! $facture, 422, "Générez d'abord une facture pour cette location.");
+        abort_if($facture->statut === 'payee', 422, 'Cette facture est déjà entièrement payée.');
+
+        $data = $request->validate([
+            'montant'       => 'required|numeric|min:0.01',
+            'mode_paiement' => 'required|string|max:100',
+            'date'          => 'required|date',
+        ]);
+
+        $resteExact = round((float) $facture->reste_a_payer, 2);
+        $montant    = round((float) $data['montant'], 2);
+        abort_if(
+            $montant > $resteExact + 0.01,
+            422,
+            'Le montant dépasse le reste à payer : '.number_format($resteExact, 0, ',', ' ').' XOF.'
+        );
+
+        $paiement = DB::transaction(function () use ($data, $facture, $location) {
+            $p = Paiement::query()->create([
+                'date'          => $data['date'],
+                'mode_paiement' => $data['mode_paiement'],
+                'montant'       => $data['montant'],
+                'reste'         => max(round($facture->reste_a_payer - $data['montant'], 2), 0),
+                'id_facture'    => $facture->id,
+                'id_location'   => $location->id,
+                'id_client'     => $location->id_client,
+            ]);
+
+            $facture->refresh()->load('paiements');
+            $facture->syncStatut();
+
+            return $p;
+        });
+
+        $this->logAction('create', 'paiement_location', $paiement, $paiement->toArray(), $request);
+        $this->resetDashboardCache();
+
+        return $this->apiItem($paiement, 201, [
+            'message' => 'Paiement enregistré',
+            'facture' => $facture->fresh()->load('paiements'),
+        ]);
     }
 }

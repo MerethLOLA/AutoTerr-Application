@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
@@ -153,12 +153,12 @@ export default function ClientDetailPage() {
         {/* En-tête */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#2d1b3d] text-lg font-black text-white">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#185FA5] text-lg font-black text-white">
               {initials(client.nom, client.prenom)}
             </div>
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{client.type_client ?? 'Client'}</p>
-              <h1 className="text-2xl font-black text-slate-900">{fullName}</h1>
+              <h1 className="page-title">{fullName}</h1>
               {client.raison_sociale && <p className="text-sm text-slate-500">{client.raison_sociale}</p>}
             </div>
           </div>
@@ -218,7 +218,7 @@ export default function ClientDetailPage() {
                 <button
                   key={t.key}
                   onClick={() => setTab(t.key)}
-                  className={`pb-3 px-3 text-xs font-bold border-b-2 transition-colors ${tab === t.key ? 'border-[#2d1b3d] text-[#2d1b3d]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                  className={`pb-3 px-3 text-xs font-bold border-b-2 transition-colors ${tab === t.key ? 'border-[#185FA5] text-[#185FA5]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                 >
                   {t.label}
                 </button>

@@ -77,6 +77,23 @@ interface ApiError {
 class ApiClient {
   private client: AxiosInstance;
   private token: string | null = null;
+  // Charge la session NextAuth une seule fois au démarrage si token non encore dispo
+  private sessionInitPromise: Promise<void> | null = null;
+
+  private async initSessionOnce(): Promise<void> {
+    if (this.token) return;
+    if (this.sessionInitPromise) return this.sessionInitPromise;
+    this.sessionInitPromise = (async () => {
+      try {
+        const { getSession } = await import('next-auth/react');
+        const session = await getSession();
+        if (session && (session as any).token) {
+          this.token = (session as any).token;
+        }
+      } catch { /* ignore */ }
+    })();
+    return this.sessionInitPromise;
+  }
 
   constructor() {
     this.client = axios.create({
@@ -87,11 +104,8 @@ class ApiClient {
       },
     });
 
-    if (typeof window !== 'undefined') {
-      this.token = sessionStorage.getItem('token');
-    }
-
-    this.client.interceptors.request.use((config) => {
+    this.client.interceptors.request.use(async (config) => {
+      if (!this.token) await this.initSessionOnce();
       if (this.token) {
         config.headers.Authorization = `Bearer ${this.token}`;
       }
@@ -102,16 +116,18 @@ class ApiClient {
       (response) => response,
       async (error: AxiosError) => {
         if (error.response?.status === 401) {
-          sessionStorage.removeItem('token');
-          sessionStorage.removeItem('user');
-          sessionStorage.removeItem('userId');
-          document.cookie = `sp_auth=; max-age=0; ${this.cookieFlags()}`;
           cacheClear();
-          const isClientRoute = typeof window !== 'undefined' &&
-            (window.location.pathname.startsWith('/espace-client') ||
-             window.location.pathname.startsWith('/catalogue') ||
-             window.location.pathname.startsWith('/inscription'));
-          window.location.href = isClientRoute ? '/login/client' : '/login/employee';
+          // Ne déconnecter que si on avait un token actif (session expirée).
+          // Si token est null, c'est une race condition au démarrage — ignorer.
+          if (this.token) {
+            this.token = null;
+            const { signOut } = await import('next-auth/react');
+            const isClientRoute = typeof window !== 'undefined' &&
+              (window.location.pathname.startsWith('/espace-client') ||
+               window.location.pathname.startsWith('/catalogue') ||
+               window.location.pathname.startsWith('/inscription'));
+            signOut({ callbackUrl: isClientRoute ? '/login/client' : '/login/employee' });
+          }
           return Promise.reject(error);
         }
 
@@ -137,16 +153,14 @@ class ApiClient {
 
   setToken(token: string) {
     this.token = token;
-    sessionStorage.setItem('token', token);
     document.cookie = `sp_auth=1; ${this.cookieFlags()}`;
   }
 
   clearToken() {
     this.token = null;
-    sessionStorage.removeItem('token');
-    sessionStorage.removeItem('user');
+    this.sessionInitPromise = null;
     document.cookie = `sp_auth=; max-age=0; ${this.cookieFlags()}`;
-    cacheClear(); // Vide le cache à la déconnexion
+    cacheClear();
   }
 
   async register(data: { name: string; email: string; username: string; password: string; password_confirmation: string }) {
@@ -346,8 +360,8 @@ export interface NotificationItem {
 
 export async function getNotifications(limit = 8): Promise<NotificationItem[]> {
   try {
-    const response = await apiClient.get<{ items?: NotificationItem[] }>('/notifications', { limit });
-    return response.items || [];
+    const response = await apiClient.get<any>('/notifications', { limit });
+    return response?.data?.items ?? response?.items ?? [];
   } catch {
     return [];
   }

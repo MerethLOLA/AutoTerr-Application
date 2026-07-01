@@ -136,6 +136,7 @@ export default function TicketSavDetailPage() {
               <span className="font-semibold text-[#111827]">{ticket.reference_ticket}</span>
             </nav>
             <h1 className="page-title">{ticket.objet}</h1>
+            <p className="page-subtitle">Suivi du ticket SAV, interventions enregistrées et résolution.</p>
           </div>
           <div className="flex items-center gap-2">
             <span className={badge(ticket.statut)}>{ticket.statut.replace('_', ' ')}</span>

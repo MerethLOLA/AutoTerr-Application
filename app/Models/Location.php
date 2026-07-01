@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Facturation;
+use App\Models\Paiement;
 
 class Location extends Model
 {
@@ -56,5 +58,15 @@ class Location extends Model
     public function etatsDesLieux(): HasMany
     {
         return $this->hasMany(EtatLieuLocation::class, 'id_location');
+    }
+
+    public function facturation(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Facturation::class, 'id_location');
+    }
+
+    public function paiements(): HasMany
+    {
+        return $this->hasMany(Paiement::class, 'id_location');
     }
 }

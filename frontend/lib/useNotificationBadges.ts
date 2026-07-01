@@ -22,9 +22,9 @@ export function useNotificationBadges(refreshInterval = 60000) {
 
     async function fetchCounts() {
       try {
-        const response = await apiClient.get<NotificationCounts>('/notifications/counts');
+        const response = await apiClient.get<any>('/notifications/counts');
         if (mounted) {
-          setCounts(response);
+          setCounts(response?.data ?? response);
         }
       } catch {
         // Silencieux en cas d'erreur

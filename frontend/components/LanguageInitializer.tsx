@@ -8,7 +8,7 @@ export function LanguageInitializer() {
     try {
       const user = sessionStorage.getItem('user');
       const locale = user ? JSON.parse(user).locale : null;
-      setLocale(locale || localStorage.getItem('sunupark_locale') || 'fr');
+      setLocale(locale || localStorage.getItem('autoterr_locale') || 'fr');
     } catch {
       setLocale('fr');
     }

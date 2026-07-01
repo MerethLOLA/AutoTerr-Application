@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AssuranceController;
+use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DemandeController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CarburantController;
@@ -21,8 +23,10 @@ use App\Http\Controllers\PieceStockController;
 use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\SinistreController;
 use App\Http\Controllers\TicketSavController;
+use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\UserSettingsController;
 use App\Http\Controllers\VenteController;
+use App\Http\Controllers\LikeController;
 use App\Http\Controllers\VoitureController;
 use Illuminate\Support\Facades\Route;
 
@@ -32,7 +36,13 @@ Route::get('/health', fn () => response()->json(['status' => 'ok', 'ts' => now()
 // ── Routes publiques ──────────────────────────────────────────────────────────
 Route::get('/voitures/public', [VoitureController::class, 'publicIndex']);
 Route::get('/voitures/{voiture}/public', [VoitureController::class, 'publicShow']);
+Route::post('/voitures/{voiture}/like', [LikeController::class, 'toggle']);
+Route::get('/voitures/{voiture}/like/status', [LikeController::class, 'status']);
 Route::middleware('throttle:10,1')->post('/demandes', [DemandeController::class, 'store']);
+Route::middleware('throttle:5,1')->post('/contact', [ContactController::class, 'store']);
+
+// ── Chatbot IA (limité à 15 req/min par IP) ───────────────────────────────────
+Route::middleware('throttle:15,1')->post('/chatbot/message', [ChatbotController::class, 'message']);
 
 // ── Authentification ──────────────────────────────────────────────────────────
 Route::prefix('auth')->group(function () {
@@ -65,9 +75,12 @@ Route::middleware(['auth:sanctum', 'role:client'])->group(function () {
 });
 
 // ── Routes employés (tous sauf client) ───────────────────────────────────────
-$employeeRoles = 'admin,super_admin,commercial,agent_location,sav,atelier,stock';
+$employeeRoles = 'admin,super_admin,manager,commercial,agent_location,sav,atelier,stock,assurance';
 
 Route::middleware(['auth:sanctum', "role:{$employeeRoles}"])->group(function () {
+
+    // Sélecteur d'employés filtrable (accessible à tous les rôles employé)
+    Route::get('/employes/select', [EmployeController::class, 'forSelect']);
 
     // Voitures
     Route::get('/voitures/form-options', [VoitureController::class, 'formOptions']);
@@ -88,6 +101,9 @@ Route::middleware(['auth:sanctum', "role:{$employeeRoles}"])->group(function () 
     Route::apiResource('locations', LocationController::class);
     Route::post('/locations/{location}/etats-lieux', [LocationController::class, 'addEtatLieu']);
     Route::get('/locations/{location}/export', [LocationController::class, 'export']);
+    Route::post('/locations/{location}/facture', [LocationController::class, 'generateFacture']);
+    Route::get('/locations/{location}/facture', [LocationController::class, 'getFacture']);
+    Route::post('/locations/{location}/paiements', [LocationController::class, 'addPaiement']);
 
     // Garanties
     Route::apiResource('garanties', GarantieController::class);
@@ -121,6 +137,10 @@ Route::middleware(['auth:sanctum', "role:{$employeeRoles}"])->group(function () 
     Route::get('/demandes', [DemandeController::class, 'index']);
     Route::patch('/demandes/{demande}', [DemandeController::class, 'update']);
 
+    // Messages de contact
+    Route::get('/contact', [ContactController::class, 'index']);
+    Route::patch('/contact/{contactMessage}/read', [ContactController::class, 'markRead']);
+
     // Alertes & Reporting
     Route::get('/alertes/expirations', [VoitureController::class, 'alertesExpirations']);
     Route::get('/reporting', [ReportingController::class, 'index']);
@@ -130,6 +150,11 @@ Route::middleware(['auth:sanctum', "role:{$employeeRoles}"])->group(function () 
 // ── Routes admin uniquement ───────────────────────────────────────────────────
 Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function () {
     Route::apiResource('employes', EmployeController::class);
+
+    // Gestion des comptes utilisateurs
+    Route::get('/admin/employes-sans-compte', [UserManagementController::class, 'emploiesSansCompte']);
+    Route::apiResource('admin/users', UserManagementController::class)
+        ->parameters(['users' => 'user']);
 });
 
 require __DIR__.'/api-internal.php';

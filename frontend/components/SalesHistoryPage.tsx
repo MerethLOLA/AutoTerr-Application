@@ -68,16 +68,16 @@ export default function SalesHistoryPage() {
     <DashboardLayout>
       <div className="space-y-6">
 
-        {/* En-tête */}
         <div className="page-header">
           <div>
-            <p className="eyebrow">Commercial</p>
             <h1 className="page-title mt-0.5">Historique des ventes</h1>
             <p className="page-subtitle">Consultez l&apos;ensemble des transactions réalisées.</p>
           </div>
-          <Link href="/ventes" className="btn-primary shrink-0">
-            Nouvelle vente
-          </Link>
+          <div className="flex shrink-0 gap-2">
+            <Link href="/ventes" className="btn-primary shrink-0">
+              Nouvelle vente
+            </Link>
+          </div>
         </div>
 
         {/* Tableau */}

@@ -20,7 +20,7 @@ class VoitureController extends Controller
         $perPage = min((int) $request->input('per_page', 12), 48);
 
         $paginator = Voiture::query()
-            ->select(['id', 'marque', 'modele', 'annee', 'prix', 'prix_vente', 'kilometrage', 'statut', 'type_usage', 'energie', 'image_principale', 'created_at'])
+            ->select(['id', 'marque', 'modele', 'annee', 'prix', 'prix_vente', 'kilometrage', 'statut', 'type_usage', 'energie', 'image_principale', 'likes_count', 'created_at'])
             ->with(['images:id,id_voiture,chemin,ordre'])
             ->when($request->string('search')->toString(), function ($query, $term) {
                 $query->where(function ($inner) use ($term) {

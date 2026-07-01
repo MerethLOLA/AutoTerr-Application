@@ -16,7 +16,7 @@ interface OT {
   technicien?: { id: number; nom: string; prenom?: string };
 }
 
-const VIOLET = '#2d1b3d';
+const VIOLET = '#185FA5';
 const DAYS_FR = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 function startOfWeek(d: Date): Date {
@@ -101,16 +101,16 @@ export default function PlanningPage() {
     <DashboardLayout>
       <div className="space-y-6">
 
-        {/* En-tête */}
         <div className="page-header">
           <div>
-            <p className="eyebrow">Atelier</p>
             <h1 className="page-title mt-0.5">Planning Atelier</h1>
             <p className="page-subtitle">Visualisez les ordres de travail par semaine.</p>
           </div>
-          <Link href="/atelier" className="btn-primary shrink-0">
-            Nouvel OT
-          </Link>
+          <div className="flex shrink-0 gap-2">
+            <Link href="/atelier" className="btn-primary shrink-0">
+              Nouvel OT
+            </Link>
+          </div>
         </div>
 
         {/* Stats rapides */}
@@ -174,7 +174,7 @@ export default function PlanningPage() {
                 const isToday = isoDate(day) === isoDate(new Date());
                 const dayOTs = otForDay(day);
                 return (
-                  <div key={i} className={`rounded border ${isToday ? 'border-[#2d1b3d]' : 'border-[#dfe3eb]'} bg-white`}>
+                  <div key={i} className={`rounded border ${isToday ? 'border-[#185FA5]' : 'border-[#dfe3eb]'} bg-white`}>
                     {/* Header jour */}
                     <div className={`rounded-t px-2 py-1.5 text-center text-xs font-bold ${isToday ? 'text-white' : 'text-[#6b7280]'}`}
                       style={{ backgroundColor: isToday ? VIOLET : '#f5f8fa' }}>

@@ -20,13 +20,12 @@ class AuthController extends Controller
         ]);
 
         $user = User::query()->create([
-            'name'          => $data['name'],
-            'email'         => $data['email'],
-            'username'      => $data['username'],
-            'password'      => Hash::make($data['password']),
-            'password_hash' => Hash::make($data['password']),
-            'role'          => 'client',
-            'statut'        => 'actif',
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'username' => $data['username'],
+            'password' => Hash::make($data['password']),
+            'role'     => 'client',
+            'statut'   => 'actif',
         ]);
 
         $token = $user->createToken('frontend')->plainTextToken;
@@ -79,6 +78,7 @@ class AuthController extends Controller
 
         $user->tokens()->delete();
         $token = $user->createToken('frontend')->plainTextToken;
+        $user->update(['last_login' => now()]);
 
         return $this->apiItem([
             'token' => $token,

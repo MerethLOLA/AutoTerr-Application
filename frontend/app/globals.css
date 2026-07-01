@@ -3,8 +3,40 @@
 @tailwind utilities;
 
 :root {
-  --font-inter: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', Arial, sans-serif;
+  --font-inter: var(--font-sans);
+
+  --color-accent:              #185FA5;
+  --color-accent-light:        #E6F1FB;
+  --color-background-primary:  #ffffff;
+  --color-background-secondary:#f5f8fa;
+  --color-text-primary:        #111827;
+  --color-text-secondary:      #6b7280;
+  --color-border-tertiary:     #e8ecf0;
+  --color-border-secondary:    #dfe3eb;
+  --border-radius-md:          6px;
+  --border-radius-lg:          8px;
+
+  --color-success-bg: #EAF3DE; --color-success-text: #3B6D11;
+  --color-warning-bg: #FAEEDA; --color-warning-text: #854F0B;
+  --color-danger-bg:  #FCEBEB; --color-danger-text:  #A32D2D;
+}
+
+/* ── Dark mode — palette navy-bleue assortie à l'app ─────────────────────── */
+.dark {
+  --color-accent:              #4A9FE0;
+  --color-accent-light:        #0D2540;
+  --color-background-primary:  #071626;
+  --color-background-secondary:#0C1F33;
+  --color-text-primary:        #DEE9F5;
+  --color-text-secondary:      #7BA4C8;
+  --color-border-tertiary:     #1A3450;
+  --color-border-secondary:    #1E3F5E;
+
+  --color-success-bg: #0D2718; --color-success-text: #52B56A;
+  --color-warning-bg: #271B07; --color-warning-text: #C9A13E;
+  --color-danger-bg:  #270D0D; --color-danger-text:  #E06060;
 }
 
 /* ── Marquee stats ───────────────────────────────────────────────────────── */
@@ -36,8 +68,9 @@
   }
 
   body {
-    background: #f5f8fa;
-    @apply text-slate-900 dark:bg-slate-900 dark:text-slate-100;
+    background: var(--color-background-secondary);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -62,7 +95,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid #33475b;
+    outline: 2px solid var(--color-accent);
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -72,51 +105,73 @@
 
   /* ── Skip link ──────────────────────────────────────────────────────────── */
   .skip-link {
-    @apply absolute -top-full left-4 z-[9999] rounded bg-[#2d1b3d] px-4 py-3
+    @apply absolute -top-full left-4 z-[9999] rounded px-4 py-3
       text-sm font-bold text-white shadow-xl
-      focus:top-4 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#2d1b3d];
+      focus:top-4 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2;
+    background: var(--color-accent);
   }
 
   /* ── Shell ──────────────────────────────────────────────────────────────── */
   .app-shell {
-    @apply min-h-screen text-slate-900 dark:text-slate-100;
-    background: #f5f8fa;
+    min-height: 100vh;
+    background: var(--color-background-secondary);
+    color: var(--color-text-primary);
   }
-  .dark .app-shell { background: #0f172a; }
 
   /* ── Cartes / Surfaces ──────────────────────────────────────────────────── */
   .surface-panel {
-    @apply rounded-lg border border-[#dfe3eb] bg-white shadow-sm
-           dark:border-slate-700 dark:bg-slate-800;
+    border-radius: var(--border-radius-lg);
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }
 
   .surface-muted {
-    @apply rounded-lg border border-[#dfe3eb]/70 bg-[#f5f8fa]
-           dark:border-slate-700/70 dark:bg-slate-800/60;
+    border-radius: var(--border-radius-lg);
+    border: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-background-secondary);
   }
 
   .hero-panel {
-    @apply rounded-lg border border-[#dfe3eb] bg-white p-6 sm:p-7
-           dark:border-slate-700 dark:bg-slate-800;
+    border-radius: var(--border-radius-lg);
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary);
+    padding: 24px 28px;
   }
 
   /* ── Typographie ─────────────────────────────────────────────────────────── */
   .eyebrow {
-    @apply text-xs font-bold uppercase tracking-[0.18em] text-[#6b7280] dark:text-slate-400;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-text-secondary);
   }
 
   .metric-card {
-    @apply rounded-lg border border-[#dfe3eb] bg-white p-5 shadow-sm transition
-      hover:shadow-md hover:border-[#cbd6e2]
-      dark:border-slate-700 dark:bg-slate-800 dark:hover:border-slate-600;
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    padding: 14px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .metric-card:hover {
+    border-color: var(--color-border-secondary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
 
   .metric-label {
-    @apply text-xs font-bold uppercase tracking-[0.14em] text-[#6b7280] dark:text-slate-400;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-secondary);
   }
 
   .section-title {
-    @apply text-lg font-bold text-[#111827] dark:text-slate-100;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-primary);
   }
 
   /* ── En-tête de page ───────────────────────────────────────────────────── */
@@ -125,69 +180,105 @@
   }
 
   .page-title {
-    @apply text-2xl font-black text-[#111827] dark:text-slate-100;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--color-text-primary);
   }
 
   .page-subtitle {
-    @apply mt-0.5 text-sm text-[#6b7280] dark:text-slate-400;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--color-text-secondary);
   }
 
   /* ── Champs de formulaire ────────────────────────────────────────────────── */
   .field-control {
-    @apply w-full rounded border border-[#cbd6e2] bg-white px-3 py-2
-      text-sm text-[#111827] outline-none transition
-      placeholder:text-[#99acc2]
-      hover:border-[#99acc2]
-      focus:border-[#33475b]
-      focus-visible:ring-2 focus-visible:ring-[#33475b]/20 focus-visible:ring-offset-1
-      disabled:cursor-not-allowed disabled:bg-[#f5f8fa] disabled:text-[#99acc2]
-      dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100
-      dark:placeholder:text-slate-500
-      dark:hover:border-slate-500 dark:focus:border-slate-400
-      dark:disabled:bg-slate-800 dark:disabled:text-slate-500;
+    width: 100%;
+    border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary);
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--color-text-primary);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
   }
+  .field-control::placeholder { color: #9ca3af; }
+  .field-control:hover  { border-color: #b0bec5; }
+  .field-control:focus  { border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(24,95,165,0.12); }
+  .field-control:disabled { background: var(--color-background-secondary); color: #9ca3af; cursor: not-allowed; }
 
   /* ── Boutons ─────────────────────────────────────────────────────────────── */
   .btn-primary {
-    @apply inline-flex h-9 items-center justify-center rounded
-      border border-[#33475b] bg-white px-4 text-sm font-semibold text-[#111827] transition
-      hover:bg-[#f5f8fa]
-      focus:outline-none
-      focus-visible:ring-2 focus-visible:ring-[#33475b]/30 focus-visible:ring-offset-2
-      active:scale-95
-      disabled:cursor-not-allowed disabled:border-[#dfe3eb] disabled:bg-[#dfe3eb] disabled:text-[#99acc2] disabled:active:scale-100
-      dark:border-slate-500 dark:bg-slate-700 dark:text-slate-100
-      dark:hover:bg-slate-600 dark:disabled:border-slate-700 dark:disabled:bg-slate-800 dark:disabled:text-slate-600;
+    display: inline-flex;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-accent);
+    background: var(--color-accent);
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-accent-light);
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
   }
+  .btn-primary:hover   { opacity: .88; }
+  .btn-primary:active  { transform: scale(.97); }
+  .btn-primary:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 
   .btn-secondary {
-    @apply inline-flex h-9 items-center justify-center rounded
-      border border-[#cbd6e2] bg-white px-4 text-sm font-semibold text-[#111827] transition
-      hover:bg-[#f5f8fa] hover:border-[#99acc2] hover:text-[#111827]
-      focus:outline-none
-      focus-visible:ring-2 focus-visible:ring-[#253342]/30 focus-visible:ring-offset-2
-      dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100
-      dark:hover:bg-slate-600 dark:hover:border-slate-500;
+    display: inline-flex;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary);
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
   }
+  .btn-secondary:hover { background: var(--color-background-secondary); border-color: var(--color-border-secondary); }
 
   .btn-ghost {
-    @apply inline-flex h-9 items-center justify-center rounded
-      px-3 text-sm font-semibold text-[#6b7280] transition
-      hover:bg-[#f5f8fa] hover:text-[#111827]
-      focus:outline-none
-      focus-visible:ring-2 focus-visible:ring-[#253342]/30 focus-visible:ring-offset-1
-      dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-100;
+    display: inline-flex;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-md);
+    border: none;
+    background: transparent;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: background .15s, color .15s;
   }
+  .btn-ghost:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
 
   .btn-danger {
-    @apply inline-flex h-9 items-center justify-center rounded
-      bg-red-600 px-4 text-sm font-semibold text-white transition
-      hover:bg-red-700
-      focus:outline-none
-      focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2
-      active:scale-95
-      dark:focus-visible:ring-offset-slate-900;
+    display: inline-flex;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-md);
+    border: 0.5px solid #A32D2D;
+    background: #A32D2D;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #fff;
+    cursor: pointer;
+    transition: opacity .15s;
   }
+  .btn-danger:hover  { opacity: .88; }
+  .btn-danger:active { transform: scale(.97); }
 
   /* ── Badges ──────────────────────────────────────────────────────────────── */
   .status-badge {
@@ -196,23 +287,43 @@
 
   /* ── Tableaux ────────────────────────────────────────────────────────────── */
   .table-header {
-    @apply border-b border-[#dfe3eb] py-3 pr-4 text-left text-xs font-bold uppercase tracking-wide text-[#6b7280] bg-[#f5f8fa]
-           dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-400;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    padding: 8px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-secondary);
+    background: var(--color-background-secondary);
   }
 
   .table-cell {
-    @apply py-3 pr-4 text-sm text-[#111827] dark:text-slate-200;
+    padding: 8px;
+    font-size: 12px;
+    color: var(--color-text-primary);
+    vertical-align: middle;
   }
 
   .table-row {
-    @apply border-b border-[#dfe3eb] transition last:border-b-0 hover:bg-[#f5f8fa]
-           dark:border-slate-700 dark:hover:bg-slate-700/50;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    transition: background .1s;
   }
+  .table-row:last-child { border-bottom: none; }
+  .table-row:hover { background: var(--color-background-secondary); }
 
   .card {
-    @apply rounded-lg border border-[#dfe3eb] bg-white shadow-sm
-           dark:border-slate-700 dark:bg-slate-800;
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
   }
+
+  /* ── Badges statut ───────────────────────────────────────────────────────── */
+  .badge-active   { background: var(--color-success-bg); color: var(--color-success-text); }
+  .badge-pending  { background: var(--color-warning-bg); color: var(--color-warning-text); }
+  .badge-danger   { background: var(--color-danger-bg);  color: var(--color-danger-text);  }
+  .badge-info     { background: var(--color-accent-light); color: var(--color-accent); }
+  .status-badge   { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
 }
 
 /* ── Animations ──────────────────────────────────────────────────────────────── */
@@ -254,3 +365,42 @@
   .anim-fade { animation: fadeIn 0.8s ease both; }
   .float     { animation: float     4.0s ease-in-out infinite; }
 }
+
+/* ── Scroll reveal ───────────────────────────────────────────────────────── */
+.reveal,
+.reveal-left,
+.reveal-scale {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    transform: translateY(28px);
+    transition: opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .reveal-left {
+    transform: translateX(-28px);
+    transition: opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .reveal-scale {
+    transform: scale(0.92);
+    transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal-left, .reveal-scale {
+    transition: opacity 0.01ms;
+  }
+}
+.reveal.is-visible,
+.reveal-left.is-visible,
+.reveal-scale.is-visible {
+  opacity: 1;
+  transform: none;
+}
+.d-100 { transition-delay: 0.10s; }
+.d-200 { transition-delay: 0.20s; }
+.d-300 { transition-delay: 0.30s; }
+.d-400 { transition-delay: 0.40s; }

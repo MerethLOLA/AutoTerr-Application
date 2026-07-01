@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 class DocumentExportService
 {
     private const ENTREPRISE = [
-        'nom' => 'SunuPark Auto Services',
+        'nom' => 'AutoTerr Auto Services',
         'adresse' => 'Dakar, Senegal',
         'ninea' => 'SN-DKR-2026-001',
         'rccm' => 'RCCM-SN-DKR-2026-A-001',
@@ -23,7 +23,7 @@ class DocumentExportService
 
     public function facture(Facturation $facturation): Response
     {
-        $facturation->loadMissing(['vente.client', 'vente.voiture', 'paiements']);
+        $facturation->loadMissing(['vente.client', 'vente.voiture', 'vente.employe', 'paiements']);
 
         return Pdf::loadView('pdf.facture', [
             'facture' => $facturation,

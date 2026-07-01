@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\NouvelleNotification;
 use App\Models\Facturation;
 use App\Models\Location;
 use App\Models\NotificationInterne;
@@ -43,11 +44,25 @@ class AutomationAlertService
             ->when($signatures !== [], fn ($query) => $query->whereNotIn('signature', $signatures))
             ->delete();
 
+        $newCount = 0;
+
         foreach ($alerts as $alert) {
-            NotificationInterne::query()->updateOrCreate(
+            $result = NotificationInterne::query()->updateOrCreate(
                 ['signature' => $alert['signature']],
                 $alert
             );
+
+            // Broadcaster uniquement les nouvelles alertes (pas les mises à jour)
+            if ($result->wasRecentlyCreated) {
+                NouvelleNotification::dispatch(
+                    $alert['type'],
+                    $alert['niveau'],
+                    $alert['titre'],
+                    $alert['message'],
+                    $alert['url'] ?? null,
+                );
+                $newCount++;
+            }
         }
 
         return NotificationInterne::query()

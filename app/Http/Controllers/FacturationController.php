@@ -25,7 +25,7 @@ class FacturationController extends Controller
         $this->ensurePermission('manage_ventes');
 
         $factures = Facturation::query()
-            ->with(['vente.client', 'vente.voiture', 'paiements'])
+            ->with(['vente.client', 'vente.voiture', 'location', 'paiements'])
             ->when($request->filled('statut'), fn ($query) => $query->where('statut', $request->string('statut')->toString()))
             ->latest('date_facture')
             ->paginate(15);

@@ -1,15 +1,17 @@
-﻿﻿'use client';
+﻿'use client';
 
-import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 
 export type AppRole =
   | 'admin'
   | 'super_admin'
+  | 'manager'
   | 'commercial'
   | 'agent_location'
   | 'sav'
   | 'atelier'
   | 'stock'
+  | 'assurance'
   | 'client'
   | '';
 
@@ -17,9 +19,14 @@ export type AppRole =
 const ROLE_NAV_ACCESS: Record<string, string[] | null> = {
   admin:          null,
   super_admin:    null,
+  manager: [
+    '/dashboard', '/voitures', '/clients', '/ventes', '/locations',
+    '/facturations', '/paiements', '/documents',
+    '/reporting', '/analytics', '/catalogue', '/employes', '/demandes',
+  ],
   commercial:     [
     '/dashboard', '/voitures', '/clients', '/ventes', '/locations',
-    '/facturations', '/paiements', '/payments', '/documents',
+    '/facturations', '/paiements', '/documents',
     '/reporting', '/analytics', '/catalogue',
   ],
   agent_location: [
@@ -35,6 +42,9 @@ const ROLE_NAV_ACCESS: Record<string, string[] | null> = {
   stock: [
     '/dashboard', '/stock', '/fournisseurs', '/documents', '/alertes',
   ],
+  assurance: [
+    '/dashboard', '/voitures', '/assurances', '/sinistres', '/alertes', '/reporting',
+  ],
   client: ['/espace-client'],
 };
 
@@ -42,6 +52,10 @@ const ROLE_NAV_ACCESS: Record<string, string[] | null> = {
 const ROLE_WRITE_ACCESS: Record<string, string[] | null> = {
   admin:          null,
   super_admin:    null,
+  manager: [
+    'ventes', 'locations', 'facturations', 'paiements', 'documents',
+    'clients', 'garanties',
+  ],
   commercial:     [
     'ventes', 'locations', 'facturations', 'paiements', 'documents',
     'clients', 'garanties',
@@ -50,23 +64,18 @@ const ROLE_WRITE_ACCESS: Record<string, string[] | null> = {
   sav:            ['sav', 'garanties', 'entretiens'],
   atelier:        ['atelier', 'entretiens', 'stock'],
   stock:          ['stock', 'fournisseurs'],
+  assurance:      ['assurances', 'sinistres'],
   client:         [],
 };
 
 const ADMIN_ROLES: AppRole[] = ['admin', 'super_admin'];
 const EMPLOYEE_ROLES: AppRole[] = [
-  'admin', 'super_admin', 'commercial', 'agent_location', 'sav', 'atelier', 'stock',
+  'admin', 'super_admin', 'manager', 'commercial', 'agent_location', 'sav', 'atelier', 'stock', 'assurance',
 ];
 
 export function useRole() {
-  const [role, setRole] = useState<AppRole>('');
-
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem('user');
-      if (raw) setRole((JSON.parse(raw)?.role as AppRole) ?? '');
-    } catch { /* ignore */ }
-  }, []);
+  const { data: session } = useSession();
+  const role = ((session?.user as any)?.role as AppRole) ?? '';
 
   const isAdmin     = (ADMIN_ROLES as string[]).includes(role);
   const isEmployee  = (EMPLOYEE_ROLES as string[]).includes(role);

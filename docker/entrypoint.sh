@@ -12,5 +12,9 @@ php artisan config:cache
 php artisan route:cache && echo "Route cache OK" || echo "Warning: route:cache skipped (duplicate names)"
 php artisan view:cache
 
+echo "==> Fixing storage permissions..."
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
 echo "==> Starting server..."
 exec "$@"

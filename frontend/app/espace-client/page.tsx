@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
@@ -118,7 +118,7 @@ function LocationTimeline({ loc }: { loc: LocationItem }) {
             <Image src={imgUrl(loc.voiture.image_principale)!} alt="" width={64} height={48} className="h-12 w-16 rounded object-cover shrink-0" />
           ) : (
             <div className="flex h-12 w-16 items-center justify-center rounded bg-[#f5f8fa] shrink-0">
-              <svg className="h-5 w-5 text-[#99acc2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-5 w-5 text-[#9ca3af]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5" />
               </svg>
             </div>
@@ -138,9 +138,9 @@ function LocationTimeline({ loc }: { loc: LocationItem }) {
         <div className="flex items-center gap-1">
           {steps.map((step, i) => (
             <div key={step} className="flex flex-1 items-center gap-1">
-              <div className={`h-2 flex-1 rounded-full transition-all ${i <= cur ? 'bg-[#2d1b3d]' : 'bg-[#dfe3eb]'}`} />
+              <div className={`h-2 flex-1 rounded-full transition-all ${i <= cur ? 'bg-[#185FA5]' : 'bg-[#dfe3eb]'}`} />
               {i < steps.length - 1 && (
-                <div className={`h-2 w-2 shrink-0 rounded-full ${i < cur ? 'bg-[#2d1b3d]' : 'bg-[#dfe3eb]'}`} />
+                <div className={`h-2 w-2 shrink-0 rounded-full ${i < cur ? 'bg-[#185FA5]' : 'bg-[#dfe3eb]'}`} />
               )}
             </div>
           ))}
@@ -241,12 +241,12 @@ export default function EspaceClientPage() {
         {/* ── Hero client ─────────────────────────────────────────────────── */}
         <div className="rounded-xl border border-[#dfe3eb] bg-white p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#2d1b3d] text-lg font-black text-white">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#185FA5] text-lg font-black text-white">
               {profile ? initials(profile.name) : '?'}
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">Espace client</p>
-              <h1 className="text-xl font-black text-[#111827]">{profile?.name ?? '—'}</h1>
+              <h1 className="page-title">{profile?.name ?? '—'}</h1>
               <p className="text-sm text-[#6b7280]">{profile?.email ?? ''}</p>
             </div>
           </div>
@@ -319,7 +319,7 @@ export default function EspaceClientPage() {
                           className="h-14 w-20 rounded object-cover shrink-0"
                         />
                       ) : (
-                        <div className="flex h-14 w-20 items-center justify-center rounded bg-[#dfe3eb] shrink-0 text-[#99acc2]">
+                        <div className="flex h-14 w-20 items-center justify-center rounded bg-[#dfe3eb] shrink-0 text-[#9ca3af]">
                           <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5" />
                           </svg>
@@ -389,7 +389,7 @@ export default function EspaceClientPage() {
                   </div>
 
                   <button type="submit" disabled={saving}
-                    className="w-full rounded bg-[#2d1b3d] py-2.5 text-sm font-bold text-white transition hover:bg-[#2d1b3d]/90 disabled:opacity-50">
+                    className="w-full rounded bg-[#185FA5] py-2.5 text-sm font-bold text-white transition hover:bg-[#185FA5]/90 disabled:opacity-50">
                     {saving ? 'Envoi en cours…' : 'Envoyer la réservation'}
                   </button>
                 </div>
@@ -477,7 +477,7 @@ export default function EspaceClientPage() {
                   {locations.length === 0 && (
                     <div className="surface-panel py-16 text-center">
                       <p className="text-sm font-semibold text-[#6b7280]">Aucune location pour le moment.</p>
-                      <p className="mt-1 text-xs text-[#99acc2]">Utilisez le formulaire pour effectuer une réservation.</p>
+                      <p className="mt-1 text-xs text-[#9ca3af]">Utilisez le formulaire pour effectuer une réservation.</p>
                     </div>
                   )}
                 </div>
@@ -560,7 +560,7 @@ export default function EspaceClientPage() {
                   {demandes.length === 0 ? (
                     <div className="surface-panel py-16 text-center">
                       <p className="text-sm font-semibold text-[#6b7280]">Aucune demande envoyée.</p>
-                      <p className="mt-1 text-xs text-[#99acc2]">Vos demandes d&apos;infos, de reprise et d&apos;achat apparaîtront ici.</p>
+                      <p className="mt-1 text-xs text-[#9ca3af]">Vos demandes d&apos;infos, de reprise et d&apos;achat apparaîtront ici.</p>
                     </div>
                   ) : (
                     demandes.map((d) => {
@@ -610,9 +610,9 @@ export default function EspaceClientPage() {
                             </p>
                           )}
                           {d.message && (
-                            <p className="text-sm text-[#33475b] line-clamp-2">{d.message}</p>
+                            <p className="text-sm text-[#374151] line-clamp-2">{d.message}</p>
                           )}
-                          <p className="text-xs text-[#99acc2]">{fmtDate(d.created_at)}</p>
+                          <p className="text-xs text-[#9ca3af]">{fmtDate(d.created_at)}</p>
                         </div>
                       );
                     })

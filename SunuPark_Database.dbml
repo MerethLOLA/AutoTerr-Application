@@ -1,0 +1,517 @@
+// SunuPark — Schéma complet de la base de données
+// Généré le 2026-05-28
+// Compatible dbdiagram.io — coller sur https://dbdiagram.io/d
+
+// ============================================================
+// GROUPE 1 — Employés & Utilisateurs
+// ============================================================
+
+Table employes {
+  id bigint [pk, increment]
+  nom varchar [not null]
+  prenom varchar
+  adresse varchar
+  date_embauche date
+  salaire decimal
+  contrat varchar
+  poste varchar [not null]
+  telephone varchar
+  email varchar [unique]
+  statut varchar [default: 'actif', note: 'actif | inactif']
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table users {
+  id bigint [pk, increment]
+  name varchar
+  username varchar [unique, not null]
+  email varchar [unique, not null]
+  email_verified_at timestamp
+  password varchar
+  password_hash varchar [not null]
+  role varchar [default: 'vendeur', note: 'admin | manager | vendeur | technicien | caissier']
+  statut varchar [default: 'actif', note: 'actif | inactif | suspendu']
+  last_login timestamp
+  token_expiration timestamp
+  id_employe bigint [ref: > employes.id, note: 'Compte lié à un employé']
+  remember_token varchar
+  profile_photo_path varchar
+  theme varchar [note: 'light | dark | system']
+  locale varchar [note: 'fr | en']
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table password_reset_tokens {
+  email varchar [pk]
+  token varchar [not null]
+  created_at timestamp
+}
+
+Table sessions {
+  id varchar [pk]
+  user_id bigint [ref: > users.id]
+  ip_address varchar
+  user_agent text
+  payload longtext [not null]
+  last_activity int [not null]
+}
+
+Table permissions {
+  id bigint [pk, increment]
+  nom varchar [unique, not null]
+  type varchar
+  description varchar
+}
+
+Table role_permissions {
+  id bigint [pk, increment]
+  role varchar [not null]
+  permission_id bigint [not null, ref: > permissions.id]
+
+  indexes {
+    (role, permission_id) [unique]
+  }
+}
+
+Table action_logs {
+  id bigint [pk, increment]
+  user_id bigint [ref: > users.id]
+  action varchar [not null, note: 'create | update | delete | export | login']
+  module varchar [not null]
+  target_type varchar
+  target_id bigint
+  details json
+  ip_address varchar
+  created_at timestamp
+  updated_at timestamp
+}
+
+// ============================================================
+// GROUPE 2 — Référentiels véhicules
+// ============================================================
+
+Table fournisseurs {
+  id bigint [pk, increment]
+  nom varchar [not null]
+  adresse varchar
+  telephone varchar
+  contact varchar
+  email varchar
+  lien varchar
+  adresse_bureau varchar
+  pays_origine varchar
+  vehicule_fournis text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table types_vehicules {
+  id bigint [pk, increment]
+  nom varchar [not null]
+  type_gasoil varchar
+  type_boite varchar
+  carburant varchar
+  description text
+}
+
+Table origines_marques {
+  id bigint [pk, increment]
+  nom varchar [unique, not null]
+  description text
+}
+
+// ============================================================
+// GROUPE 3 — Clients & Voitures
+// ============================================================
+
+Table clients {
+  id bigint [pk, increment]
+  nom varchar [not null]
+  prenom varchar
+  adresse varchar
+  contact varchar
+  telephone varchar
+  email varchar [unique]
+  piece_identite varchar [note: 'CNI | Passeport | Permis']
+  numero_piece varchar
+  numero_piece2 varchar
+  type_client varchar [note: 'particulier | professionnel']
+  classe varchar
+  raison_sociale varchar [note: 'Pour les entreprises']
+  numero_siret varchar
+  date_naissance date
+  id_vendeur_attribue bigint [ref: > employes.id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table voitures {
+  id bigint [pk, increment]
+  marque varchar [not null]
+  modele varchar [not null]
+  annee smallint
+  couleur varchar
+  prix decimal [not null, note: 'Prix d\'achat / coût']
+  prix_vente decimal [note: 'Prix de vente proposé']
+  kilometrage int
+  numero_chassis varchar [unique, not null]
+  date_acquisition date
+  statut varchar [default: 'disponible', note: 'disponible | vendu | loue | en_reparation | reserve']
+  type_usage varchar [default: 'les_deux', note: 'vente | location | les_deux']
+  etat varchar [note: 'neuf | occasion | accidente']
+  energie varchar [note: 'essence | diesel | electrique | hybride']
+  type_boite varchar [note: 'manuelle | automatique']
+  type_vehicule_id bigint [ref: > types_vehicules.id]
+  origine_marque_id bigint [ref: > origines_marques.id]
+  id_fournisseur bigint [ref: > fournisseurs.id]
+  description text
+  image_principale varchar
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table image_voitures {
+  id bigint [pk, increment]
+  id_voiture bigint [not null, ref: > voitures.id]
+  chemin varchar [not null]
+  vue varchar [note: 'avant | arriere | interieur | profil | autre']
+  description text
+  largeur int
+  hauteur int
+  taille bigint [note: 'Taille en octets']
+  legible boolean [default: true]
+  ordre int [default: 0]
+}
+
+// ============================================================
+// GROUPE 4 — Ventes & Facturation
+// ============================================================
+
+Table ventes {
+  id bigint [pk, increment]
+  reference_vente varchar [unique, not null]
+  date_vente date [not null]
+  id_client bigint [not null, ref: > clients.id]
+  id_voiture bigint [not null, ref: > voitures.id]
+  prix_final decimal [not null]
+  mode_paiement varchar [note: 'comptant | credit | cheque | virement | mixte']
+  statut varchar [default: 'en_cours', note: 'en_cours | finalisee | annulee']
+  id_employe bigint [not null, ref: > employes.id]
+  observations text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table facturations {
+  id bigint [pk, increment]
+  numero_facture varchar [unique, not null]
+  date_facture date [not null]
+  mode_livraison varchar
+  montant decimal [note: 'Montant brut avant remise']
+  remise decimal [default: 0]
+  montant_ht decimal [not null]
+  taux_tva decimal [default: 18.00]
+  montant_ttc decimal [not null]
+  statut varchar [default: 'impayee', note: 'impayee | partiellement_payee | payee | annulee']
+  date_echeance date
+  observations text
+  id_vente bigint [ref: > ventes.id, note: 'NULL si facture de location']
+  id_location bigint [ref: > locations.id, note: 'NULL si facture de vente']
+  created_at timestamp
+}
+
+Table paiements {
+  id bigint [pk, increment]
+  date date [not null]
+  mode_paiement varchar [not null, note: 'especes | cheque | virement | carte | mobile_money']
+  montant decimal [not null]
+  reste decimal
+  id_facture bigint [ref: > facturations.id]
+  id_vente bigint [ref: > ventes.id]
+  id_location bigint [ref: > locations.id]
+  id_client bigint [not null, ref: > clients.id]
+  created_at timestamp
+}
+
+Table garanties {
+  id bigint [pk, increment]
+  id_voiture bigint [unique, not null, ref: - voitures.id]
+  duree_garantie int [note: 'En mois']
+  type_garantie varchar [note: 'constructeur | vendeur | etendue']
+  date_debut date
+  date_fin date
+  id_employe bigint [ref: > employes.id, note: 'Responsable garantie']
+  created_at timestamp
+}
+
+Table documents {
+  id bigint [pk, increment]
+  id_vente bigint [ref: > ventes.id]
+  id_client bigint [ref: > clients.id]
+  id_employe bigint [ref: > employes.id]
+  id_voiture bigint [ref: > voitures.id]
+  type_document varchar [not null, note: 'carte_grise | permis | contrat | bon_livraison | autre']
+  date_document date
+  numero_document varchar
+  date_production date
+  date_expiration date
+  chemin_fichier varchar
+  created_at timestamp
+}
+
+// ============================================================
+// GROUPE 5 — SAV (Service Après-Vente)
+// ============================================================
+
+Table tickets_sav {
+  id bigint [pk, increment]
+  reference_ticket varchar [unique, not null]
+  id_client bigint [not null, ref: > clients.id]
+  id_voiture bigint [not null, ref: > voitures.id]
+  id_responsable bigint [not null, ref: > employes.id]
+  id_garantie bigint [ref: > garanties.id]
+  objet varchar [not null]
+  description text
+  statut varchar [default: 'ouvert', note: 'ouvert | en_cours | en_attente | resolu | ferme']
+  priorite varchar [default: 'normale', note: 'basse | normale | haute | critique']
+  date_ouverture timestamp
+  date_resolution timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table interventions_sav {
+  id bigint [pk, increment]
+  id_ticket_sav bigint [not null, ref: > tickets_sav.id]
+  id_employe bigint [ref: > employes.id]
+  description text [not null]
+  statut varchar [default: 'en_cours', note: 'en_cours | termine | suspendu']
+  temps_passe_minutes int [default: 0]
+  date_intervention timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+// ============================================================
+// GROUPE 6 — Stock
+// ============================================================
+
+Table pieces_stock {
+  id bigint [pk, increment]
+  reference varchar [unique, not null]
+  designation varchar [not null]
+  description text
+  image varchar
+  prix_unitaire decimal [not null]
+  quantite_stock int [default: 0]
+  seuil_alerte int [default: 0, note: 'Déclenchement d\'alerte si stock ≤ seuil']
+  id_fournisseur bigint [ref: > fournisseurs.id]
+  statut varchar [default: 'actif', note: 'actif | inactif | discontinue']
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table mouvements_stock {
+  id bigint [pk, increment]
+  id_piece_stock bigint [not null, ref: > pieces_stock.id]
+  type_mouvement varchar [not null, note: 'entree | sortie | ajustement | retour']
+  quantite int [not null]
+  source_mouvement varchar [note: 'achat | consommation | inventaire | retour']
+  reference_source varchar
+  observations text
+  date_mouvement timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+// ============================================================
+// GROUPE 7 — Atelier / Ordres de travail
+// ============================================================
+
+Table ordres_travail {
+  id bigint [pk, increment]
+  reference_ot varchar [unique, not null]
+  id_voiture bigint [not null, ref: > voitures.id]
+  id_ticket_sav bigint [ref: > tickets_sav.id]
+  description text [not null]
+  priorite varchar [default: 'normale', note: 'basse | normale | haute | urgente']
+  deadline timestamp
+  statut varchar [default: 'ouvert', note: 'ouvert | en_cours | en_attente | termine | annule']
+  id_technicien bigint [ref: > employes.id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table taches_atelier {
+  id bigint [pk, increment]
+  id_ordre_travail bigint [not null, ref: > ordres_travail.id]
+  description text [not null]
+  statut varchar [default: 'a_faire', note: 'a_faire | en_cours | termine']
+  temps_passe_minutes int [default: 0]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table consommations_pieces {
+  id bigint [pk, increment]
+  id_ordre_travail bigint [not null, ref: > ordres_travail.id]
+  id_piece_stock bigint [not null, ref: > pieces_stock.id]
+  quantite int [not null]
+  date_consommation timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+// ============================================================
+// GROUPE 8 — Locations
+// ============================================================
+
+Table locations {
+  id bigint [pk, increment]
+  reference_location varchar [unique, not null]
+  id_client bigint [not null, ref: > clients.id]
+  id_voiture bigint [not null, ref: > voitures.id]
+  date_debut timestamp [not null]
+  date_fin timestamp [not null]
+  date_retour_effective timestamp
+  tarif_journalier decimal [not null]
+  caution decimal
+  statut varchar [default: 'planifiee', note: 'planifiee | en_cours | terminee | annulee']
+  observations text
+  id_agent bigint [ref: > employes.id, note: 'Agent commercial responsable']
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table etats_lieux_locations {
+  id bigint [pk, increment]
+  id_location bigint [not null, ref: > locations.id]
+  type_etat varchar [not null, note: 'depart | retour']
+  description text
+  chemin_photo varchar
+  date_etat timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+// ============================================================
+// GROUPE 9 — Conformité & Maintenance parc
+// ============================================================
+
+Table assurances {
+  id bigint [pk, increment]
+  id_voiture bigint [not null, ref: > voitures.id]
+  compagnie varchar [not null]
+  numero_police varchar
+  type_assurance varchar [default: 'tous_risques', note: 'tiers | tous_risques | flotte | autre']
+  date_debut date [not null]
+  date_fin date [not null]
+  montant_prime decimal
+  statut varchar [default: 'active', note: 'active | expiree | annulee | suspendue']
+  notes text
+  id_gestionnaire bigint [ref: > employes.id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table carburants {
+  id bigint [pk, increment]
+  id_voiture bigint [not null, ref: > voitures.id]
+  date_plein date [not null]
+  kilometrage_au_plein int
+  quantite_litres decimal
+  prix_par_litre decimal
+  montant_total decimal [not null]
+  type_carburant varchar [default: 'essence', note: 'essence | diesel | electrique | gpl']
+  station varchar
+  notes text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table controles_techniques {
+  id bigint [pk, increment]
+  id_voiture bigint [not null, ref: > voitures.id]
+  type_controle varchar [default: 'periodique', note: 'periodique | pre_vente | pre_location | autre']
+  date_controle date [not null]
+  date_expiration date
+  resultat varchar [default: 'favorable', note: 'favorable | defavorable | contre_visite']
+  organisme varchar
+  cout decimal
+  observations text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table sinistres {
+  id bigint [pk, increment]
+  id_voiture bigint [not null, ref: > voitures.id]
+  id_client bigint [ref: > clients.id]
+  id_assurance bigint [ref: > assurances.id]
+  date_sinistre date [not null]
+  type_sinistre varchar [default: 'accident', note: 'accident | vol | incendie | vandalisme | autre']
+  description text [not null]
+  montant_dommages decimal
+  statut varchar [default: 'declare', note: 'declare | en_cours | indemnise | clos | rejete | annule']
+  numero_declaration varchar
+  notes text
+  id_gestionnaire bigint [ref: > employes.id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table entretiens {
+  id bigint [pk, increment]
+  id_voiture bigint [not null, ref: > voitures.id]
+  id_technicien bigint [ref: > employes.id]
+  type_entretien varchar [not null, note: 'vidange | revision | pneumatiques | freins | autre']
+  date_prevue date
+  date_realise date
+  kilometrage_prevu int
+  kilometrage_realise int
+  cout decimal
+  statut varchar [default: 'planifie', note: 'planifie | realise | annule']
+  notes text
+  created_at timestamp
+  updated_at timestamp
+}
+
+// ============================================================
+// GROUPE 10 — Notifications & Demandes clients
+// ============================================================
+
+Table notifications_internes {
+  id bigint [pk, increment]
+  type varchar [not null, note: 'stock_alerte | assurance_expirante | location_retard | etc.']
+  signature varchar [unique, not null, note: 'Hash déduplication']
+  niveau varchar [default: 'info', note: 'info | warning | danger | success']
+  titre varchar [not null]
+  message text [not null]
+  url varchar
+  declenchee_at timestamp
+  lue_at timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table demandes {
+  id bigint [pk, increment]
+  type varchar [not null, note: 'information | reprise | essai | achat']
+  statut varchar [default: 'en_attente', note: 'en_attente | traite | archive']
+  nom varchar [not null]
+  email varchar [not null]
+  telephone varchar
+  message text
+  id_voiture bigint [ref: > voitures.id]
+  rendez_vous_date date
+  rendez_vous_heure varchar
+  reprise_marque varchar
+  reprise_modele varchar
+  reprise_annee year
+  reprise_kilometrage int
+  reprise_etat varchar [note: 'bon | moyen | mauvais']
+  created_at timestamp
+  updated_at timestamp
+}

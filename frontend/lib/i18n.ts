@@ -29,7 +29,7 @@ function lookup(key: string, locale: Locale): string {
 
 export function setLocale(locale: string) {
   _locale = resolve(locale);
-  try { if (typeof window !== 'undefined') localStorage.setItem('sunupark_locale', _locale); } catch {}
+  try { if (typeof window !== 'undefined') localStorage.setItem('autoterr_locale', _locale); } catch {}
   listeners.forEach(fn => fn());
 }
 

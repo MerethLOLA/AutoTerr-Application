@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
@@ -12,6 +12,27 @@ interface EtatDesLieux {
   description?: string | null;
   date_etat: string | null;
   chemin_photo?: string | null;
+}
+
+interface Paiement {
+  id: number;
+  date: string;
+  mode_paiement: string;
+  montant: number;
+  reste: number;
+}
+
+interface Facture {
+  id: number;
+  numero_facture: string;
+  date_facture: string;
+  montant_ht: number;
+  taux_tva: number;
+  montant_ttc: number;
+  statut: string;
+  date_echeance?: string | null;
+  observations?: string | null;
+  paiements: Paiement[];
 }
 
 interface Location {
@@ -31,6 +52,8 @@ interface Location {
 
 const STATUTS_LOCATION = ['planifiee', 'en_cours', 'terminee', 'annulee'];
 
+const MODES_PAIEMENT = ['especes', 'virement', 'cheque', 'carte', 'mobile_money'];
+
 function badge(value: string) {
   const map: Record<string, string> = {
     planifiee: 'bg-amber-100 text-amber-800',
@@ -39,6 +62,10 @@ function badge(value: string) {
     annulee: 'bg-[#f5f8fa] text-[#6b7280]',
     depart: 'bg-blue-100 text-blue-800',
     retour: 'bg-emerald-100 text-emerald-800',
+    impayee: 'bg-red-100 text-red-700',
+    partiellement_payee: 'bg-amber-100 text-amber-700',
+    payee: 'bg-emerald-100 text-emerald-700',
+    en_retard: 'bg-red-100 text-red-700',
   };
   return `inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${map[value] ?? 'bg-[#f5f8fa] text-[#6b7280]'}`;
 }
@@ -74,6 +101,18 @@ export default function LocationDetailPage() {
   const [savingEtat, setSavingEtat] = useState(false);
   const [etatError, setEtatError] = useState<string | null>(null);
 
+  // Facturation — chargée directement depuis location.facturation
+  const [facture, setFacture] = useState<Facture | null>(null);
+  const [genForm, setGenForm] = useState({ taux_tva: '18', tarif_journalier: '', date_echeance: '', observations: '' });
+  const [generatingFacture, setGeneratingFacture] = useState(false);
+  const [factureError, setFactureError] = useState<string | null>(null);
+
+  // Paiement form
+  const [showPaiForm, setShowPaiForm] = useState(false);
+  const [paiForm, setPaiForm] = useState({ montant: '', mode_paiement: 'especes', date: todayISO() });
+  const [savingPai, setSavingPai] = useState(false);
+  const [paiError, setPaiError] = useState<string | null>(null);
+
   useEffect(() => {
     setLoading(true);
     apiClient.get<{ data: Location }>(`/locations/${id}`)
@@ -81,6 +120,7 @@ export default function LocationDetailPage() {
         const l = res.data;
         setLocation(l);
         setStatut(l.statut);
+        setFacture((l as any).facturation ?? null);
       })
       .catch(() => setError('Impossible de charger la location'))
       .finally(() => setLoading(false));
@@ -112,9 +152,64 @@ export default function LocationDetailPage() {
       setFeedback('État des lieux enregistré.');
       setTimeout(() => setFeedback(null), 3000);
     } catch (err: any) {
-      setEtatError(err?.response?.data?.message || 'Erreur lors de l\'enregistrement');
+      setEtatError(err?.response?.data?.message || "Erreur lors de l'enregistrement");
     } finally {
       setSavingEtat(false);
+    }
+  }
+
+
+  async function generateAndPay(e: React.FormEvent) {
+    e.preventDefault();
+    setGeneratingFacture(true);
+    setFactureError(null);
+    try {
+      const payload: Record<string, string> = { taux_tva: genForm.taux_tva };
+      if (genForm.tarif_journalier) payload.tarif_journalier = genForm.tarif_journalier;
+      if (genForm.date_echeance) payload.date_echeance = genForm.date_echeance;
+      const res = await apiClient.post<{ data: Facture }>(`/locations/${id}/facture`, payload);
+      setFacture(res.data);
+      setGeneratingFacture(false);
+      if (paiForm.montant) {
+        setSavingPai(true);
+        const res2 = await apiClient.post<any>(`/locations/${id}/paiements`, paiForm);
+        setFacture((res2 as any).facture ?? res2.data ?? res.data);
+        setSavingPai(false);
+      }
+      setShowPaiForm(false);
+      setPaiForm({ montant: '', mode_paiement: 'especes', date: todayISO() });
+      setFeedback('Paiement enregistré.');
+      setTimeout(() => setFeedback(null), 3000);
+    } catch (err: any) {
+      setFactureError(err?.response?.data?.message || 'Erreur');
+      setGeneratingFacture(false);
+      setSavingPai(false);
+    }
+  }
+
+  async function addPaiement(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingPai(true);
+    setPaiError(null);
+    try {
+      const res = await apiClient.post<{ data: Paiement; facture: Facture }>(`/locations/${id}/paiements`, paiForm);
+      const updated = (res as any).facture ?? null;
+      if (updated) {
+        setFacture(updated);
+      } else {
+        setFacture((f) => f ? {
+          ...f,
+          paiements: [...(f.paiements ?? []), res.data],
+        } : f);
+      }
+      setPaiForm({ montant: '', mode_paiement: 'especes', date: todayISO() });
+      setShowPaiForm(false);
+      setFeedback('Paiement enregistré.');
+      setTimeout(() => setFeedback(null), 3000);
+    } catch (err: any) {
+      setPaiError(err?.response?.data?.message || 'Erreur lors du paiement');
+    } finally {
+      setSavingPai(false);
     }
   }
 
@@ -161,21 +256,19 @@ export default function LocationDetailPage() {
   ));
   const montantTotal = location.tarif_journalier * jours;
 
+  const totalPaye = facture?.paiements?.reduce((s, p) => s + Number(p.montant), 0) ?? 0;
+  const resteAPayer = facture ? Math.max(facture.montant_ttc - totalPaye, 0) : 0;
+
   return (
     <DashboardLayout>
       <div className="space-y-5">
 
-        {/* En-tête */}
         <div className="page-header">
           <div>
-            <nav className="mb-1 flex items-center gap-1.5 text-xs text-[#6b7280]">
-              <Link href="/locations" className="hover:text-[#111827]">Locations</Link>
-              <span>/</span>
-              <span className="font-semibold text-[#111827]">{location.reference_location}</span>
-            </nav>
             <h1 className="page-title">Contrat de location</h1>
+            <p className="page-subtitle">Détail du contrat, état des lieux et suivi des paiements.</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 gap-2">
             <span className={badge(location.statut)}>{location.statut.replace('_', ' ')}</span>
             <button
               type="button"
@@ -187,7 +280,7 @@ export default function LocationDetailPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              {downloading ? 'Génération…' : 'Exporter PDF'}
+              {downloading ? 'Génération…' : 'Contrat PDF'}
             </button>
           </div>
         </div>
@@ -208,7 +301,7 @@ export default function LocationDetailPage() {
                 {[
                   { label: 'Tarif / jour', value: fmtMoney(location.tarif_journalier) },
                   { label: 'Durée', value: `${jours} jour${jours > 1 ? 's' : ''}` },
-                  { label: 'Montant total', value: fmtMoney(montantTotal) },
+                  { label: 'Montant total HT', value: fmtMoney(montantTotal) },
                   { label: 'Caution', value: fmtMoney(location.caution) },
                 ].map(({ label, value }) => (
                   <div key={label} className="rounded border border-[#dfe3eb] bg-[#f5f8fa] px-4 py-3">
@@ -222,6 +315,143 @@ export default function LocationDetailPage() {
                   <p className="text-xs font-semibold text-[#6b7280]">Observations</p>
                   <p className="mt-1 text-sm text-[#111827]">{location.observations}</p>
                 </div>
+              )}
+            </section>
+
+            {/* ── Paiements ─────────────────────────────────── */}
+            <section className="surface-panel">
+              <div className="flex items-center justify-between border-b border-[#dfe3eb] px-5 py-4">
+                <h2 className="section-title">
+                  Paiements
+                  {facture && <span className={`ml-2 ${badge(facture.statut)}`}>{facture.statut.replace('_', ' ')}</span>}
+                </h2>
+                {facture && facture.statut !== 'payee' && location.statut !== 'annulee' && (
+                  <button type="button" onClick={() => setShowPaiForm((v) => !v)}
+                    className="inline-flex items-center gap-1 rounded border border-[#dfe3eb] bg-white px-3 py-1.5 text-xs font-semibold text-[#111827] transition hover:border-emerald-600 hover:bg-emerald-600 hover:text-white">
+                    {showPaiForm ? 'Annuler' : '+ Enregistrer un paiement'}
+                  </button>
+                )}
+                {!facture && location.statut !== 'annulee' && (
+                  <button type="button" onClick={() => setShowPaiForm((v) => !v)}
+                    className="inline-flex items-center gap-1 rounded border border-[#dfe3eb] bg-white px-3 py-1.5 text-xs font-semibold text-[#111827] transition hover:border-[#185FA5] hover:bg-[#185FA5] hover:text-white">
+                    {showPaiForm ? 'Annuler' : '+ Définir le montant'}
+                  </button>
+                )}
+              </div>
+
+              {/* Résumé montants si facture */}
+              {facture && (
+                <div className="grid grid-cols-2 gap-4 border-b border-[#dfe3eb] px-5 py-4 sm:grid-cols-4">
+                  {[
+                    { label: 'N° facture', value: facture.numero_facture },
+                    { label: 'Total TTC', value: fmtMoney(facture.montant_ttc) },
+                    { label: 'Payé', value: fmtMoney(totalPaye) },
+                    { label: 'Reste à payer', value: fmtMoney(resteAPayer) },
+                  ].map(({ label, value }) => (
+                    <div key={label}>
+                      <p className="text-xs text-[#6b7280]">{label}</p>
+                      <p className="mt-0.5 text-sm font-bold text-[#111827]">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Formulaire paiement (ou définir montant si pas de facture) */}
+              {showPaiForm && (
+                <form onSubmit={facture ? addPaiement : generateAndPay}
+                  className="border-b border-[#dfe3eb] bg-[#f5f8fa] px-5 py-4">
+                  {!facture && (
+                    <div className="mb-4 grid gap-4 sm:grid-cols-3">
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold text-[#111827]">Tarif / jour (XOF) *</label>
+                        <input type="number" className="field-control" min="0" step="1" required
+                          placeholder={String(location.tarif_journalier || '')}
+                          value={genForm.tarif_journalier}
+                          onChange={(e) => setGenForm((f) => ({ ...f, tarif_journalier: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold text-[#111827]">TVA (%)</label>
+                        <input type="number" className="field-control" min="0" max="100" step="0.01"
+                          value={genForm.taux_tva}
+                          onChange={(e) => setGenForm((f) => ({ ...f, taux_tva: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold text-[#111827]">Date d'échéance</label>
+                        <input type="date" className="field-control"
+                          value={genForm.date_echeance}
+                          onChange={(e) => setGenForm((f) => ({ ...f, date_echeance: e.target.value }))} />
+                      </div>
+                    </div>
+                  )}
+                  {facture && (
+                    <p className="mb-3 text-xs font-semibold text-emerald-800">Reste à payer : {fmtMoney(resteAPayer)}</p>
+                  )}
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-[#111827]">Montant *</label>
+                      <input type="number" className="field-control" min="1" step="1" required
+                        placeholder={facture ? String(Math.round(resteAPayer)) : ''}
+                        value={paiForm.montant}
+                        onChange={(e) => setPaiForm((f) => ({ ...f, montant: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-[#111827]">Mode *</label>
+                      <select className="field-control" required value={paiForm.mode_paiement}
+                        onChange={(e) => setPaiForm((f) => ({ ...f, mode_paiement: e.target.value }))}>
+                        {MODES_PAIEMENT.map((m) => <option key={m} value={m}>{m.replace('_', ' ')}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-[#111827]">Date *</label>
+                      <input type="date" className="field-control" required value={paiForm.date}
+                        onChange={(e) => setPaiForm((f) => ({ ...f, date: e.target.value }))} />
+                    </div>
+                  </div>
+                  {(paiError || factureError) && (
+                    <p className="mt-2 text-xs text-red-600">{paiError || factureError}</p>
+                  )}
+                  <div className="mt-3 flex justify-end">
+                    <button type="submit" disabled={savingPai || generatingFacture} className="btn-primary">
+                      {(savingPai || generatingFacture) ? 'Enregistrement…' : 'Valider'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Historique paiements */}
+              {facture && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr>
+                        <th className="table-header pl-5">Date</th>
+                        <th className="table-header">Mode</th>
+                        <th className="table-header text-right pr-5">Montant</th>
+                        <th className="table-header text-right pr-5">Reste</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {!facture.paiements || facture.paiements.length === 0 ? (
+                        <tr><td colSpan={4} className="px-5 py-6 text-sm text-[#6b7280]">Aucun paiement enregistré.</td></tr>
+                      ) : (
+                        facture.paiements.map((p) => (
+                          <tr key={p.id} className="table-row">
+                            <td className="table-cell pl-5 font-medium text-[#111827]">{fmtDate(p.date)}</td>
+                            <td className="table-cell capitalize">{p.mode_paiement.replace('_', ' ')}</td>
+                            <td className="table-cell text-right pr-5 text-emerald-700 font-semibold tabular-nums">{fmtMoney(p.montant)}</td>
+                            <td className="table-cell text-right pr-5 tabular-nums text-[#6b7280]">{fmtMoney(p.reste)}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {!facture && !showPaiForm && location.statut !== 'annulee' && (
+                <p className="px-5 py-6 text-sm text-[#6b7280]">
+                  Aucun montant défini. Cliquez sur « + Définir le montant » pour enregistrer le premier paiement.
+                </p>
               )}
             </section>
 
@@ -239,13 +469,12 @@ export default function LocationDetailPage() {
                 <button
                   type="button"
                   onClick={() => setShowEtatForm((v) => !v)}
-                  className="inline-flex items-center gap-1 rounded border border-[#dfe3eb] bg-white px-3 py-1.5 text-xs font-semibold text-[#111827] transition hover:border-[#2d1b3d] hover:bg-[#2d1b3d] hover:text-white"
+                  className="inline-flex items-center gap-1 rounded border border-[#dfe3eb] bg-white px-3 py-1.5 text-xs font-semibold text-[#111827] transition hover:border-[#185FA5] hover:bg-[#185FA5] hover:text-white"
                 >
                   {showEtatForm ? 'Annuler' : '+ Ajouter'}
                 </button>
               </div>
 
-              {/* Formulaire d'ajout */}
               {showEtatForm && (
                 <form onSubmit={submitEtat} className="border-b border-[#dfe3eb] bg-[#f5f8fa] px-5 py-4">
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -282,16 +511,10 @@ export default function LocationDetailPage() {
                       />
                     </div>
                   </div>
-                  {etatError && (
-                    <p className="mt-2 text-xs text-red-600">{etatError}</p>
-                  )}
+                  {etatError && <p className="mt-2 text-xs text-red-600">{etatError}</p>}
                   <div className="mt-3 flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={savingEtat}
-                      className="btn-primary"
-                    >
-                      {savingEtat ? 'Enregistrement…' : 'Enregistrer l\'état'}
+                    <button type="submit" disabled={savingEtat} className="btn-primary">
+                      {savingEtat ? 'Enregistrement…' : "Enregistrer l'état"}
                     </button>
                   </div>
                 </form>
@@ -355,7 +578,7 @@ export default function LocationDetailPage() {
 
             {/* Mise à jour du statut */}
             <section className="surface-panel p-5">
-              <h2 className="section-title mb-4">Mettre à jour</h2>
+              <h2 className="section-title mb-4">Mettre à jour le statut</h2>
               <div className="space-y-3">
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-[#111827]">Statut</label>
@@ -376,6 +599,43 @@ export default function LocationDetailPage() {
               </div>
             </section>
 
+            {/* Récap paiement rapide */}
+            {facture && (
+              <section className="surface-panel p-5">
+                <h2 className="section-title mb-3">Statut de paiement</h2>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#6b7280]">Facture</span>
+                    <span className="font-semibold text-[#111827]">{facture.numero_facture}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#6b7280]">Total TTC</span>
+                    <span className="font-bold text-[#111827]">{fmtMoney(facture.montant_ttc)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#6b7280]">Payé</span>
+                    <span className="font-bold text-emerald-700">{fmtMoney(totalPaye)}</span>
+                  </div>
+                  <div className="my-1 h-px bg-[#dfe3eb]" />
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#6b7280]">Reste</span>
+                    <span className={`font-black ${resteAPayer > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                      {fmtMoney(resteAPayer)}
+                    </span>
+                  </div>
+                  {/* Barre de progression */}
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#dfe3eb]">
+                    <div
+                      className="h-full rounded-full bg-emerald-500 transition-all"
+                      style={{ width: `${facture.montant_ttc > 0 ? Math.min((totalPaye / facture.montant_ttc) * 100, 100) : 0}%` }}
+                    />
+                  </div>
+                  <p className="text-right text-xs text-[#6b7280]">
+                    {facture.montant_ttc > 0 ? Math.round((totalPaye / facture.montant_ttc) * 100) : 0}% payé
+                  </p>
+                </div>
+              </section>
+            )}
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Location;
 
 class Facturation extends Model
 {
@@ -28,6 +29,7 @@ class Facturation extends Model
         'date_echeance',
         'observations',
         'id_vente',
+        'id_location',
     ];
 
     protected $casts = [
@@ -44,6 +46,11 @@ class Facturation extends Model
     public function vente(): BelongsTo
     {
         return $this->belongsTo(Vente::class, 'id_vente');
+    }
+
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'id_location');
     }
 
     public function paiements(): HasMany

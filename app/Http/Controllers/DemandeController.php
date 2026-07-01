@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\DemandeClientRecue;
 use App\Models\Demande;
+use App\Models\NotificationInterne;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -41,6 +43,26 @@ class DemandeController extends Controller
         }
 
         $demande = Demande::query()->create($base);
+
+        $typeLabels = [
+            'information' => "Demande d'information",
+            'reprise'     => 'Demande de reprise',
+            'essai'       => "Demande d'essai",
+            'achat'       => 'Demande d\'achat / RDV',
+        ];
+
+        NotificationInterne::query()->create([
+            'type'          => 'demande_client',
+            'signature'     => 'demande-' . $demande->id,
+            'niveau'        => 'info',
+            'titre'         => $typeLabels[$type] ?? 'Nouvelle demande client',
+            'message'       => sprintf('%s (%s) a envoyé une demande.', $base['nom'], $base['email']),
+            'url'           => '/demandes',
+            'declenchee_at' => now(),
+        ]);
+
+        // Broadcast en temps réel + notifier les admins par email (via queue)
+        DemandeClientRecue::dispatch($demande);
 
         return response()->json([
             'message' => 'Demande envoyée avec succès.',

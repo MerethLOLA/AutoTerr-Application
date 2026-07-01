@@ -31,7 +31,7 @@ function BarChart({ data }: { data: Array<{ label: string; count: number; amount
             {/* Barre montant */}
             <div className="relative flex w-full items-end justify-center gap-px" style={{ height: '100%' }}>
               <div
-                className="w-3/5 rounded-t-sm bg-[#2d1b3d] transition-all duration-500"
+                className="w-3/5 rounded-t-sm bg-[#185FA5] transition-all duration-500"
                 style={{ height: `${Math.max(hPct, 2)}%` }}
               />
               {/* Barre count (thin overlay) */}
@@ -48,7 +48,7 @@ function BarChart({ data }: { data: Array<{ label: string; count: number; amount
   );
 }
 
-function MiniBar({ value, max, color = '#2d1b3d' }: { value: number; max: number; color?: string }) {
+function MiniBar({ value, max, color = '#185FA5' }: { value: number; max: number; color?: string }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
     <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#dfe3eb]">
@@ -90,10 +90,8 @@ export default function AnalyticsPage() {
     <DashboardLayout>
       <div className="space-y-6">
 
-        {/* En-tête */}
         <div className="page-header">
           <div>
-            <p className="eyebrow">Exercice {payload?.year ?? new Date().getFullYear()}</p>
             <h1 className="page-title mt-0.5">Analytics</h1>
             <p className="page-subtitle">Visualisation des performances commerciales et opérationnelles.</p>
           </div>
@@ -141,7 +139,7 @@ export default function AnalyticsPage() {
                 {/* Légende */}
                 <div className="mt-3 flex items-center gap-5">
                   <span className="flex items-center gap-1.5 text-xs text-[#6b7280]">
-                    <span className="h-2.5 w-2.5 rounded-sm bg-[#2d1b3d]" />Montant (XOF)
+                    <span className="h-2.5 w-2.5 rounded-sm bg-[#185FA5]" />Montant (XOF)
                   </span>
                   <span className="flex items-center gap-1.5 text-xs text-[#6b7280]">
                     <span className="h-2.5 w-2.5 rounded-sm bg-[#dfe3eb]" />Nb ventes

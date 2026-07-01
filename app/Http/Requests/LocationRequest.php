@@ -25,6 +25,8 @@ class LocationRequest extends FormRequest
             'tarif_journalier'     => [$required, 'numeric', 'min:0'],
             'statut'               => ['nullable', 'string', 'max:50'],
             'caution'              => ['nullable', 'numeric', 'min:0'],
+            'taux_tva'             => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'date_echeance'        => ['nullable', 'date'],
             'observations'         => ['nullable', 'string'],
         ];
     }

@@ -8,6 +8,7 @@ use App\Models\MouvementStock;
 use App\Models\PieceStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class PieceStockController extends Controller
 {
@@ -17,7 +18,7 @@ class PieceStockController extends Controller
 
         $pieces = PieceStock::query()
             ->select([
-                'id', 'reference', 'designation', 'prix_unitaire', 'quantite_stock',
+                'id', 'reference', 'designation', 'image', 'prix_unitaire', 'quantite_stock',
                 'seuil_alerte', 'id_fournisseur', 'statut', 'created_at',
             ])
             ->with(['fournisseur:id,nom'])
@@ -41,8 +42,14 @@ class PieceStockController extends Controller
     public function store(PieceStockRequest $request)
     {
         $this->ensurePermission('manage_stock');
-        $piece = PieceStock::query()->create($request->validated());
-        $this->logAction('create', 'piece_stock', $piece, $request->validated(), $request);
+
+        $data = $request->validated();
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('pieces', 'public');
+        }
+
+        $piece = PieceStock::query()->create($data);
+        $this->logAction('create', 'piece_stock', $piece, $data, $request);
         $this->resetDashboardCache();
 
         if (! $request->wantsJson()) {
@@ -79,8 +86,17 @@ class PieceStockController extends Controller
     public function update(PieceStockRequest $request, PieceStock $pieceStock)
     {
         $this->ensurePermission('manage_stock');
-        $pieceStock->update($request->validated());
-        $this->logAction('update', 'piece_stock', $pieceStock, $request->validated(), $request);
+
+        $data = $request->validated();
+        if ($request->hasFile('image')) {
+            if ($pieceStock->image) {
+                Storage::disk('public')->delete($pieceStock->image);
+            }
+            $data['image'] = $request->file('image')->store('pieces', 'public');
+        }
+
+        $pieceStock->update($data);
+        $this->logAction('update', 'piece_stock', $pieceStock, $data, $request);
         $this->resetDashboardCache();
 
         if (! $request->wantsJson()) {

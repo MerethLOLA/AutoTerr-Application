@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const STORAGE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '');
 function imgUrl(p?: string | null) {
@@ -66,20 +66,30 @@ function CardSkeleton() {
 function VoitureCard({ v }: { v: Voiture }) {
   const photos = buildPhotos(v);
   const multi  = photos.length > 1;
-  const [idx, setIdx] = useState(0);
+  const [idx, setIdx]       = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
+  function startSlide() {
     if (!multi) return;
-    const t = setInterval(() => setIdx((i) => (i + 1) % photos.length), 2500);
-    return () => clearInterval(t);
-  }, [multi, photos.length]);
+    timerRef.current = setInterval(() => setIdx((i) => (i + 1) % photos.length), 1800);
+  }
+
+  function stopSlide() {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    setIdx(0);
+  }
+
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
   const st   = STATUT[v.statut] ?? { label: v.statut, cls: 'bg-slate-100 text-slate-600' };
   const dispo = v.statut === 'disponible';
 
   return (
     <Link href={`/voitures/${v.id}`}
-      className="group flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl">
+      className="group flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl"
+      onMouseEnter={() => { setHovered(true); startSlide(); }}
+      onMouseLeave={() => { setHovered(false); stopSlide(); }}>
 
       {/* ── Zone photo ── */}
       <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl bg-slate-100">
@@ -101,9 +111,25 @@ function VoitureCard({ v }: { v: Voiture }) {
           />
         ))}
 
-        {/* Gradient bas pour dots */}
-        {multi && (
-          <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/40 to-transparent" />
+        {/* Indicateur photos multiples (visible seulement au repos) */}
+        {multi && !hovered && (
+          <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white">
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            {photos.length}
+          </div>
+        )}
+
+        {/* Dots au survol */}
+        {multi && hovered && (
+          <div className="absolute inset-x-0 bottom-0 z-10 h-14 bg-gradient-to-t from-black/50 to-transparent">
+            <div className="absolute bottom-2.5 left-1/2 flex -translate-x-1/2 gap-1.5">
+              {photos.map((_, i) => (
+                <span key={i} className={`block h-1.5 rounded-full transition-all duration-300 ${i === idx ? 'w-4 bg-white' : 'w-1.5 bg-white/50'}`} />
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Badge statut */}
@@ -111,18 +137,6 @@ function VoitureCard({ v }: { v: Voiture }) {
           {st.label}
         </span>
 
-        {/* Dots */}
-        {multi && (
-          <div className="absolute bottom-2.5 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
-            {photos.map((_, i) => (
-              <span
-                key={i}
-                className="block rounded-full bg-white transition-all duration-300"
-                style={{ width: i === idx ? 16 : 5, height: 4, opacity: i === idx ? 1 : 0.5 }}
-              />
-            ))}
-          </div>
-        )}
       </div>
 
       {/* ── Infos ── */}
@@ -151,7 +165,7 @@ function VoitureCard({ v }: { v: Voiture }) {
         </p>
         <div className={`mt-3 rounded-xl py-2 text-center text-xs font-bold transition ${
           dispo
-            ? 'border border-[#33475b] bg-white text-[#111827] group-hover:bg-[#f5f8fa]'
+            ? 'border border-[#374151] bg-white text-[#111827] group-hover:bg-[#f5f8fa]'
             : 'bg-slate-100 text-slate-500'
         }`}>
           {dispo ? 'Voir & créer une vente →' : 'Consulter →'}
@@ -209,10 +223,8 @@ export default function VoituresPage() {
     <DashboardLayout>
       <div className="space-y-6">
 
-        {/* En-tête */}
         <div className="page-header">
           <div>
-            <p className="eyebrow">Parc automobile</p>
             <h1 className="page-title mt-1">Véhicules</h1>
             <p className="page-subtitle">
               {loading ? 'Chargement…' : `${total} véhicule${total !== 1 ? 's' : ''} dans le parc`}

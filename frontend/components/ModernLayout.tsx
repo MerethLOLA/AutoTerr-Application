@@ -78,10 +78,10 @@ export default function ModernLayout({ children }: ModernLayoutProps) {
             {/* Logo */}
             <Link href="/dashboard" className="flex items-center gap-3 group">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center group-hover:shadow-lg group-hover:shadow-blue-500/50 transition-all duration-300">
-                <span className="text-white font-bold">SP</span>
+                <span className="text-white font-bold">AT</span>
               </div>
               <span className="hidden sm:inline font-bold text-lg bg-gradient-to-r from-blue-400 to-blue-500 bg-clip-text text-transparent">
-                SunuPark
+                AutoTerr
               </span>
             </Link>
 

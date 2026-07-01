@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import PublicLayout from '@/components/PublicLayout';
 import { apiClient } from '@/lib/api';
@@ -17,7 +17,7 @@ interface Voiture {
   images?: Image[];
 }
 
-const VIOLET = '#2d1b3d';
+const NAVY = '#185FA5';
 const HEURES = ['08:00','09:00','10:00','11:00','12:00','14:00','15:00','16:00','17:00','18:00'];
 
 function money(v?: number) {
@@ -38,8 +38,8 @@ const ALL_TABS: { key: Tab; label: string }[] = [
   { key: 'reprise',     label: 'Reprise' },
 ];
 
-const inputCls = 'w-full rounded-lg border border-[#dfe3eb] bg-[#f5f8fa] px-3 py-2.5 text-sm text-[#33475b] placeholder:text-[#99acc2] focus:border-[#5b2d8e] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5b2d8e]/20';
-const labelCls = 'mb-1.5 block text-xs font-bold text-[#33475b]';
+const inputCls = 'w-full rounded-lg border border-[#dfe3eb] bg-[#f5f8fa] px-3 py-2.5 text-sm text-[#374151] placeholder:text-[#9ca3af] focus:border-[#1d6fb8] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1d6fb8]/20';
+const labelCls = 'mb-1.5 block text-xs font-bold text-[#374151]';
 
 function Feedback({ msg, ok }: { msg: string; ok: boolean }) {
   return (
@@ -57,11 +57,11 @@ function ReserverTab({ voiture }: { voiture: Voiture }) {
       </p>
       <Link href="/inscription"
         className="flex w-full items-center justify-center rounded-xl py-3.5 text-sm font-black text-white transition hover:opacity-90"
-        style={{ backgroundColor: VIOLET }}>
+        style={{ backgroundColor: NAVY }}>
         Créer mon compte et réserver
       </Link>
       <Link href="/login/client"
-        className="flex w-full items-center justify-center rounded-xl border border-[#dfe3eb] py-3.5 text-sm font-bold text-[#33475b] transition hover:border-[#2d1b3d] hover:text-[#2d1b3d]">
+        className="flex w-full items-center justify-center rounded-xl border border-[#dfe3eb] py-3.5 text-sm font-bold text-[#374151] transition hover:border-[#185FA5] hover:text-[#185FA5]">
         J&apos;ai déjà un compte — Se connecter
       </Link>
       {voiture.prix && (
@@ -155,14 +155,14 @@ function RendezVousForm({ voiture }: { voiture: Voiture }) {
       </div>
 
       {voiture.prix_vente && (
-        <p className="rounded-lg border border-[#ede8f4] bg-[#f9f7fc] px-4 py-2.5 text-sm text-[#33475b]">
+        <p className="rounded-lg border border-[#ede8f4] bg-[#f9f7fc] px-4 py-2.5 text-sm text-[#374151]">
           Prix de vente : <strong>{money(voiture.prix_vente)} XOF</strong>
         </p>
       )}
 
       <button type="submit" disabled={loading}
         className="w-full rounded-xl py-3 text-sm font-black text-white transition disabled:opacity-50"
-        style={{ backgroundColor: VIOLET }}>
+        style={{ backgroundColor: NAVY }}>
         {loading ? 'Envoi en cours…' : "Prendre rendez-vous pour l'achat"}
       </button>
     </form>
@@ -289,7 +289,7 @@ function DemandeForm({ type, voitureId }: { type: 'information' | 'reprise'; voi
 
       <button type="submit" disabled={loading}
         className="w-full rounded-xl py-3 text-sm font-black text-white transition disabled:opacity-50"
-        style={{ backgroundColor: VIOLET }}>
+        style={{ backgroundColor: NAVY }}>
         {loading ? 'Envoi en cours…' : isReprise ? 'Envoyer ma demande de reprise' : 'Envoyer ma demande'}
       </button>
     </form>
@@ -322,9 +322,9 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
       <PublicLayout>
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <div className="grid gap-8 lg:grid-cols-[1fr_420px]">
-            <div className="h-96 animate-pulse rounded-xl bg-[#f3f0f7]" />
+            <div className="h-96 animate-pulse rounded-xl bg-[#eff6ff]" />
             <div className="space-y-4">
-              {[1,2,3].map((i) => <div key={i} className="h-8 animate-pulse rounded bg-[#f3f0f7]" />)}
+              {[1,2,3].map((i) => <div key={i} className="h-8 animate-pulse rounded bg-[#eff6ff]" />)}
             </div>
           </div>
         </div>
@@ -337,7 +337,7 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
       <PublicLayout>
         <div className="py-32 text-center">
           <p className="text-xl font-black text-[#111827]">Véhicule introuvable</p>
-          <Link href="/catalogue" className="mt-4 inline-block text-sm font-semibold text-[#5b2d8e] hover:underline">
+          <Link href="/catalogue" className="mt-4 inline-block text-sm font-semibold text-[#1d6fb8] hover:underline">
             ← Retour au catalogue
           </Link>
         </div>
@@ -376,9 +376,9 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
 
         {/* Breadcrumb */}
         <nav className="mb-6 flex items-center gap-2 text-sm text-[#6b7280]">
-          <Link href="/" className="hover:text-[#2d1b3d]">Accueil</Link>
+          <Link href="/" className="hover:text-[#185FA5]">Accueil</Link>
           <span>/</span>
-          <Link href="/catalogue" className="hover:text-[#2d1b3d]">Catalogue</Link>
+          <Link href="/catalogue" className="hover:text-[#185FA5]">Catalogue</Link>
           <span>/</span>
           <span className="font-semibold text-[#111827]">{voiture.marque} {voiture.modele}</span>
         </nav>
@@ -387,13 +387,13 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
 
           {/* ── Galerie ── */}
           <div className="space-y-3">
-            <div className="relative overflow-hidden rounded-xl bg-[#f3f0f7]" style={{ aspectRatio: '16/9' }}>
+            <div className="relative overflow-hidden rounded-xl bg-[#eff6ff]" style={{ aspectRatio: '16/9' }}>
               {currentImg ? (
                 <Image src={currentImg} alt={`${voiture.marque} ${voiture.modele}`}
                   fill className="object-cover" />
               ) : (
                 <div className="flex h-full items-center justify-center">
-                  <svg className="h-20 w-20 text-[#c9a8e8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-20 w-20 text-[#93c5fd]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
                       d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5" />
                   </svg>
@@ -404,7 +404,7 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {allImages.map((src, i) => (
                   <button key={i} onClick={() => setActiveImg(src)}
-                    className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 transition ${src === currentImg ? 'border-[#2d1b3d]' : 'border-transparent hover:border-[#c9a8e8]'}`}>
+                    className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 transition ${src === currentImg ? 'border-[#185FA5]' : 'border-transparent hover:border-[#93c5fd]'}`}>
                     <Image src={src} alt="" fill className="object-cover" />
                   </button>
                 ))}
@@ -432,10 +432,10 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
             {/* Titre + prix */}
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-xs font-bold uppercase tracking-widest text-[#5b2d8e]">{voiture.marque}</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-[#1d6fb8]">{voiture.marque}</p>
                 {voiture.type_usage === 'location' && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700">Location</span>}
                 {voiture.type_usage === 'vente'    && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">Vente</span>}
-                {voiture.type_usage === 'les_deux' && <span className="rounded-full bg-[#f3f0f7] px-2 py-0.5 text-xs font-bold text-[#2d1b3d]">Location · Vente</span>}
+                {voiture.type_usage === 'les_deux' && <span className="rounded-full bg-[#eff6ff] px-2 py-0.5 text-xs font-bold text-[#185FA5]">Location · Vente</span>}
               </div>
               <h1 className="mt-0.5 text-3xl font-black text-[#111827]">
                 {voiture.modele}{' '}
@@ -445,14 +445,14 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
               {/* Prix : location + vente séparés */}
               <div className="mt-2 space-y-1">
                 {isLocation && voiture.prix && (
-                  <p className="text-2xl font-black" style={{ color: VIOLET }}>
+                  <p className="text-2xl font-black" style={{ color: NAVY }}>
                     {money(voiture.prix)}{' '}
                     <span className="text-base font-normal text-[#6b7280]">XOF / jour</span>
                   </p>
                 )}
                 {isVente && voiture.prix_vente && (
                   <p className={isLocation ? 'text-xl font-black text-emerald-700' : 'text-2xl font-black'}
-                    style={!isLocation ? { color: VIOLET } : {}}>
+                    style={!isLocation ? { color: NAVY } : {}}>
                     {money(voiture.prix_vente)}{' '}
                     <span className="text-base font-normal text-[#6b7280]">XOF</span>
                     {isLocation && <span className="ml-1 text-sm font-normal text-[#6b7280]">(à l&apos;achat)</span>}

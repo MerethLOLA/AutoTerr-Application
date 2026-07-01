@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
@@ -101,13 +101,10 @@ export default function DemandesPage() {
     <DashboardLayout>
       <div className="space-y-5">
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="page-header">
           <div>
-            <h1 className="text-xl font-black text-[#111827]">Demandes clients</h1>
-            <p className="text-sm text-[#6b7280]">
-              Informations, reprises, essais et demandes d&apos;achat soumis depuis le site
-            </p>
+            <h1 className="page-title mt-1">Demandes clients</h1>
+            <p className="page-subtitle">Informations, reprises, essais et demandes d&apos;achat soumis depuis le site.</p>
           </div>
           {counts.en_attente > 0 && (
             <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-bold text-red-700">
@@ -152,7 +149,7 @@ export default function DemandesPage() {
             ) : demandes.length === 0 ? (
               <div className="py-16 text-center">
                 <p className="font-semibold text-[#6b7280]">Aucune demande trouvée</p>
-                <p className="mt-1 text-sm text-[#99acc2]">Modifiez les filtres pour voir plus de résultats.</p>
+                <p className="mt-1 text-sm text-[#9ca3af]">Modifiez les filtres pour voir plus de résultats.</p>
               </div>
             ) : (
               <table className="w-full text-left text-sm">
@@ -220,17 +217,17 @@ export default function DemandesPage() {
               </div>
 
               <div className="space-y-2 rounded-lg border border-[#dfe3eb] bg-[#f9f7fc] p-4 text-sm">
-                <p><span className="font-bold text-[#33475b]">Nom :</span> {selected.nom}</p>
-                <p><span className="font-bold text-[#33475b]">Email :</span>{' '}
+                <p><span className="font-bold text-[#374151]">Nom :</span> {selected.nom}</p>
+                <p><span className="font-bold text-[#374151]">Email :</span>{' '}
                   <a href={`mailto:${selected.email}`} className="text-[#5b2d8e] hover:underline">{selected.email}</a>
                 </p>
                 {selected.telephone && (
-                  <p><span className="font-bold text-[#33475b]">Tél :</span>{' '}
+                  <p><span className="font-bold text-[#374151]">Tél :</span>{' '}
                     <a href={`tel:${selected.telephone}`} className="text-[#5b2d8e] hover:underline">{selected.telephone}</a>
                   </p>
                 )}
                 {selected.voiture && (
-                  <p><span className="font-bold text-[#33475b]">Véhicule :</span> {selected.voiture.marque} {selected.voiture.modele}</p>
+                  <p><span className="font-bold text-[#374151]">Véhicule :</span> {selected.voiture.marque} {selected.voiture.modele}</p>
                 )}
               </div>
 
@@ -263,7 +260,7 @@ export default function DemandesPage() {
               {selected.message && (
                 <div className="rounded-lg border border-[#dfe3eb] p-4 text-sm">
                   <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[#6b7280]">Message</p>
-                  <p className="whitespace-pre-wrap text-[#33475b]">{selected.message}</p>
+                  <p className="whitespace-pre-wrap text-[#374151]">{selected.message}</p>
                 </div>
               )}
 
@@ -283,7 +280,7 @@ export default function DemandesPage() {
                     <button
                       disabled={updating === selected.id}
                       onClick={() => updateStatut(selected.id, 'archive')}
-                      className="flex-1 rounded-lg border border-[#dfe3eb] py-2 text-xs font-bold text-[#6b7280] transition hover:border-[#2d1b3d] hover:text-[#2d1b3d] disabled:opacity-50">
+                      className="flex-1 rounded-lg border border-[#dfe3eb] py-2 text-xs font-bold text-[#6b7280] transition hover:border-[#185FA5] hover:text-[#185FA5] disabled:opacity-50">
                       Archiver
                     </button>
                   )}
@@ -291,13 +288,13 @@ export default function DemandesPage() {
                     <button
                       disabled={updating === selected.id}
                       onClick={() => updateStatut(selected.id, 'en_attente')}
-                      className="flex-1 rounded-lg border border-[#dfe3eb] py-2 text-xs font-bold text-[#6b7280] transition hover:border-[#2d1b3d] hover:text-[#2d1b3d] disabled:opacity-50">
+                      className="flex-1 rounded-lg border border-[#dfe3eb] py-2 text-xs font-bold text-[#6b7280] transition hover:border-[#185FA5] hover:text-[#185FA5] disabled:opacity-50">
                       Rouvrir
                     </button>
                   )}
                 </div>
                 <a href={`mailto:${selected.email}`}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#2d1b3d] py-2 text-xs font-bold text-[#2d1b3d] transition hover:bg-[#f3f0f7]">
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#185FA5] py-2 text-xs font-bold text-[#185FA5] transition hover:bg-[#f3f0f7]">
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
@@ -312,7 +309,7 @@ export default function DemandesPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
                 <p className="text-sm font-semibold text-[#6b7280]">Sélectionnez une demande</p>
-                <p className="mt-1 text-xs text-[#99acc2]">pour voir les détails et agir</p>
+                <p className="mt-1 text-xs text-[#9ca3af]">pour voir les détails et agir</p>
               </div>
             </div>
           )}

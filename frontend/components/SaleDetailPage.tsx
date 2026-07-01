@@ -121,14 +121,14 @@ export default function SaleDetailPage({ saleId }: { saleId: string }) {
           <span className="font-bold text-[#111827]">{sale.reference_vente}</span>
         </nav>
 
-        {/* En-tête */}
         <div className="page-header">
           <div>
-            <p className="eyebrow">Vente</p>
             <h1 className="page-title mt-0.5">{sale.reference_vente}</h1>
             <p className="page-subtitle">Créée le {fmtDate(sale.date_vente)}</p>
           </div>
-          <span className={badge(sale.statut)}>{sale.statut.replace('_', ' ')}</span>
+          <div className="flex shrink-0 gap-2">
+            <span className={badge(sale.statut)}>{sale.statut.replace('_', ' ')}</span>
+          </div>
         </div>
 
         {/* Blocs d'information */}
@@ -194,7 +194,7 @@ export default function SaleDetailPage({ saleId }: { saleId: string }) {
                   type="button"
                   disabled={downloading}
                   onClick={() => downloadFacture(sale.facturation!.id, sale.facturation!.numero_facture)}
-                  className="inline-flex items-center gap-1.5 rounded border border-[#dfe3eb] bg-white px-3 py-1.5 text-xs font-semibold text-[#111827] transition hover:border-[#2d1b3d] hover:bg-[#2d1b3d] hover:text-white disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 rounded border border-[#dfe3eb] bg-white px-3 py-1.5 text-xs font-semibold text-[#111827] transition hover:border-[#185FA5] hover:bg-[#185FA5] hover:text-white disabled:opacity-40"
                 >
                   {downloading ? '…' : '↓ PDF'}
                 </button>

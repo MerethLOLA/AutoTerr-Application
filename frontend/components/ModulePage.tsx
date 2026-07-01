@@ -316,7 +316,12 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
 
     try {
       if (editingItemId !== null) {
-        await apiClient.put(`${mod.endpoint}/${editingItemId}`, submitPayload);
+        if (hasFiles && submitPayload instanceof FormData) {
+          submitPayload.append('_method', 'PUT');
+          await apiClient.post(`${mod.endpoint}/${editingItemId}`, submitPayload);
+        } else {
+          await apiClient.put(`${mod.endpoint}/${editingItemId}`, submitPayload);
+        }
       } else {
         await apiClient.post(mod.endpoint, submitPayload);
       }
@@ -361,7 +366,6 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
     <DashboardLayout>
       <div className="space-y-8">
 
-        {/* En-tête */}
         <div className="page-header">
           <div>
             <h1 className="page-title">{mod.title}</h1>
@@ -422,11 +426,16 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                           onChange={(e) => setFormValues((cur) => ({ ...cur, [field.name]: e.target.value }))}
                         >
                           <option value="">Sélectionner</option>
-                          {(options[field.name] ?? []).map((option) => (
-                            <option key={option.id} value={option.id}>
-                              {getOptionText(field, option)}
-                            </option>
-                          ))}
+                          {field.staticOptions
+                            ? field.staticOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))
+                            : (options[field.name] ?? []).map((option) => (
+                                <option key={option.id} value={option.id}>
+                                  {getOptionText(field, option)}
+                                </option>
+                              ))
+                          }
                         </select>
                       ) : field.type === 'textarea' ? (
                         <textarea
@@ -578,7 +587,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                                     title="Imprimer / Télécharger PDF"
                                     disabled={downloadingId === item.id}
                                     onClick={() => handleExport(item)}
-                                    className="inline-flex items-center gap-1 rounded border border-[#dfe3eb] bg-white px-2 py-1 text-xs font-semibold text-[#111827] transition hover:border-[#2d1b3d] hover:bg-[#2d1b3d] hover:text-white disabled:opacity-40"
+                                    className="inline-flex items-center gap-1 rounded border border-[#dfe3eb] bg-white px-2 py-1 text-xs font-semibold text-[#111827] transition hover:border-[#185FA5] hover:bg-[#185FA5] hover:text-white disabled:opacity-40"
                                   >
                                     {downloadingId === item.id ? (
                                       '…'
@@ -625,7 +634,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-500">Lignes par page :</span>
                       <select
-                        className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700 outline-none focus:border-[#33475b]"
+                        className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700 outline-none focus:border-[#374151]"
                         value={perPage}
                         onChange={(e) => setPerPage(Number(e.target.value))}
                       >

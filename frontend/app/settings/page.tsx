@@ -196,7 +196,6 @@ export default function SettingsPage() {
     <DashboardLayout>
       <div className="space-y-6">
 
-        {/* En-tête */}
         <div className="page-header">
           <div>
             <h1 className="page-title">Paramètres</h1>
@@ -228,7 +227,7 @@ export default function SettingsPage() {
           <aside className="surface-panel p-3">
             {/* Avatar utilisateur */}
             <div className="mb-3 flex items-center gap-3 rounded border border-[#dfe3eb] bg-[#f5f8fa] px-4 py-3 dark:border-slate-700 dark:bg-slate-800/60">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#516f90] text-sm font-bold text-white">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#6b7280] text-sm font-bold text-white">
                 {(user?.name || 'U').charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
@@ -360,7 +359,7 @@ export default function SettingsPage() {
                             className="h-20 w-20 rounded-full object-cover border border-[#dfe3eb]"
                           />
                         ) : (
-                          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#516f90] text-2xl font-black text-white">
+                          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#6b7280] text-2xl font-black text-white">
                             {(user?.name || 'U').charAt(0).toUpperCase()}
                           </div>
                         )}

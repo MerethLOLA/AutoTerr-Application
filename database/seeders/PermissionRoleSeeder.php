@@ -27,6 +27,8 @@ class PermissionRoleSeeder extends Seeder
             'manage_atelier' => ['type' => 'atelier', 'description' => 'Piloter ordres de travail atelier'],
             'assign_taches' => ['type' => 'atelier', 'description' => 'Assigner taches et consommations atelier'],
             'manage_stock' => ['type' => 'stock', 'description' => 'Piloter stock et approvisionnements'],
+            'manage_assurance' => ['type' => 'assurance', 'description' => 'Piloter assurances et sinistres'],
+            'view_employes'    => ['type' => 'general',   'description' => 'Consulter la liste des employes'],
         ];
 
         foreach ($permissions as $name => $meta) {
@@ -76,6 +78,24 @@ class PermissionRoleSeeder extends Seeder
                 'view_stock',
                 'manage_stock',
                 'view_fournisseurs',
+            ],
+            'manager' => [
+                'view_dashboard',
+                'view_reporting',
+                'view_voitures',
+                'view_clients',
+                'view_employes',
+                'create_vente',
+                'manage_ventes',
+                'manage_recouvrement',
+                'view_paiements',
+                'manage_location',
+            ],
+            'assurance' => [
+                'view_dashboard',
+                'view_reporting',
+                'view_voitures',
+                'manage_assurance',
             ],
             'client' => [],
         ];

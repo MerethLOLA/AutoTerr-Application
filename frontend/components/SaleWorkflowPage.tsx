@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
@@ -14,7 +14,7 @@ function money(v?: number | string | null) {
 }
 
 interface Client  { id: number; nom: string; prenom?: string; telephone?: string; email?: string; }
-interface Voiture { id: number; marque: string; modele: string; annee?: number; prix: number; statut: string; energie?: string; image_principale?: string; }
+interface Voiture { id: number; marque: string; modele: string; annee?: number; prix?: number | null; prix_vente?: number | null; statut: string; energie?: string; image_principale?: string; }
 interface Employe { id: number; nom: string; prenom?: string; }
 
 const STEPS = [
@@ -33,7 +33,7 @@ function Stepper({ current }: { current: number }) {
             <div className="flex flex-col items-center gap-1.5">
               <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-black transition-all ${
                 current > s.num  ? 'bg-emerald-500 text-white'
-                : current === s.num ? 'bg-[#33475b] text-white shadow-lg shadow-[#33475b]/30'
+                : current === s.num ? 'bg-[#374151] text-white shadow-lg shadow-[#374151]/30'
                 : 'bg-slate-100 text-slate-400'
               }`}>
                 {current > s.num ? (
@@ -75,7 +75,7 @@ function VoitureCard({ v, compact = false }: { v: Voiture; compact?: boolean }) 
           <p className="truncate text-sm font-black text-[#111827]">{v.marque} {v.modele}</p>
           <p className="text-xs text-slate-500">{[v.annee, v.energie].filter(Boolean).join(' · ')}</p>
         </div>
-        <p className="shrink-0 text-sm font-black text-[#111827]">{money(v.prix)} <span className="text-xs font-normal text-slate-400">XOF</span></p>
+        <p className="shrink-0 text-sm font-black text-[#111827]">{money(v.prix_vente ?? v.prix)} <span className="text-xs font-normal text-slate-400">XOF</span></p>
       </div>
     );
   }
@@ -94,7 +94,7 @@ function VoitureCard({ v, compact = false }: { v: Voiture; compact?: boolean }) 
       <div className="p-4">
         <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{[v.annee, v.energie].filter(Boolean).join(' · ')}</p>
         <h3 className="mt-1 text-xl font-black text-[#111827]">{v.marque} {v.modele}</h3>
-        <p className="mt-2 text-2xl font-black text-slate-900">{money(v.prix)} <span className="text-sm font-bold text-slate-400">XOF</span></p>
+        <p className="mt-2 text-2xl font-black text-slate-900">{money(v.prix_vente ?? v.prix)} <span className="text-sm font-bold text-slate-400">XOF</span></p>
       </div>
     </div>
   );
@@ -147,7 +147,7 @@ export default function SaleWorkflowPage() {
   useEffect(() => {
     if (!preVoitureId || voitures.length === 0) return;
     const found = voitures.find((v) => String(v.id) === preVoitureId);
-    if (found) { setSelVoiture(found); patch('prix_final', String(found.prix)); }
+    if (found) { setSelVoiture(found); patch('prix_final', String(found.prix_vente ?? found.prix ?? '')); }
   }, [preVoitureId, voitures]);
 
   const filteredVoitures = useMemo(() =>
@@ -248,10 +248,8 @@ export default function SaleWorkflowPage() {
     <DashboardLayout>
       <div className="mx-auto max-w-3xl space-y-6">
 
-        {/* En-tête */}
         <div className="page-header">
           <div>
-            <p className="eyebrow">Commercial</p>
             <h1 className="page-title mt-1">Nouvelle vente</h1>
             <p className="page-subtitle">Sélectionnez le véhicule, le client et finalisez la transaction.</p>
           </div>
@@ -286,9 +284,9 @@ export default function SaleWorkflowPage() {
                 const photo = imgUrl(v.image_principale);
                 return (
                   <button key={v.id} type="button"
-                    onClick={() => { setSelVoiture(v); patch('id_voiture', String(v.id)); patch('prix_final', String(v.prix)); }}
+                    onClick={() => { setSelVoiture(v); patch('id_voiture', String(v.id)); patch('prix_final', String(v.prix_vente ?? v.prix ?? '')); }}
                     className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
-                      sel ? 'border-[#33475b] bg-[#33475b]/[0.04] shadow-sm' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      sel ? 'border-[#374151] bg-[#374151]/[0.04] shadow-sm' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                     }`}>
                     <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
                       {photo ? <Image src={photo} alt="" fill className="object-cover" /> : (
@@ -305,11 +303,11 @@ export default function SaleWorkflowPage() {
                       <p className="text-xs text-slate-400">{[v.annee, v.energie].filter(Boolean).join(' · ')}</p>
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className="font-black text-slate-800">{money(v.prix)}</p>
+                      <p className="font-black text-slate-800">{money(v.prix_vente ?? v.prix)}</p>
                       <p className="text-xs text-slate-400">XOF</p>
                     </div>
                     {sel && (
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#33475b]">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#374151]">
                         <svg className="h-3.5 w-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
@@ -353,9 +351,9 @@ export default function SaleWorkflowPage() {
                   <button key={c.id} type="button"
                     onClick={() => { setSelClient(c); patch('id_client', String(c.id)); }}
                     className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
-                      sel ? 'border-[#33475b] bg-[#33475b]/[0.04]' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      sel ? 'border-[#374151] bg-[#374151]/[0.04]' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                     }`}>
-                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black ${sel ? 'bg-[#33475b] text-white' : 'bg-[#002d54] text-white'}`}>
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black ${sel ? 'bg-[#374151] text-white' : 'bg-[#002d54] text-white'}`}>
                       {full.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">

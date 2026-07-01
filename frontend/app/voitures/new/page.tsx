@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
@@ -135,17 +135,14 @@ export default function NewVoiturePage() {
     <DashboardLayout>
       <div className="mx-auto max-w-4xl space-y-6">
 
-        {/* En-tête */}
         <div className="page-header">
           <div>
-            <nav className="mb-1 flex items-center gap-1.5 text-xs text-[#6b7280]">
-              <Link href="/voitures" className="hover:text-[#111827]">Véhicules</Link>
-              <span>/</span>
-              <span className="font-semibold text-[#111827]">Nouveau véhicule</span>
-            </nav>
             <h1 className="page-title">Ajouter un véhicule</h1>
+            <p className="page-subtitle">Renseignez les caractéristiques du nouveau véhicule à intégrer à la flotte.</p>
           </div>
-          <Link href="/voitures" className="btn-secondary">Annuler</Link>
+          <div className="flex shrink-0 gap-2">
+            <Link href="/voitures" className="btn-secondary">Annuler</Link>
+          </div>
         </div>
 
         {globalError && (
@@ -298,11 +295,11 @@ export default function NewVoiturePage() {
               onClick={() => fileInputRef.current?.click()}
               className={`cursor-pointer rounded border-2 border-dashed p-8 text-center transition
                 ${dragging
-                  ? 'border-[#33475b] bg-[#f5f8fa]'
-                  : 'border-[#cbd6e2] bg-[#f5f8fa] hover:border-[#33475b]/50'
+                  ? 'border-[#374151] bg-[#f5f8fa]'
+                  : 'border-[#e8ecf0] bg-[#f5f8fa] hover:border-[#374151]/50'
                 }`}
             >
-              <svg className="mx-auto mb-3 h-10 w-10 text-[#cbd6e2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="mx-auto mb-3 h-10 w-10 text-[#e8ecf0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>

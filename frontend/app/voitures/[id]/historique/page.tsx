@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
@@ -55,7 +55,7 @@ function eventColor(type: string): { dot: string; line: string } {
     sinistre:           { dot: 'bg-red-500',       line: 'border-red-200' },
     carburant:          { dot: 'bg-amber-500',     line: 'border-amber-200' },
   };
-  return map[type] ?? { dot: 'bg-[#516f90]', line: 'border-[#dfe3eb]' };
+  return map[type] ?? { dot: 'bg-[#6b7280]', line: 'border-[#dfe3eb]' };
 }
 
 function typeLabel(type: string): string {
@@ -216,10 +216,8 @@ export default function VehicleHistoryPage({ params }: { params: { id: string } 
           <span className="font-bold text-[#111827]">Historique</span>
         </nav>
 
-        {/* En-tête */}
         <div className="page-header">
           <div>
-            <p className="eyebrow">Véhicule</p>
             <h1 className="page-title mt-0.5">{voiture.marque} {voiture.modele} {voiture.annee ?? ''}</h1>
             <p className="page-subtitle">Châssis : {voiture.numero_chassis} · {voiture.kilometrage ? money(voiture.kilometrage) + ' km' : '—'}</p>
           </div>

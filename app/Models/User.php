@@ -21,7 +21,6 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'password_hash',
         'profile_photo_path',
         'role',
         'statut',
@@ -34,7 +33,6 @@ class User extends Authenticatable
 
     protected $hidden = [
         'password',
-        'password_hash',
     ];
 
     protected function casts(): array
@@ -102,6 +100,6 @@ class User extends Authenticatable
 
     public function profilePhotoUrl(): ?string
     {
-        return $this->profile_photo_path ? asset('storage/'.$this->profile_photo_path) : null;
+        return $this->profile_photo_path ? '/storage/'.$this->profile_photo_path : null;
     }
 }

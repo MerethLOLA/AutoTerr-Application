@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Assurance;
 use App\Models\Carburant;
+use App\Models\Client;
+use App\Models\Demande;
 use App\Models\Entretien;
 use App\Models\Facturation;
 use App\Models\Location;
@@ -13,6 +15,7 @@ use App\Models\Paiement;
 use App\Models\PieceStock;
 use App\Models\Sinistre;
 use App\Models\TicketSav;
+use App\Models\User;
 use App\Models\Vente;
 use App\Models\Voiture;
 use Illuminate\Http\Request;
@@ -36,6 +39,19 @@ class ReportingController extends Controller
                 'label' => now()->setMonth($month)->locale('fr')->translatedFormat('M'),
                 'count' => (clone $ventes)->count(),
                 'amount' => (float) (clone $ventes)->sum('prix_final'),
+            ];
+        });
+
+        $locationsMonthly = collect(range(1, 12))->map(function (int $month) use ($year) {
+            $base = Facturation::query()
+                ->whereNotNull('id_location')
+                ->whereYear('date_facture', $year)
+                ->whereMonth('date_facture', $month);
+
+            return [
+                'label'  => now()->setMonth($month)->locale('fr')->translatedFormat('M'),
+                'count'  => (clone $base)->count(),
+                'amount' => (float) (clone $base)->sum('montant_ttc'),
             ];
         });
 
@@ -114,6 +130,89 @@ class ReportingController extends Controller
 
         $voituresDisponibles = Voiture::query()->where('statut', 'disponible')->count();
 
+        $utilisateursInscrits = Client::count();
+
+        $enAttenteValidation = Demande::whereNotIn('statut', ['traite', 'refuse', 'annule'])->count();
+
+        $totalVentesGlobal = Vente::count();
+
+        $ventesParMarque = DB::table('ventes')
+            ->join('voitures', 'ventes.id_voiture', '=', 'voitures.id')
+            ->select('voitures.marque', DB::raw('COUNT(*) as count'))
+            ->groupBy('voitures.marque')
+            ->orderByDesc('count')
+            ->limit(6)
+            ->get()
+            ->map(fn($row) => [
+                'marque' => $row->marque,
+                'count'  => (int) $row->count,
+                'pct'    => $totalVentesGlobal > 0 ? round(($row->count / $totalVentesGlobal) * 100) : 0,
+            ]);
+
+        $topVendeurs = DB::table('ventes')
+            ->join('employes', 'ventes.id_employe', '=', 'employes.id')
+            ->select(
+                'employes.prenom',
+                'employes.nom',
+                'employes.poste',
+                DB::raw('COUNT(*) as count'),
+                DB::raw('COALESCE(SUM(ventes.prix_final), 0) as total')
+            )
+            ->whereNotNull('ventes.id_employe')
+            ->groupBy('employes.id', 'employes.prenom', 'employes.nom', 'employes.poste')
+            ->orderByDesc('count')
+            ->limit(5)
+            ->get();
+
+        $recentVentes = Vente::with(['voiture', 'client'])
+            ->latest()
+            ->limit(4)
+            ->get()
+            ->map(fn($v) => [
+                'type'  => 'vente',
+                'label' => 'Nouvelle vente : ' . ($v->voiture ? $v->voiture->marque . ' ' . $v->voiture->modele . ($v->voiture->annee ? ' ' . $v->voiture->annee : '') : 'Véhicule #' . $v->id_voiture),
+                'sub'   => $v->client ? trim($v->client->prenom . ' ' . $v->client->nom) : '',
+                'at'    => $v->created_at?->toISOString() ?? now()->toISOString(),
+            ]);
+
+        $recentLocations = Location::with(['voiture', 'client'])
+            ->latest()
+            ->limit(4)
+            ->get()
+            ->map(fn($l) => [
+                'type'  => 'location',
+                'label' => 'Location : ' . ($l->voiture ? $l->voiture->marque . ' ' . $l->voiture->modele . ($l->voiture->annee ? ' ' . $l->voiture->annee : '') : 'Location #' . $l->id),
+                'sub'   => $l->client ? trim($l->client->prenom . ' ' . $l->client->nom) : '',
+                'at'    => $l->created_at?->toISOString() ?? now()->toISOString(),
+            ]);
+
+        $activiteRecente = collect($recentVentes)
+            ->merge($recentLocations)
+            ->sortByDesc('at')
+            ->values()
+            ->take(6);
+
+        $dernieresVoitures = Voiture::with([
+            'ventes' => fn($q) => $q->with('employe')->latest()->limit(1),
+        ])
+            ->latest()
+            ->limit(5)
+            ->get(['id', 'marque', 'modele', 'annee', 'prix_vente', 'prix', 'statut', 'image_principale', 'energie'])
+            ->map(fn($v) => [
+                'id'               => $v->id,
+                'marque'           => $v->marque,
+                'modele'           => $v->modele,
+                'annee'            => $v->annee,
+                'energie'          => $v->energie,
+                'prix_vente'       => (float) ($v->prix_vente ?? $v->prix ?? 0),
+                'prix'             => (float) ($v->prix ?? 0),
+                'statut'           => $v->statut,
+                'image_principale' => $v->image_principale,
+                'vendeur'          => $v->ventes->isNotEmpty() && $v->ventes->first()->employe
+                    ? mb_substr($v->ventes->first()->employe->prenom ?? '', 0, 1) . '. ' . ($v->ventes->first()->employe->nom ?? '')
+                    : null,
+            ]);
+
         $conformiteStats = [
             'assurances_expirant' => Assurance::query()
                 ->whereBetween('date_fin', [now()->toDateString(), now()->addDays(30)->toDateString()])
@@ -143,6 +242,7 @@ class ReportingController extends Controller
         $data = compact(
             'year',
             'salesMonthly',
+            'locationsMonthly',
             'paymentModes',
             'locationStats',
             'savStats',
@@ -150,6 +250,12 @@ class ReportingController extends Controller
             'financeStats',
             'voituresDisponibles',
             'conformiteStats',
+            'utilisateursInscrits',
+            'enAttenteValidation',
+            'ventesParMarque',
+            'topVendeurs',
+            'activiteRecente',
+            'dernieresVoitures',
         );
 
         return $this->apiItem($data);
@@ -193,7 +299,7 @@ class ReportingController extends Controller
                 fputcsv($handle, $row, ';');
             }
             fclose($handle);
-        }, 'reporting-sunupark.csv', [
+        }, 'reporting-autoterr.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
