@@ -11,7 +11,7 @@ use Illuminate\Validation\Rule;
 
 class UserManagementController extends Controller
 {
-    private const ROLES = ['admin', 'manager', 'commercial', 'agent_location', 'sav', 'atelier', 'stock', 'assurance', 'client'];
+    private const ROLES = ['admin', 'manager', 'commercial', 'agent_location', 'sav', 'atelier', 'stock', 'assurance', 'accountant', 'client'];
 
     public function index(): JsonResponse
     {

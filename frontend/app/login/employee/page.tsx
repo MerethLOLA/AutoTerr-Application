@@ -9,11 +9,11 @@ export default function LoginEmployee() {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  const [username,     setUsername]     = useState('');
-  const [password,     setPassword]     = useState('');
-  const [loading,      setLoading]      = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [error,        setError]        = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const isDisabled = useMemo(
     () => loading || !username.trim() || !password.trim(),
@@ -50,18 +50,28 @@ export default function LoginEmployee() {
   };
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '8px 10px',
-    border: '0.5px solid #e8ecf0', borderRadius: 6,
-    fontSize: 13, color: '#111827', background: '#fff', outline: 'none',
+    width: '100%',
+    padding: '11px 12px',
+    border: '1px solid #dfe3eb',
+    borderRadius: 12,
+    fontSize: 14,
+    color: '#111827',
+    background: '#fff',
+    outline: 'none',
+    transition: 'border-color .15s ease, box-shadow .15s ease',
   };
-  const focusIn  = (e: React.FocusEvent<HTMLInputElement>) => { e.target.style.borderColor = '#185FA5'; e.target.style.boxShadow = '0 0 0 3px rgba(24,95,165,0.10)'; };
-  const focusOut = (e: React.FocusEvent<HTMLInputElement>) => { e.target.style.borderColor = '#e8ecf0'; e.target.style.boxShadow = 'none'; };
+  const focusIn = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.style.borderColor = '#185FA5';
+    e.target.style.boxShadow = '0 0 0 3px rgba(24,95,165,0.10)';
+  };
+  const focusOut = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.style.borderColor = '#dfe3eb';
+    e.target.style.boxShadow = 'none';
+  };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f4f8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', fontFamily: 'var(--font-sans)' }}>
-
-      {/* Nav mini */}
-      <div style={{ width: '100%', maxWidth: 400, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#fff', border: '0.5px solid #e8ecf0', borderRadius: 8 }}>
+    <div className="auth-shell" style={{ fontFamily: 'var(--font-sans)' }}>
+      <div className="auth-nav">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/LOgo2.png" alt="AutoTerr" style={{ height: 28, objectFit: 'contain' }} />
         <Link href="/" style={{ fontSize: 12, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
@@ -69,37 +79,27 @@ export default function LoginEmployee() {
         </Link>
       </div>
 
-      {/* Card */}
-      <div style={{ width: '100%', maxWidth: 400, background: '#fff', border: '0.5px solid #e8ecf0', borderRadius: 8, padding: 28 }}>
-
-        {/* Icône + titre */}
+      <div className="auth-card">
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
           <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
             <svg width={20} height={20} fill="none" stroke="#185FA5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h1 style={{ fontSize: 16, fontWeight: 500, color: '#111827', margin: '0 0 4px' }}>Connexion équipe</h1>
-          <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>Accédez à votre espace AutoTerr</p>
+          <h1 className="auth-title">Connexion équipe</h1>
+          <p className="auth-subtitle">Accédez à votre espace AutoTerr</p>
         </div>
 
-        {/* Erreur */}
-        {error && (
-          <div style={{ marginBottom: 16, padding: '9px 12px', background: '#FCEBEB', border: '0.5px solid #f5c6c6', borderRadius: 6, fontSize: 12, color: '#A32D2D' }}>
-            {error}
-          </div>
-        )}
+        {error && <div className="auth-error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
-
-          {/* Identifiant */}
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: 'block', fontSize: 12, color: '#6b7280', fontWeight: 500, marginBottom: 5 }}>
+            <label style={{ display: 'block', fontSize: 12, color: '#6b7280', fontWeight: 500, marginBottom: 6 }}>
               Nom d&apos;utilisateur
             </label>
             <div style={{ position: 'relative' }}>
               <svg width={14} height={14} fill="none" stroke="#9ca3af" viewBox="0 0 24 24"
-                style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               <input
@@ -111,19 +111,18 @@ export default function LoginEmployee() {
                 onFocus={focusIn}
                 onBlur={focusOut}
                 required
-                style={{ ...inputStyle, paddingLeft: 30 }}
+                style={{ ...inputStyle, paddingLeft: 34 }}
               />
             </div>
           </div>
 
-          {/* Mot de passe */}
           <div style={{ marginBottom: 6 }}>
-            <label style={{ display: 'block', fontSize: 12, color: '#6b7280', fontWeight: 500, marginBottom: 5 }}>
+            <label style={{ display: 'block', fontSize: 12, color: '#6b7280', fontWeight: 500, marginBottom: 6 }}>
               Mot de passe
             </label>
             <div style={{ position: 'relative' }}>
               <svg width={14} height={14} fill="none" stroke="#9ca3af" viewBox="0 0 24 24"
-                style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
               <input
@@ -135,7 +134,7 @@ export default function LoginEmployee() {
                 onFocus={focusIn}
                 onBlur={focusOut}
                 required
-                style={{ ...inputStyle, paddingLeft: 30, paddingRight: 34 }}
+                style={{ ...inputStyle, paddingLeft: 34, paddingRight: 34 }}
               />
               <button
                 type="button"
@@ -153,24 +152,11 @@ export default function LoginEmployee() {
             </div>
           </div>
 
-          {/* Bouton */}
-          <button
-            type="submit"
-            disabled={isDisabled}
-            style={{
-              width: '100%', padding: '9px', marginTop: 18, marginBottom: 16,
-              background: isDisabled ? '#e8ecf0' : '#185FA5',
-              color: isDisabled ? '#9ca3af' : '#E6F1FB',
-              border: 'none', borderRadius: 6,
-              fontSize: 13, fontWeight: 500, cursor: isDisabled ? 'not-allowed' : 'pointer',
-              transition: 'background .15s',
-            }}
-          >
+          <button type="submit" disabled={isDisabled} className="auth-button" style={{ marginTop: 18, marginBottom: 16 }}>
             {loading ? 'Connexion…' : 'Se connecter'}
           </button>
         </form>
 
-        {/* Séparateur */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
           <div style={{ flex: 1, height: '0.5px', background: '#e8ecf0' }} />
           <span style={{ fontSize: 11, color: '#6b7280', whiteSpace: 'nowrap' }}>Espace client</span>

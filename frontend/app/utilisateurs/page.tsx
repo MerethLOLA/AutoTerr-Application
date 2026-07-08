@@ -3,31 +3,9 @@
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
 import { useEffect, useState } from 'react';
+import { ROLE_OPTIONS, getRoleBadgeClass, getRoleLabel } from '@/lib/roleLabels';
 
-const ROLES: { value: string; label: string }[] = [
-  { value: 'admin',          label: 'Administrateur' },
-  { value: 'manager',        label: 'Manager' },
-  { value: 'commercial',     label: 'Commercial' },
-  { value: 'agent_location', label: 'Agent Location' },
-  { value: 'sav',            label: 'SAV' },
-  { value: 'atelier',        label: 'Atelier' },
-  { value: 'stock',          label: 'Gestionnaire Stock' },
-  { value: 'assurance',      label: 'Agent Assurance' },
-  { value: 'client',         label: 'Client' },
-];
-
-const ROLE_COLORS: Record<string, string> = {
-  admin:          'bg-red-100 text-red-700',
-  super_admin:    'bg-red-100 text-red-700',
-  manager:        'bg-sky-100 text-sky-700',
-  commercial:     'bg-blue-100 text-blue-700',
-  agent_location: 'bg-indigo-100 text-indigo-700',
-  sav:            'bg-amber-100 text-amber-700',
-  atelier:        'bg-orange-100 text-orange-700',
-  stock:          'bg-purple-100 text-purple-700',
-  assurance:      'bg-teal-100 text-teal-700',
-  client:         'bg-emerald-100 text-emerald-700',
-};
+const ROLES = ROLE_OPTIONS;
 
 interface Employe { id: number; nom: string; prenom?: string; poste?: string; }
 interface User {
@@ -181,8 +159,8 @@ export default function UtilisateursPage() {
                     <td className="px-4 py-3 font-mono text-xs text-[#374151]">{u.username}</td>
                     <td className="px-4 py-3 text-[#6b7280]">{u.email}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${ROLE_COLORS[u.role] ?? 'bg-slate-100 text-slate-600'}`}>
-                        {ROLES.find((r) => r.value === u.role)?.label ?? u.role}
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${getRoleBadgeClass(u.role)}`}>
+                        {getRoleLabel(u.role)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-[#6b7280]">

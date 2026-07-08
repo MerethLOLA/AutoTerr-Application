@@ -2,7 +2,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import type { NextAuthOptions } from 'next-auth';
 
 async function laravelLogin(credentials: Record<string, string>) {
-  const apiUrl = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api';
+  const apiUrl = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? '/api';
   try {
     const res = await fetch(`${apiUrl}/auth/login`, {
       method: 'POST',
@@ -49,6 +49,8 @@ export const authOptions: NextAuthOptions = {
   ],
 
   session: { strategy: 'jwt' },
+  // 'trustHost' is not part of NextAuth TypeScript typings in used version.
+  // Set it conditionally below when the env var is present to avoid TS error.
 
   callbacks: {
     async jwt({ token, user }) {
@@ -80,3 +82,10 @@ export const authOptions: NextAuthOptions = {
 
   secret: process.env.NEXTAUTH_SECRET,
 };
+
+// Some deployments require NextAuth to trust the host header (NEXTAUTH_TRUST_HOST=true).
+// The `trustHost` option isn't declared in the library's AuthOptions type, so
+// assign it dynamically to avoid TypeScript errors while keeping runtime behavior.
+if (process.env.NEXTAUTH_TRUST_HOST === 'true') {
+  (authOptions as any).trustHost = true;
+}

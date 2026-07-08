@@ -152,7 +152,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <header className="sticky top-0 z-50 border-b transition-all duration-300 backdrop-blur-md"
         style={{ borderColor: scrolled ? border : 'transparent', background: scrolled ? (isDark ? 'rgba(7,22,38,0.98)' : 'rgba(255,255,255,0.98)') : (isDark ? 'rgba(7,22,38,0.95)' : 'rgba(255,255,255,0.95)'), boxShadow: scrolled ? '0 1px 8px rgba(0,0,0,0.08)' : 'none' }}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between gap-6">
+          <div className="flex h-16 items-center justify-between gap-3 sm:gap-6">
 
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
@@ -227,8 +227,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         </div>
 
         {/* Mobile menu */}
-        <div className={`overflow-hidden transition-all duration-300 lg:hidden ${menuOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-          <div className="border-t border-[#dbeafe] bg-white px-4 pb-5">
+        <div className={`overflow-hidden transition-all duration-300 lg:hidden ${menuOpen ? 'max-h-[560px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className="border-t border-[#dbeafe] bg-white/95 px-4 pb-5 shadow-sm">
             <nav className="flex flex-col gap-1 pt-3">
               {NAV_LINKS.map((l) => {
                 const active = isActive(l.href);
@@ -296,11 +296,11 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
       {/* ── Footer ────────────────────────────────────────────────────────────── */}
       <footer style={{ background: bgSub, borderTop: `0.5px solid ${border}`, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ position: 'relative', width: '110px', height: '40px', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', width: '110px', height: '40px', overflow: 'hidden', flexShrink: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/LOgo2.png" alt="AutoTerr" style={{ position: 'absolute', width: '110px', height: 'auto', top: '50%', transform: 'translateY(-57%)' }} />
         </div>
-        <div style={{ display: 'flex', gap: 16, fontSize: 12, color: txtSec }}>
+        <div style={{ display: 'flex', gap: 16, fontSize: 12, color: txtSec, flexWrap: 'wrap', justifyContent: 'center' }}>
           <Link href="/" style={{ color: txtSec, textDecoration: 'none' }}>Accueil</Link>
           <Link href="/catalogue" style={{ color: txtSec, textDecoration: 'none' }}>Catalogue</Link>
           <Link href="/apropos" style={{ color: txtSec, textDecoration: 'none' }}>À propos</Link>

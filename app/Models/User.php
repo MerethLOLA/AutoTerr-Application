@@ -20,6 +20,7 @@ class User extends Authenticatable
         'username',
         'name',
         'email',
+        'password_hash',
         'password',
         'profile_photo_path',
         'role',
@@ -35,16 +36,13 @@ class User extends Authenticatable
         'password',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'last_login' => 'datetime',
-            'token_expiration' => 'datetime',
-            'password' => 'hashed',
-            'password_hash' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'last_login' => 'datetime',
+        'token_expiration' => 'datetime',
+        'password' => 'hashed',
+        'password_hash' => 'hashed',
+    ];
 
     public function employe(): BelongsTo
     {

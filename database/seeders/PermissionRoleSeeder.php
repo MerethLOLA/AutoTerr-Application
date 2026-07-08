@@ -91,6 +91,12 @@ class PermissionRoleSeeder extends Seeder
                 'view_paiements',
                 'manage_location',
             ],
+            'accountant' => [
+                'view_dashboard',
+                'view_reporting',
+                'view_paiements',
+                'manage_recouvrement',
+            ],
             'assurance' => [
                 'view_dashboard',
                 'view_reporting',

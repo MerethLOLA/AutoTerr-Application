@@ -75,7 +75,7 @@ Route::middleware(['auth:sanctum', 'role:client'])->group(function () {
 });
 
 // ── Routes employés (tous sauf client) ───────────────────────────────────────
-$employeeRoles = 'admin,super_admin,manager,commercial,agent_location,sav,atelier,stock,assurance';
+$employeeRoles = 'admin,super_admin,manager,commercial,agent_location,sav,atelier,stock,assurance,accountant';
 
 Route::middleware(['auth:sanctum', "role:{$employeeRoles}"])->group(function () {
 

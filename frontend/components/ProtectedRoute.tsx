@@ -34,9 +34,10 @@ export function ProtectedRoute({
 
   if (status === 'loading') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100 px-6">
-        <div className="rounded-2xl bg-white p-6 text-sm font-semibold text-slate-600 shadow-sm">
-          Vérification de la session…
+      <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(135deg,_#f5f8fa_0%,_#eef6fc_50%,_#f8fafc_100%)] px-4">
+        <div className="state-card">
+          <div className="loading-ring" />
+          <p className="text-sm font-semibold text-slate-700">Vérification de la session…</p>
         </div>
       </div>
     );
