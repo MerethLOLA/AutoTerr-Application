@@ -3,6 +3,8 @@
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
 import type { ReportingPayload } from '@/lib/types';
+import { useNotificationBadges } from '@/lib/useNotificationBadges';
+import { useRole } from '@/lib/useRole';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -136,18 +138,26 @@ const REGIONS_STATIC = [
 ];
 
 export default function DashboardPage() {
+  const { role, canAccessRoute } = useRole();
+  // Le reporting expose des données financières (salaires, commissions...) —
+  // seuls les rôles ayant accès à la page /reporting doivent déclencher cet appel.
+  const canSeeReporting = canAccessRoute('/reporting');
+  const { counts: badgeCounts } = useNotificationBadges();
+
   const _init = apiClient.getCached<any>('/reporting');
   const [payload, setPayload] = useState<ReportingPayload | null>(_init?.data ?? _init);
   const [loading, setLoading] = useState(_init === null);
   const [error,   setError]   = useState<string | null>(null);
 
   useEffect(() => {
+    if (!role) return;
+    if (!canSeeReporting) { setLoading(false); return; }
     let mounted = true;
     apiClient.get<any>('/reporting')
       .then((d) => { if (mounted) { setPayload((d as any)?.data ?? d); setLoading(false); } })
       .catch((e: any) => { if (mounted) { setError(e?.message || 'Erreur de chargement'); setLoading(false); } });
     return () => { mounted = false; };
-  }, []);
+  }, [role, canSeeReporting]);
 
   const ventesTotal  = payload?.salesMonthly?.reduce((s, m) => s + Number(m.count), 0) ?? 0;
   const currentMonth = new Date().getMonth();
@@ -177,24 +187,41 @@ export default function DashboardPage() {
               <IconCar className="h-4 w-4" />
               Ajouter un véhicule
             </Link>
-            <Link href="/reporting" className="btn-secondary gap-2">
-              <IconChart className="h-4 w-4" />
-              Rapport complet
-            </Link>
+            {canSeeReporting && (
+              <Link href="/reporting" className="btn-secondary gap-2">
+                <IconChart className="h-4 w-4" />
+                Rapport complet
+              </Link>
+            )}
           </div>
         </div>
 
+        {/* ── Vue restreinte (rôles sans accès au reporting) ─────── */}
+        {!canSeeReporting && (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              { label: 'Tickets SAV ouverts',        value: badgeCounts.tickets_ouverts,  icon: <IconClock className="h-4 w-4" />, href: '/sav' },
+              { label: 'Ordres de travail ouverts',  value: badgeCounts.ordres_ouverts,   icon: <IconChart className="h-4 w-4" />, href: '/atelier' },
+              { label: 'Réservations',                value: badgeCounts.reservations,     icon: <IconUsers className="h-4 w-4" />, href: '/locations' },
+            ]
+              .filter((k) => canAccessRoute(k.href))
+              .map((k) => (
+                <KpiCard key={k.href} label={k.label} value={num(k.value)} icon={k.icon} href={k.href} />
+              ))}
+          </div>
+        )}
+
         {/* ── Skeletons ────────────────────────────────────────── */}
-        {loading && (
+        {canSeeReporting && loading && (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[1, 2, 3, 4].map((i) => <KpiSkeleton key={i} />)}
           </div>
         )}
-        {error && (
+        {canSeeReporting && error && (
           <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
         )}
 
-        {!loading && !error && (
+        {canSeeReporting && !loading && !error && (
           <>
             {/* ── 4 KPIs ──────────────────────────────────────── */}
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

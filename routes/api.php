@@ -114,8 +114,6 @@ Route::middleware(['auth:sanctum', "role:{$employeeRoles}"])->group(function () 
     Route::get('/garanties/{garantie}/export', [GarantieController::class, 'export']);
 
     // SAV & Atelier
-    Route::apiResource('tickets-sav', TicketSavController::class)
-        ->parameters(['tickets-sav' => 'ticketSav']);
     Route::apiResource('ordres-travail', OrdreTravailController::class)
         ->parameters(['ordres-travail' => 'ordreTravail']);
     Route::apiResource('entretiens', EntretienController::class);
@@ -145,10 +143,20 @@ Route::middleware(['auth:sanctum', "role:{$employeeRoles}"])->group(function () 
     Route::get('/contact', [ContactController::class, 'index']);
     Route::patch('/contact/{contactMessage}/read', [ContactController::class, 'markRead']);
 
-    // Alertes & Reporting
+    // Alertes
     Route::get('/alertes/expirations', [VoitureController::class, 'alertesExpirations']);
+});
+
+// ── Reporting (données financières / salaires — pas atelier ni sav) ───────────
+Route::middleware(['auth:sanctum', 'role:admin,super_admin,manager,commercial,accountant'])->group(function () {
     Route::get('/reporting', [ReportingController::class, 'index']);
     Route::get('/reporting/export', [ReportingController::class, 'export']);
+});
+
+// ── Tickets SAV (pas atelier — c'est le rôle du conseiller SAV) ───────────────
+Route::middleware(['auth:sanctum', 'role:admin,super_admin,manager,commercial,sav,accountant'])->group(function () {
+    Route::apiResource('tickets-sav', TicketSavController::class)
+        ->parameters(['tickets-sav' => 'ticketSav']);
 });
 
 // ── Routes admin uniquement ───────────────────────────────────────────────────

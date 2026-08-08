@@ -120,7 +120,7 @@ const quickActions = [
   { lk: 'nav.quickActions.addVehicle', href: '/voitures/new', variant: 'primary' as const },
   { lk: 'nav.quickActions.addSale',    href: '/ventes',       variant: 'primary' as const },
   { lk: 'nav.quickActions.clients',    href: '/clients',      variant: 'secondary' as const },
-  { lk: 'nav.quickActions.stock',      href: '/stock',        variant: 'secondary' as const },
+  { lk: 'nav.quickActions.stock',      href: '/stock',        variant: 'secondary' as const, standby: true },
 ];
 
 export const employeeRoles = ['admin', 'super_admin', 'manager', 'commercial', 'sav', 'atelier', 'accountant'];
@@ -313,7 +313,7 @@ export default function DashboardLayout({
     }))
     .filter((g) => g.items.length > 0);
 
-  const filteredQuickActions = quickActions.filter((a) => canAccessRoute(a.href));
+  const filteredQuickActions = quickActions.filter((a) => !(a as any).standby && canAccessRoute(a.href));
   const collapsed = sidebarCollapsed;
 
   const sidebarContent = (
