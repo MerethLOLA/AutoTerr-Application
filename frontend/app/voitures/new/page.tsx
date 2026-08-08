@@ -131,7 +131,7 @@ export default function NewVoiturePage() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout allowedRoles={['admin', 'super_admin', 'manager']}>
       <div className="mx-auto max-w-4xl space-y-6">
 
         <div className="page-header">
