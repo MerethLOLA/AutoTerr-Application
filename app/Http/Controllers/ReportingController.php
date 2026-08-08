@@ -23,14 +23,30 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
+/**
+ * Fournit les données agrégées du tableau de bord et de la page reporting :
+ * ventes/locations par mois, finances, stock, SAV, conformité véhicules,
+ * commissions des commerciaux, activité récente. Les deux pages front
+ * consomment le même endpoint {@see index()} — un ralentissement ici se
+ * répercute donc sur les deux.
+ */
 class ReportingController extends Controller
 {
+    /**
+     * Retourne l'ensemble des indicateurs du tableau de bord/reporting pour une année donnée.
+     *
+     * Toutes les séries doivent rester agrégées en base (GROUP BY / SUM / COUNT) plutôt que
+     * calculées en PHP dans une boucle : chaque requête supplémentaire ajoute un aller-retour
+     * réseau, ce qui devient très sensible dès que la base n'est plus en local (cf. les
+     * anciennes boucles mensuelles et le calcul par employé, remplacés ci-dessous).
+     */
     public function index(Request $request)
     {
         abort_unless($request->user()?->hasPermission('view_reporting'), 403);
 
         $year = (int) $request->integer('annee', now()->year);
 
+        // ── Ventes par mois ──────────────────────────────────────────────
         // Une seule requête groupée par mois au lieu de 12 x 2 (évite les allers-retours
         // répétés vers la base distante, qui faisaient largement dépasser le délai côté front).
         $salesByMonth = Vente::query()
@@ -74,6 +90,7 @@ class ReportingController extends Controller
             ->orderByDesc('montant')
             ->get();
 
+        // ── Locations : compteurs par statut ─────────────────────────────
         $locationStats = [
             'en_cours' => Location::query()->where('statut', 'en_cours')->count(),
             'retards' => Location::query()
@@ -94,6 +111,7 @@ class ReportingController extends Controller
             'reservations' => Location::query()->where('statut', 'planifiee')->count(),
         ];
 
+        // ── SAV / atelier : tickets et ordres de travail ouverts ─────────
         $savStats = [
             'tickets_ouverts' => TicketSav::query()->whereIn('statut', ['ouvert', 'en_cours'])->count(),
             'tickets_resolus_mois' => TicketSav::query()
@@ -109,6 +127,7 @@ class ReportingController extends Controller
                 ->count(),
         ];
 
+        // ── Stock pièces : valeur, alertes seuil, mouvements du mois ─────
         $stockStats = [
             'valeur_stock' => (float) PieceStock::query()
                 ->selectRaw('COALESCE(SUM(prix_unitaire * quantite_stock), 0) as total')
@@ -132,6 +151,10 @@ class ReportingController extends Controller
                 ->get(['id', 'designation', 'quantite_stock', 'seuil_alerte']),
         ];
 
+        // ── Finances : impayés, retards, encaissements, reste à recouvrer ─
+        // Le reste à recouvrer se calcule en une seule requête (sous-requête agrégée
+        // sur les paiements) plutôt que facture par facture, pour la même raison de
+        // performance que les sections ci-dessus.
         $financeStats = [
             'factures_impayees' => Facturation::query()->impayees()->count(),
             'factures_en_retard' => Facturation::query()->enRetard()->count(),
@@ -146,6 +169,7 @@ class ReportingController extends Controller
                 ->value('reste'),
         ];
 
+        // ── Compteurs globaux simples ─────────────────────────────────────
         $voituresDisponibles = Voiture::query()->where('statut', 'disponible')->count();
 
         $utilisateursInscrits = Client::count();
@@ -154,6 +178,7 @@ class ReportingController extends Controller
 
         $totalVentesGlobal = Vente::count();
 
+        // ── Répartition des ventes par marque (top 6) ────────────────────
         $ventesParMarque = DB::table('ventes')
             ->join('voitures', 'ventes.id_voiture', '=', 'voitures.id')
             ->select('voitures.marque', DB::raw('COUNT(*) as count'))
@@ -167,6 +192,7 @@ class ReportingController extends Controller
                 'pct'    => $totalVentesGlobal > 0 ? round(($row->count / $totalVentesGlobal) * 100) : 0,
             ]);
 
+        // ── Top 5 des vendeurs par nombre de ventes ──────────────────────
         $topVendeurs = DB::table('ventes')
             ->join('employes', 'ventes.id_employe', '=', 'employes.id')
             ->select(
@@ -182,6 +208,7 @@ class ReportingController extends Controller
             ->limit(5)
             ->get();
 
+        // ── Commissions des commerciaux (paie du mois précédent) ─────────
         // Paie du mois qui vient de se terminer (et non le mois en cours, encore incomplet).
         $periodeSalaires = now()->subMonthNoOverflow();
 
@@ -232,6 +259,7 @@ class ReportingController extends Controller
             ->sortByDesc('salaire_total_mois')
             ->values();
 
+        // ── Fil d'activité récente (dernières ventes + locations fusionnées) ─
         $recentVentes = Vente::with(['voiture', 'client'])
             ->latest()
             ->limit(4)
@@ -260,6 +288,7 @@ class ReportingController extends Controller
             ->values()
             ->take(6);
 
+        // ── Derniers véhicules ajoutés au catalogue ──────────────────────
         $dernieresVoitures = Voiture::with([
             'ventes' => fn($q) => $q->with('employe')->latest()->limit(1),
         ])
@@ -281,6 +310,7 @@ class ReportingController extends Controller
                     : null,
             ]);
 
+        // ── Conformité véhicules : assurances/entretiens à échéance, sinistres ─
         $conformiteStats = [
             'assurances_expirant' => Assurance::query()
                 ->whereBetween('date_fin', [now()->toDateString(), now()->addDays(30)->toDateString()])
@@ -333,6 +363,10 @@ class ReportingController extends Controller
         return $this->apiItem($data);
     }
 
+    /**
+     * Exporte un instantané des principaux indicateurs (tous statuts confondus,
+     * pas seulement l'année sélectionnée dans index()) au format CSV.
+     */
     public function export(Request $request): StreamedResponse
     {
         abort_unless($request->user()?->hasPermission('view_reporting'), 403);
