@@ -671,8 +671,15 @@ export default function HomePage() {
 
       {/* ── CTA FINAL ────────────────────────────────────────────────────────── */}
       <section id="contact" className="relative py-24 overflow-hidden">
-        {/* Fond dégradé */}
-        <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${NAVY} 0%, #1d3a70 50%, #1d6fb8 100%)` }} />
+        {/* Photo de fond */}
+        <img
+          src="/8c6302a174b589edb3f51f132ab99092.jpeg"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        {/* Fond dégradé (assombrit la photo pour garder le texte lisible) */}
+        <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${NAVY}e6 0%, #1d3a70e6 50%, #1d6fb8cc 100%)` }} />
         {/* Motif décoratif */}
         <div className="absolute inset-0 opacity-10"
           style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />

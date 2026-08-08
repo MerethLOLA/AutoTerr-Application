@@ -48,7 +48,16 @@ export default function AproposPage() {
     <PublicLayout>
 
       {/* ── HERO ── */}
-      <section className="relative overflow-hidden py-20" style={{ background: `linear-gradient(135deg, ${NAVY} 0%, #1d3a70 60%, #1d6fb8 100%)` }}>
+      <section className="relative overflow-hidden py-20">
+        {/* Photo de fond */}
+        <img
+          src="/yaris-cross-header_Large-Landscape.webp"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        {/* Fond dégradé (assombrit la photo pour garder le texte lisible) */}
+        <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${NAVY}e6 0%, #1d3a70e6 60%, #1d6fb8cc 100%)` }} />
         <div className="absolute inset-0 opacity-10"
           style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
         <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6">
