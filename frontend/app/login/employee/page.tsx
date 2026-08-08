@@ -43,6 +43,10 @@ export default function LoginEmployee() {
         setTwoFactorUserId(result.error.split(':')[1]);
         return;
       }
+      if (result?.error === 'TOO_MANY_ATTEMPTS') {
+        setError('Trop de tentatives rapprochées. Le serveur peut être en train de démarrer (jusqu\'à 1 min après une période d\'inactivité) — patientez une minute puis réessayez une seule fois.');
+        return;
+      }
       if (result?.error) {
         setError('Identifiants incorrects. Veuillez réessayer.');
         return;

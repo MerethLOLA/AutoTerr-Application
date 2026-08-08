@@ -36,6 +36,13 @@ async function laravelLogin(credentials: Record<string, string>) {
       body: JSON.stringify(creds),
       cache: 'no-store',
     });
+    // Le backend Render s'endort après inactivité et peut mettre 30-50s à répondre
+    // au premier appel ; des clics répétés pendant ce délai déclenchent facilement
+    // la limite anti-spam (429), qui sans ce cas dédié ressortait comme un banal
+    // "identifiants incorrects" — trompeur puisque le mot de passe peut être bon.
+    if (res.status === 429) {
+      throw new Error('TOO_MANY_ATTEMPTS');
+    }
     if (!res.ok) return null;
     const json = await res.json();
     const data = json.data ?? json;
@@ -46,7 +53,7 @@ async function laravelLogin(credentials: Record<string, string>) {
     if (!token || !user) return null;
     return { token, ...user, id: String(user.id) };
   } catch (err) {
-    if (err instanceof Error && err.message.startsWith('TWO_FACTOR_REQUIRED:')) throw err;
+    if (err instanceof Error && (err.message.startsWith('TWO_FACTOR_REQUIRED:') || err.message === 'TOO_MANY_ATTEMPTS')) throw err;
     return null;
   }
 }
