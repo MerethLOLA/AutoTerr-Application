@@ -14,6 +14,8 @@ export default function LoginClient() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [twoFactorUserId, setTwoFactorUserId] = useState<string | null>(null);
+  const [code, setCode] = useState('');
 
   const isDisabled = useMemo(
     () => loading || !email.trim() || !password.trim(),
@@ -37,8 +39,35 @@ export default function LoginClient() {
         password,
         redirect: false,
       });
+      if (result?.error?.startsWith('TWO_FACTOR_REQUIRED:')) {
+        setTwoFactorUserId(result.error.split(':')[1]);
+        return;
+      }
       if (result?.error) {
         setError('Email ou mot de passe incorrect. Veuillez réessayer.');
+        return;
+      }
+      router.push('/espace-client');
+    } catch {
+      setError('Erreur de connexion. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!twoFactorUserId) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const result = await signIn('client', {
+        twoFactorCode: code.trim(),
+        twoFactorUserId,
+        redirect: false,
+      });
+      if (result?.error) {
+        setError('Code invalide ou expiré. Veuillez réessayer.');
         return;
       }
       router.push('/espace-client');
@@ -92,12 +121,47 @@ export default function LoginClient() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h1 className="auth-title">Connexion</h1>
-          <p className="auth-subtitle">Accédez à votre espace AutoTerr</p>
+          <h1 className="auth-title">{twoFactorUserId ? 'Vérification' : 'Connexion'}</h1>
+          <p className="auth-subtitle">
+            {twoFactorUserId ? 'Entrez le code reçu par e-mail' : 'Accédez à votre espace AutoTerr'}
+          </p>
         </div>
 
         {error && <div className="auth-error">{error}</div>}
 
+        {twoFactorUserId ? (
+          <form onSubmit={handleVerifyCode}>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', fontSize: 12, color: '#6b7280', fontWeight: 500, marginBottom: 6 }}>
+                Code de vérification
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="123456"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                onFocus={focusIn}
+                onBlur={focusOut}
+                maxLength={6}
+                required
+                autoFocus
+                style={{ ...inputStyle, textAlign: 'center', letterSpacing: 4, fontSize: 18 }}
+              />
+            </div>
+            <button type="submit" disabled={loading || code.trim().length < 6} className="auth-button" style={{ marginTop: 4, marginBottom: 12 }}>
+              {loading ? 'Vérification…' : 'Vérifier'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTwoFactorUserId(null); setCode(''); setError(null); }}
+              style={{ width: '100%', background: 'none', border: 'none', color: '#6b7280', fontSize: 12, cursor: 'pointer', padding: '4px 0' }}
+            >
+              ← Retour à la connexion
+            </button>
+          </form>
+        ) : (
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 14 }}>
             <label style={{ display: 'block', fontSize: 12, color: '#6b7280', fontWeight: 500, marginBottom: 6 }}>
@@ -162,33 +226,38 @@ export default function LoginClient() {
             {loading ? 'Connexion…' : 'Se connecter'}
           </button>
         </form>
+        )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-          <div style={{ flex: 1, height: '0.5px', background: '#e8ecf0' }} />
-          <span style={{ fontSize: 11, color: '#6b7280', whiteSpace: 'nowrap' }}>ou continuer avec</span>
-          <div style={{ flex: 1, height: '0.5px', background: '#e8ecf0' }} />
-        </div>
+        {!twoFactorUserId && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <div style={{ flex: 1, height: '0.5px', background: '#e8ecf0' }} />
+              <span style={{ fontSize: 11, color: '#6b7280', whiteSpace: 'nowrap' }}>ou continuer avec</span>
+              <div style={{ flex: 1, height: '0.5px', background: '#e8ecf0' }} />
+            </div>
 
-        <Link href="/inscription" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '10px 12px', marginBottom: 12, background: 'transparent', border: '1px solid #dfe3eb', borderRadius: 12, fontSize: 13, color: '#374151', textDecoration: 'none', gap: 6, transition: 'background .15s' }}>
-          <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-          </svg>
-          Créer un compte
-        </Link>
+            <Link href="/inscription" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '10px 12px', marginBottom: 12, background: 'transparent', border: '1px solid #dfe3eb', borderRadius: 12, fontSize: 13, color: '#374151', textDecoration: 'none', gap: 6, transition: 'background .15s' }}>
+              <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              Créer un compte
+            </Link>
 
-        <div style={{ textAlign: 'center', fontSize: 12, color: '#6b7280' }}>
-          Pas encore de compte ?{' '}
-          <Link href="/inscription" style={{ color: '#185FA5', fontWeight: 500, textDecoration: 'none' }}>
-            S&apos;inscrire
-          </Link>
-        </div>
+            <div style={{ textAlign: 'center', fontSize: 12, color: '#6b7280' }}>
+              Pas encore de compte ?{' '}
+              <Link href="/inscription" style={{ color: '#185FA5', fontWeight: 500, textDecoration: 'none' }}>
+                S&apos;inscrire
+              </Link>
+            </div>
 
-        <div style={{ marginTop: 10, textAlign: 'center', fontSize: 12, color: '#6b7280' }}>
-          Vous êtes un employé ?{' '}
-          <Link href="/login/employee" style={{ color: '#185FA5', fontWeight: 500, textDecoration: 'none' }}>
-            Connexion équipe
-          </Link>
-        </div>
+            <div style={{ marginTop: 10, textAlign: 'center', fontSize: 12, color: '#6b7280' }}>
+              Vous êtes un employé ?{' '}
+              <Link href="/login/employee" style={{ color: '#185FA5', fontWeight: 500, textDecoration: 'none' }}>
+                Connexion équipe
+              </Link>
+            </div>
+          </>
+        )}
       </div>
 
       <p style={{ marginTop: 20, fontSize: 11, color: '#9ca3af' }}>

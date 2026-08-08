@@ -16,6 +16,7 @@ export interface User {
   theme?: string;
   locale?: string;
   profile_photo_url?: string | null;
+  two_factor_enabled?: boolean;
 }
 
 export interface UserProfile extends User {

@@ -1,21 +1,52 @@
 import CredentialsProvider from 'next-auth/providers/credentials';
 import type { NextAuthOptions } from 'next-auth';
 
+const apiUrl = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? '/api';
+
+/**
+ * Connexion en deux temps quand la 2FA est activée : un premier appel avec
+ * identifiant/mot de passe renvoie `two_factor_required` (sans jeton) au lieu
+ * d'échouer. Comme `authorize()` de NextAuth ne peut renvoyer qu'un
+ * utilisateur ou null, on relaie ce cas via une exception dont le message
+ * (`TWO_FACTOR_REQUIRED:<userId>`) remonte tel quel dans `result.error` côté
+ * client (redirect:false), pour que la page de connexion bascule vers la
+ * saisie du code sans jamais reproposer mot de passe + code en une seule requête.
+ */
 async function laravelLogin(credentials: Record<string, string>) {
-  const apiUrl = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? '/api';
+  const { twoFactorCode, twoFactorUserId, ...creds } = credentials;
+
   try {
+    if (twoFactorCode && twoFactorUserId) {
+      const res = await fetch(`${apiUrl}/auth/verify-2fa`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ user_id: twoFactorUserId, code: twoFactorCode }),
+        cache: 'no-store',
+      });
+      if (!res.ok) return null;
+      const json = await res.json();
+      const { token, user } = json.data ?? json;
+      if (!token || !user) return null;
+      return { token, ...user, id: String(user.id) };
+    }
+
     const res = await fetch(`${apiUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(credentials),
+      body: JSON.stringify(creds),
       cache: 'no-store',
     });
     if (!res.ok) return null;
     const json = await res.json();
-    const { token, user } = json.data ?? json;
+    const data = json.data ?? json;
+    if (data.two_factor_required) {
+      throw new Error(`TWO_FACTOR_REQUIRED:${data.user_id}`);
+    }
+    const { token, user } = data;
     if (!token || !user) return null;
     return { token, ...user, id: String(user.id) };
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('TWO_FACTOR_REQUIRED:')) throw err;
     return null;
   }
 }
@@ -28,8 +59,13 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         username: { label: 'Identifiant', type: 'text' },
         password: { label: 'Mot de passe', type: 'password' },
+        twoFactorCode:   { label: 'Code', type: 'text' },
+        twoFactorUserId: { label: 'UserId', type: 'text' },
       },
       async authorize(credentials) {
+        if (credentials?.twoFactorCode && credentials.twoFactorUserId) {
+          return laravelLogin({ twoFactorCode: credentials.twoFactorCode, twoFactorUserId: credentials.twoFactorUserId });
+        }
         if (!credentials?.username || !credentials.password) return null;
         return laravelLogin({ username: credentials.username, password: credentials.password });
       },
@@ -40,8 +76,13 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email:    { label: 'Email',         type: 'email'    },
         password: { label: 'Mot de passe',  type: 'password' },
+        twoFactorCode:   { label: 'Code', type: 'text' },
+        twoFactorUserId: { label: 'UserId', type: 'text' },
       },
       async authorize(credentials) {
+        if (credentials?.twoFactorCode && credentials.twoFactorUserId) {
+          return laravelLogin({ twoFactorCode: credentials.twoFactorCode, twoFactorUserId: credentials.twoFactorUserId });
+        }
         if (!credentials?.email || !credentials.password) return null;
         return laravelLogin({ email: credentials.email, password: credentials.password });
       },
