@@ -98,6 +98,9 @@ class User extends Authenticatable
 
     public function profilePhotoUrl(): ?string
     {
-        return $this->profile_photo_path ? '/storage/'.$this->profile_photo_path : null;
+        // URL absolue (pas juste "/storage/...") : le frontend et le backend sont sur des
+        // domaines différents en production (Vercel / Render), donc un chemin relatif
+        // pointerait par erreur vers le domaine du frontend.
+        return $this->profile_photo_path ? url('/storage/'.$this->profile_photo_path) : null;
     }
 }
