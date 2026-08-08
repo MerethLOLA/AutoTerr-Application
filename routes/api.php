@@ -48,6 +48,7 @@ Route::middleware('throttle:15,1')->post('/chatbot/message', [ChatbotController:
 Route::prefix('auth')->group(function () {
     Route::middleware('throttle:5,1')->post('/register', [AuthController::class, 'register']);
     Route::middleware('throttle:10,1')->post('/login', [AuthController::class, 'login']);
+    Route::middleware('throttle:10,1')->post('/verify-2fa', [AuthController::class, 'verifyTwoFactor']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
@@ -60,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user/profile', [UserSettingsController::class, 'updateProfile']);
     Route::post('/user/photo', [UserSettingsController::class, 'uploadPhoto']);
     Route::put('/user/preferences', [UserSettingsController::class, 'updatePreferences']);
+    Route::put('/user/2fa', [UserSettingsController::class, 'updateTwoFactor']);
     Route::put('/user/password', [UserSettingsController::class, 'updatePassword']);
     Route::post('/user/logout-all-devices', [UserSettingsController::class, 'logoutAllDevices']);
     Route::delete('/user/account', [UserSettingsController::class, 'deleteAccount']);

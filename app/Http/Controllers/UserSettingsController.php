@@ -25,6 +25,21 @@ class UserSettingsController extends Controller
     ) {
     }
 
+    private function userPayload($user): array
+    {
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'username' => $user->username,
+            'role' => $user->role,
+            'theme' => $user->theme,
+            'locale' => $user->locale,
+            'profile_photo_url' => $user->profilePhotoUrl(),
+            'two_factor_enabled' => (bool) $user->two_factor_enabled,
+        ];
+    }
+
     public function updateProfile(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -42,18 +57,32 @@ class UserSettingsController extends Controller
         $user->save();
 
         return $this->apiItem([
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'username' => $user->username,
-                'role' => $user->role,
-                'theme' => $user->theme,
-                'locale' => $user->locale,
-                'profile_photo_url' => $user->profilePhotoUrl(),
-            ],
+            'user' => $this->userPayload($user),
         ], 200, [
             'message' => 'Profil mis a jour',
+        ]);
+    }
+
+    public function updateTwoFactor(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'enabled' => ['required', 'boolean'],
+        ]);
+
+        $user->update([
+            'two_factor_enabled' => $data['enabled'],
+            'two_factor_code' => null,
+            'two_factor_expires_at' => null,
+        ]);
+
+        return $this->apiItem([
+            'user' => $this->userPayload($user),
+        ], 200, [
+            'message' => $data['enabled']
+                ? 'Double authentification activee'
+                : 'Double authentification desactivee',
         ]);
     }
 
@@ -69,16 +98,7 @@ class UserSettingsController extends Controller
         $user->update($data);
 
         return $this->apiItem([
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'username' => $user->username,
-                'role' => $user->role,
-                'theme' => $user->theme,
-                'locale' => $user->locale,
-                'profile_photo_url' => $user->profilePhotoUrl(),
-            ],
+            'user' => $this->userPayload($user),
         ], 200, [
             'message' => 'Preferences mises a jour',
         ]);

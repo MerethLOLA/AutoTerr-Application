@@ -30,10 +30,14 @@ class User extends Authenticatable
         'last_login',
         'token_expiration',
         'id_employe',
+        'two_factor_enabled',
+        'two_factor_code',
+        'two_factor_expires_at',
     ];
 
     protected $hidden = [
         'password',
+        'two_factor_code',
     ];
 
     protected $casts = [
@@ -42,6 +46,8 @@ class User extends Authenticatable
         'token_expiration' => 'datetime',
         'password' => 'hashed',
         'password_hash' => 'hashed',
+        'two_factor_enabled' => 'boolean',
+        'two_factor_expires_at' => 'datetime',
     ];
 
     public function employe(): BelongsTo
