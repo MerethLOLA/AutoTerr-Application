@@ -6,6 +6,7 @@ use App\Models\Assurance;
 use App\Models\Carburant;
 use App\Models\Client;
 use App\Models\Demande;
+use App\Models\Employe;
 use App\Models\Entretien;
 use App\Models\Facturation;
 use App\Models\Location;
@@ -64,9 +65,14 @@ class ReportingController extends Controller
         $locationStats = [
             'en_cours' => Location::query()->where('statut', 'en_cours')->count(),
             'retards' => Location::query()
-                ->whereIn('statut', ['planifiee', 'en_cours'])
-                ->whereDate('date_fin', '<', now()->toDateString())
-                ->whereNull('date_retour_effective')
+                ->where(function ($query) {
+                    $query->where('statut', 'en_retard')
+                        ->orWhere(function ($q) {
+                            $q->whereIn('statut', ['planifiee', 'en_cours'])
+                                ->whereDate('date_fin', '<', now()->toDateString())
+                                ->whereNull('date_retour_effective');
+                        });
+                })
                 ->count(),
             'retours_mois' => Location::query()
                 ->whereNotNull('date_retour_effective')
@@ -164,6 +170,47 @@ class ReportingController extends Controller
             ->limit(5)
             ->get();
 
+        // Paie du mois qui vient de se terminer (et non le mois en cours, encore incomplet).
+        $periodeSalaires = now()->subMonthNoOverflow();
+
+        $salairesCommerciaux = Employe::query()
+            ->where('statut', 'actif')
+            ->get(['id', 'nom', 'prenom', 'poste', 'salaire', 'taux_commission'])
+            ->map(function ($employe) use ($periodeSalaires) {
+                $totalVentes = (float) Vente::query()
+                    ->where('id_employe', $employe->id)
+                    ->whereMonth('date_vente', $periodeSalaires->month)
+                    ->whereYear('date_vente', $periodeSalaires->year)
+                    ->sum('prix_final');
+
+                $totalLocations = (float) Facturation::query()
+                    ->whereNotNull('id_location')
+                    ->whereHas('location', fn ($q) => $q->where('id_agent', $employe->id))
+                    ->whereMonth('date_facture', $periodeSalaires->month)
+                    ->whereYear('date_facture', $periodeSalaires->year)
+                    ->sum('montant_ttc');
+
+                $totalActivite = $totalVentes + $totalLocations;
+                $tauxCommission = (float) ($employe->taux_commission ?? 0);
+                $commission = round($totalActivite * ($tauxCommission / 100));
+                $salaireFixe = (float) ($employe->salaire ?? 0);
+
+                return [
+                    'id' => $employe->id,
+                    'nom' => trim(($employe->prenom ?? '') . ' ' . $employe->nom),
+                    'poste' => $employe->poste,
+                    'salaire_fixe' => $salaireFixe,
+                    'taux_commission' => $tauxCommission,
+                    'total_ventes_mois' => $totalVentes,
+                    'total_locations_mois' => $totalLocations,
+                    'commission_mois' => $commission,
+                    'salaire_total_mois' => $salaireFixe + $commission,
+                ];
+            })
+            ->filter(fn ($e) => $e['taux_commission'] > 0)
+            ->sortByDesc('salaire_total_mois')
+            ->values();
+
         $recentVentes = Vente::with(['voiture', 'client'])
             ->latest()
             ->limit(4)
@@ -239,6 +286,8 @@ class ReportingController extends Controller
                 ->sum('montant_total'),
         ];
 
+        $salairesPeriode = ucfirst($periodeSalaires->locale('fr')->translatedFormat('F Y'));
+
         $data = compact(
             'year',
             'salesMonthly',
@@ -254,6 +303,8 @@ class ReportingController extends Controller
             'enAttenteValidation',
             'ventesParMarque',
             'topVendeurs',
+            'salairesCommerciaux',
+            'salairesPeriode',
             'activiteRecente',
             'dernieresVoitures',
         );
@@ -273,7 +324,14 @@ class ReportingController extends Controller
             ['Finance', 'Factures en retard', Facturation::query()->enRetard()->count()],
             ['Finance', 'Encaissements total', (float) Paiement::query()->sum('montant')],
             ['Locations', 'Locations en cours', Location::query()->where('statut', 'en_cours')->count()],
-            ['Locations', 'Retards restitution', Location::query()->whereIn('statut', ['planifiee', 'en_cours'])->whereDate('date_fin', '<', now()->toDateString())->whereNull('date_retour_effective')->count()],
+            ['Locations', 'Retards restitution', Location::query()->where(function ($query) {
+                $query->where('statut', 'en_retard')
+                    ->orWhere(function ($q) {
+                        $q->whereIn('statut', ['planifiee', 'en_cours'])
+                            ->whereDate('date_fin', '<', now()->toDateString())
+                            ->whereNull('date_retour_effective');
+                    });
+            })->count()],
             ['SAV', 'Tickets ouverts', TicketSav::query()->whereIn('statut', ['ouvert', 'en_cours'])->count()],
             ['Atelier', 'Ordres ouverts', OrdreTravail::query()->whereIn('statut', ['ouvert', 'en_cours'])->count()],
             ['Stock', 'References', PieceStock::query()->count()],

@@ -7,11 +7,9 @@ export type AppRole =
   | 'super_admin'
   | 'manager'
   | 'commercial'
-  | 'agent_location'
   | 'sav'
   | 'atelier'
-  | 'stock'
-  | 'assurance'
+  | 'accountant'
   | 'client'
   | '';
 
@@ -23,14 +21,12 @@ const ROLE_NAV_ACCESS: Record<string, string[] | null> = {
     '/dashboard', '/voitures', '/clients', '/ventes', '/locations',
     '/facturations', '/paiements', '/documents',
     '/reporting', '/analytics', '/catalogue', '/employes', '/demandes',
+    '/assurances', '/sinistres', '/controles-techniques', '/alertes', '/garanties',
   ],
   commercial:     [
     '/dashboard', '/voitures', '/clients', '/ventes', '/locations',
     '/facturations', '/paiements', '/documents',
     '/reporting', '/analytics', '/catalogue',
-  ],
-  agent_location: [
-    '/dashboard', '/voitures', '/clients', '/locations', '/documents',
   ],
   sav: [
     '/dashboard', '/voitures', '/clients', '/sav', '/atelier',
@@ -39,11 +35,8 @@ const ROLE_NAV_ACCESS: Record<string, string[] | null> = {
   atelier: [
     '/dashboard', '/atelier', '/planning', '/stock', '/entretiens',
   ],
-  stock: [
-    '/dashboard', '/stock', '/fournisseurs', '/documents', '/alertes',
-  ],
-  assurance: [
-    '/dashboard', '/voitures', '/assurances', '/sinistres', '/alertes', '/reporting',
+  accountant: [
+    '/dashboard', '/paiements', '/facturations', '/reporting', '/documents',
   ],
   client: ['/espace-client'],
 };
@@ -53,24 +46,22 @@ const ROLE_WRITE_ACCESS: Record<string, string[] | null> = {
   admin:          null,
   super_admin:    null,
   manager: [
-    'ventes', 'locations', 'facturations', 'paiements', 'documents',
-    'clients', 'garanties',
+    'voitures', 'ventes', 'locations', 'facturations', 'paiements', 'documents',
+    'clients', 'garanties', 'assurances', 'sinistres',
   ],
   commercial:     [
     'ventes', 'locations', 'facturations', 'paiements', 'documents',
     'clients', 'garanties',
   ],
-  agent_location: ['locations', 'clients'],
   sav:            ['sav', 'garanties', 'entretiens'],
   atelier:        ['atelier', 'entretiens', 'stock'],
-  stock:          ['stock', 'fournisseurs'],
-  assurance:      ['assurances', 'sinistres'],
+  accountant:     ['paiements', 'facturations'],
   client:         [],
 };
 
 const ADMIN_ROLES: AppRole[] = ['admin', 'super_admin'];
 const EMPLOYEE_ROLES: AppRole[] = [
-  'admin', 'super_admin', 'manager', 'commercial', 'agent_location', 'sav', 'atelier', 'stock', 'assurance',
+  'admin', 'super_admin', 'manager', 'commercial', 'sav', 'atelier', 'accountant',
 ];
 
 export function useRole() {

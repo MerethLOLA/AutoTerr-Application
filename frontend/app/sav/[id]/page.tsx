@@ -217,7 +217,7 @@ export default function TicketSavDetailPage() {
                   { label: 'Référence', value: ticket.reference_ticket },
                   { label: 'Client', value: name(ticket.client) },
                   { label: 'Véhicule', value: ticket.voiture ? `${ticket.voiture.marque} ${ticket.voiture.modele ?? ''}`.trim() : '-' },
-                  { label: 'Responsable', value: name(ticket.responsable) },
+                  { label: 'Conseiller SAV', value: name(ticket.responsable) },
                   { label: 'Date ouverture', value: fmtDate(ticket.date_ouverture) },
                   { label: 'Date résolution', value: fmtDate(ticket.date_resolution) },
                 ].map(({ label, value }) => (

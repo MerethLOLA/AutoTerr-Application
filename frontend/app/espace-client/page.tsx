@@ -24,6 +24,7 @@ interface FacturationItem {
   statut: string;
   date_facture?: string;
   vente?: { voiture?: { marque?: string; modele?: string } };
+  location?: { voiture?: { marque?: string; modele?: string } };
 }
 
 interface DocumentItem {
@@ -79,7 +80,7 @@ function initials(name: string) {
 }
 
 const STATUT_LABEL: Record<string, string> = {
-  planifiee: 'Planifiée', en_cours: 'En cours',
+  planifiee: 'Planifiée', en_cours: 'En cours', en_retard: 'En retard',
   terminee: 'Terminée', annulee: 'Annulée',
   payee: 'Payée', impayee: 'Impayée', partiellement_payee: 'Partielle',
 };
@@ -87,6 +88,7 @@ const STATUT_LABEL: Record<string, string> = {
 const STATUT_BADGE: Record<string, string> = {
   planifiee: 'bg-amber-100 text-amber-800',
   en_cours:  'bg-blue-100 text-blue-800',
+  en_retard: 'bg-red-100 text-red-800',
   terminee:  'bg-emerald-100 text-emerald-800',
   annulee:   'bg-[#f5f8fa] text-[#6b7280]',
   payee:     'bg-emerald-100 text-emerald-800',
@@ -105,7 +107,7 @@ function Badge({ statut }: { statut: string }) {
 // ── Timeline statut location ───────────────────────────────────────────────────
 function LocationTimeline({ loc }: { loc: LocationItem }) {
   const steps = ['planifiee', 'en_cours', 'terminee'];
-  const cur = steps.indexOf(loc.statut);
+  const cur = steps.indexOf(loc.statut === 'en_retard' ? 'en_cours' : loc.statut);
   const isCancelled = loc.statut === 'annulee';
   const days = diffDays(loc.date_debut, loc.date_fin);
   const cost = loc.tarif_journalier && loc.tarif_journalier > 0 ? loc.tarif_journalier * days : null;
@@ -230,8 +232,8 @@ export default function EspaceClientPage() {
   const estimatedDays   = form.date_debut && form.date_fin ? diffDays(form.date_debut, form.date_fin) : 0;
   const estimatedCost   = selectedVehicle?.prix && estimatedDays > 0 ? selectedVehicle.prix * estimatedDays : 0;
 
-  const activeLocations = locations.filter((l) => ['planifiee', 'en_cours'].includes(l.statut));
-  const pastLocations   = locations.filter((l) => !['planifiee', 'en_cours'].includes(l.statut));
+  const activeLocations = locations.filter((l) => ['planifiee', 'en_cours', 'en_retard'].includes(l.statut));
+  const pastLocations   = locations.filter((l) => !['planifiee', 'en_cours', 'en_retard'].includes(l.statut));
   const unpaidInvoices  = facturations.filter((f) => f.statut !== 'payee').length;
 
   return (
@@ -505,7 +507,7 @@ export default function EspaceClientPage() {
                             <td className="table-cell pl-5 font-medium text-[#111827]">{f.numero_facture}</td>
                             <td className="table-cell text-[#6b7280]">{f.date_facture ? fmtDate(f.date_facture) : '—'}</td>
                             <td className="table-cell text-[#6b7280]">
-                              {[f.vente?.voiture?.marque, f.vente?.voiture?.modele].filter(Boolean).join(' ') || '—'}
+                              {[f.vente?.voiture?.marque ?? f.location?.voiture?.marque, f.vente?.voiture?.modele ?? f.location?.voiture?.modele].filter(Boolean).join(' ') || '—'}
                             </td>
                             <td className="table-cell tabular-nums font-semibold text-[#111827]">{money(f.montant_ttc)} XOF</td>
                             <td className="table-cell"><Badge statut={f.statut} /></td>

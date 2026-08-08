@@ -11,7 +11,7 @@ interface Employe { id: number; nom: string; prenom?: string; poste?: string; }
 interface User {
   id: number; name: string; username: string; email: string;
   role: string; statut: string; last_login?: string;
-  employe?: { nom: string; prenom?: string; poste?: string };
+  employe?: { id: number; nom: string; prenom?: string; poste?: string };
 }
 
 const emptyForm = { name: '', username: '', email: '', password: '', role: 'commercial', id_employe: '' };
@@ -27,6 +27,7 @@ export default function UtilisateursPage() {
   const [error, setError]           = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [deleting, setDeleting]     = useState<number | null>(null);
+  const [togglingStatus, setTogglingStatus] = useState<number | null>(null);
 
   async function load() {
     setLoading(true);
@@ -56,7 +57,12 @@ export default function UtilisateursPage() {
 
   function openEdit(u: User) {
     setEditing(u);
-    setForm({ name: u.name, username: u.username, email: u.email, password: '', role: u.role, id_employe: u.employe ? String(u.employe) : '' });
+    setForm({ name: u.name, username: u.username, email: u.email, password: '', role: u.role, id_employe: u.employe ? String(u.employe.id) : '' });
+    // L'employé déjà lié à cet utilisateur n'apparaît pas dans /admin/employes-sans-compte (il a déjà un compte) :
+    // on l'ajoute manuellement à la liste pour qu'il reste sélectionnable dans le formulaire.
+    if (u.employe && !employes.some((e) => e.id === u.employe!.id)) {
+      setEmployes((prev) => [...prev, u.employe as Employe]);
+    }
     setError('');
     setFieldErrors({});
     setShowForm(true);
@@ -87,6 +93,19 @@ export default function UtilisateursPage() {
       setError(err?.message || 'Erreur lors de l\'enregistrement');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleToggleStatus(u: User) {
+    const nextStatut = u.statut === 'actif' ? 'inactif' : 'actif';
+    setTogglingStatus(u.id);
+    try {
+      await apiClient.put(`/admin/users/${u.id}`, { statut: nextStatut });
+      await load();
+    } catch (err: any) {
+      alert(err?.message || 'Erreur lors du changement de statut');
+    } finally {
+      setTogglingStatus(null);
     }
   }
 
@@ -167,9 +186,15 @@ export default function UtilisateursPage() {
                       {u.employe ? `${u.employe.prenom ?? ''} ${u.employe.nom}`.trim() : <span className="text-slate-300">—</span>}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${u.statut === 'actif' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
-                        {u.statut}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleStatus(u)}
+                        disabled={togglingStatus === u.id}
+                        title="Cliquer pour changer le statut"
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold transition hover:opacity-75 disabled:opacity-40 ${u.statut === 'actif' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}
+                      >
+                        {togglingStatus === u.id ? '…' : u.statut}
+                      </button>
                     </td>
                     <td className="px-4 py-3 text-xs text-[#9ca3af]">
                       {u.last_login ? new Date(u.last_login).toLocaleDateString('fr-FR') : '—'}

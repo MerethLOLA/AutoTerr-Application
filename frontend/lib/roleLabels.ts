@@ -1,13 +1,10 @@
 export const ROLE_LABELS: Record<string, string> = {
   admin: 'Administrateur',
   super_admin: 'Super administrateur',
-  manager: 'Manager',
+  manager: 'Responsable Commercial',
   commercial: 'Commercial',
-  agent_location: 'Agent Location',
   sav: 'Conseiller SAV',
   atelier: 'Technicien Atelier',
-  stock: 'Responsable Parc',
-  assurance: 'Assureur',
   accountant: 'Comptable',
   client: 'Client',
 };
@@ -19,11 +16,8 @@ export const ROLE_COLORS: Record<string, string> = {
   super_admin:    'bg-red-100 text-red-700',
   manager:        'bg-sky-100 text-sky-700',
   commercial:     'bg-blue-100 text-blue-700',
-  agent_location: 'bg-indigo-100 text-indigo-700',
   sav:            'bg-amber-100 text-amber-700',
   atelier:        'bg-orange-100 text-orange-700',
-  stock:          'bg-purple-100 text-purple-700',
-  assurance:      'bg-teal-100 text-teal-700',
   accountant:     'bg-cyan-100 text-cyan-700',
   client:         'bg-emerald-100 text-emerald-700',
 };

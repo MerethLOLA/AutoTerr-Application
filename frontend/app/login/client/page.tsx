@@ -72,11 +72,17 @@ export default function LoginClient() {
   return (
     <div className="auth-shell" style={{ fontFamily: 'var(--font-sans)' }}>
       <div className="auth-nav">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/LOgo2.png" alt="AutoTerr" style={{ height: 28, objectFit: 'contain' }} />
-        <Link href="/catalogue" style={{ fontSize: 12, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
-          ← Retour au catalogue
+        <Link href="/catalogue" className="auth-back-btn">
+          <svg width={13} height={13} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          <span className="auth-back-label">Retour au catalogue</span>
         </Link>
+        <div style={{ position: 'relative', width: 100, height: 37, overflow: 'hidden' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/LOgo2.png" alt="AutoTerr" style={{ position: 'absolute', width: 100, height: 'auto', top: '50%', transform: 'translateY(-57%)' }} />
+        </div>
+        <span aria-hidden="true" />
       </div>
 
       <div className="auth-card">

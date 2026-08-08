@@ -1,6 +1,6 @@
 ﻿﻿'use client';
 
-import DashboardLayout from '@/components/DashboardLayout';
+import DashboardLayout, { employeeRoles } from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
 import { AUTH_CHANGED_EVENT } from '@/lib/auth-storage';
 import type { UserProfile } from '@/lib/types';
@@ -192,8 +192,13 @@ export default function SettingsPage() {
     }
   }
 
+  const isClient = user?.role === 'client';
+
   return (
-    <DashboardLayout>
+    <DashboardLayout
+      allowedRoles={[...employeeRoles, 'client']}
+      menuVariant={isClient ? 'client' : 'employee'}
+    >
       <div className="space-y-6">
 
         <div className="page-header">

@@ -13,9 +13,11 @@ function money(v?: number | string | null) {
   return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(v ?? 0));
 }
 
-interface Client  { id: number; nom: string; prenom?: string; telephone?: string; email?: string; }
+interface Client  { id: number; nom: string; prenom?: string; telephone?: string; email?: string; piece_identite?: string; numero_piece?: string; }
 interface Voiture { id: number; marque: string; modele: string; annee?: number; prix?: number | null; prix_vente?: number | null; statut: string; energie?: string; image_principale?: string; }
-interface Employe { id: number; nom: string; prenom?: string; }
+interface Employe { id: number; nom: string; prenom?: string; poste?: string; statut?: string; }
+
+const POSTES_VENDEURS = ['commercial', 'responsable commercial', 'administrateur'];
 
 const STEPS = [
   { num: 1, label: 'Véhicule' },
@@ -108,6 +110,7 @@ export default function SaleWorkflowPage() {
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [saleId, setSaleId]   = useState<number | null>(null);
+  const [pendingValidation, setPendingValidation] = useState(false);
 
   const [voitures, setVoitures] = useState<Voiture[]>([]);
   const [clients, setClients]   = useState<Client[]>([]);
@@ -119,14 +122,46 @@ export default function SaleWorkflowPage() {
   const [selVoiture, setSelVoiture] = useState<Voiture | null>(null);
   const [selClient, setSelClient]   = useState<Client | null>(null);
 
+  const [newClientOpen, setNewClientOpen]   = useState(false);
+  const [newClientSaving, setNewClientSaving] = useState(false);
+  const [newClientError, setNewClientError] = useState<string | null>(null);
+  const [newClientForm, setNewClientForm] = useState({
+    nom: '', prenom: '', telephone: '', email: '', piece_identite: '', numero_piece: '',
+  });
+
+  async function createClient() {
+    if (!newClientForm.nom.trim()) {
+      setNewClientError('Le nom est obligatoire.');
+      return;
+    }
+    setNewClientSaving(true);
+    setNewClientError(null);
+    try {
+      const created = await apiClient.post<any>('/clients', newClientForm);
+      const client = created?.data ?? created;
+      setClients((prev) => [client, ...prev]);
+      setSelClient(client);
+      patch('id_client', String(client.id));
+      setNewClientOpen(false);
+      setNewClientForm({ nom: '', prenom: '', telephone: '', email: '', piece_identite: '', numero_piece: '' });
+    } catch (err: any) {
+      setNewClientError(err?.message || 'Création impossible');
+    } finally {
+      setNewClientSaving(false);
+    }
+  }
+
   const [form, setForm] = useState({
-    id_voiture:   preVoitureId ?? '',
-    id_client:    '',
-    id_employe:   '',
-    prix_final:   '',
-    remise:       '0',
-    date_vente:   new Date().toISOString().slice(0, 10),
-    observations: '',
+    id_voiture:     preVoitureId ?? '',
+    id_client:      '',
+    id_employe:     '',
+    prix_catalogue: '',
+    remise:         '0',
+    motif_remise:   '',
+    date_vente:     new Date().toISOString().slice(0, 10),
+    observations:   '',
+    piece_identite: '',
+    numero_piece:   '',
   });
 
   function patch(key: string, val: string) {
@@ -138,7 +173,7 @@ export default function SaleWorkflowPage() {
       return Array.isArray(res) ? res : (res?.data ?? []);
     }
     Promise.all([
-      apiClient.get<any>('/voitures?statut=disponible&per_page=100').then((r) => setVoitures(arr<Voiture>(r))),
+      apiClient.get<any>('/voitures?statut=disponible&type_usage=vente&per_page=100').then((r) => setVoitures(arr<Voiture>(r))),
       apiClient.get<any>('/clients?per_page=200').then((r) => setClients(arr<Client>(r))),
       apiClient.get<any>('/employes?per_page=100').then((r) => setEmployes(arr<Employe>(r))),
     ]).catch(console.error);
@@ -147,7 +182,7 @@ export default function SaleWorkflowPage() {
   useEffect(() => {
     if (!preVoitureId || voitures.length === 0) return;
     const found = voitures.find((v) => String(v.id) === preVoitureId);
-    if (found) { setSelVoiture(found); patch('prix_final', String(found.prix_vente ?? found.prix ?? '')); }
+    if (found) { setSelVoiture(found); patch('prix_catalogue', String(found.prix_vente ?? found.prix ?? '')); }
   }, [preVoitureId, voitures]);
 
   const filteredVoitures = useMemo(() =>
@@ -160,27 +195,39 @@ export default function SaleWorkflowPage() {
       !searchC || `${c.nom} ${c.prenom ?? ''} ${c.telephone ?? ''}`.toLowerCase().includes(searchC.toLowerCase())
     ), [clients, searchC]);
 
-  const prixBase   = Number(form.prix_final) || 0;
+  // Seuls les postes en lien avec la vente peuvent être désignés vendeur responsable.
+  const vendeurs = useMemo(() =>
+    employes.filter((e) => POSTES_VENDEURS.includes((e.poste ?? '').toLowerCase())),
+    [employes]);
+
+  const prixBase   = Number(form.prix_catalogue) || 0;
   const remise     = Number(form.remise) || 0;
   const montantHT  = Math.max(prixBase - remise, 0);
   const tva        = 18;
   const montantTTC = Math.round(montantHT * (1 + tva / 100) * 100) / 100;
+  const seuilRemise = prixBase * 0.05;
+  const remiseDepasseSeuil = remise > seuilRemise;
 
   async function handleSubmit() {
     setLoading(true);
     setSubmitError(null);
     try {
       const res = await apiClient.post<any>('/ventes', {
-        id_voiture:   Number(form.id_voiture),
-        id_client:    Number(form.id_client),
-        id_employe:   Number(form.id_employe) || undefined,
-        prix_final:   prixBase,
-        remise:       remise,
-        date_vente:   form.date_vente,
-        statut:       'finalisee',
-        observations: form.observations || undefined,
+        id_voiture:     Number(form.id_voiture),
+        id_client:      Number(form.id_client),
+        id_employe:     Number(form.id_employe) || undefined,
+        prix_catalogue: prixBase,
+        remise:         remise,
+        motif_remise:   form.motif_remise || undefined,
+        date_vente:     form.date_vente,
+        statut:         'finalisee',
+        observations:   form.observations || undefined,
+        piece_identite: form.piece_identite || undefined,
+        numero_piece:   form.numero_piece || undefined,
       });
-      setSaleId(res?.id ?? res?.data?.id ?? null);
+      const vente = res?.data ?? res;
+      setSaleId(vente?.id ?? null);
+      setPendingValidation(vente?.statut === 'en_attente_validation');
       setStep(5);
     } catch (err: any) {
       setSubmitError(err?.message || 'Une erreur est survenue. Vérifiez les informations.');
@@ -194,14 +241,24 @@ export default function SaleWorkflowPage() {
     return (
       <DashboardLayout>
         <div className="mx-auto max-w-lg py-16 text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
-            <svg className="h-10 w-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-            </svg>
+          <div className={`mx-auto flex h-20 w-20 items-center justify-center rounded-full ${pendingValidation ? 'bg-amber-100' : 'bg-emerald-100'}`}>
+            {pendingValidation ? (
+              <svg className="h-10 w-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+            ) : (
+              <svg className="h-10 w-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            )}
           </div>
-          <h1 className="mt-6 text-3xl font-black text-[#111827]">Vente finalisée !</h1>
+          <h1 className="mt-6 text-3xl font-black text-[#111827]">
+            {pendingValidation ? 'Vente en attente de validation' : 'Vente finalisée !'}
+          </h1>
           <p className="mt-3 text-slate-500">
-            La vente a été enregistrée avec succès.
+            {pendingValidation
+              ? "La remise dépasse le seuil autorisé : un responsable commercial a été notifié par email et doit valider cette vente avant que la facture ne soit générée."
+              : 'La vente a été enregistrée avec succès.'}
             {selClient && ` Client : ${selClient.nom}${selClient.prenom ? ' ' + selClient.prenom : ''}.`}
           </p>
           {selVoiture && (
@@ -224,7 +281,7 @@ export default function SaleWorkflowPage() {
                 Voir la fiche de vente →
               </Link>
             )}
-            {saleId && (
+            {saleId && !pendingValidation && (
               <Link href="/facturations" className="btn-secondary w-full text-center">
                 Accéder aux factures
               </Link>
@@ -232,8 +289,9 @@ export default function SaleWorkflowPage() {
             <button
               onClick={() => {
                 setStep(1); setSelVoiture(null); setSelClient(null);
-                setForm({ id_voiture: '', id_client: '', id_employe: '', prix_final: '', remise: '0', date_vente: new Date().toISOString().slice(0, 10), observations: '' });
+                setForm({ id_voiture: '', id_client: '', id_employe: '', prix_catalogue: '', remise: '0', motif_remise: '', date_vente: new Date().toISOString().slice(0, 10), observations: '', piece_identite: '', numero_piece: '' });
                 setSaleId(null);
+                setPendingValidation(false);
               }}
               className="text-sm font-bold text-slate-500 hover:text-[#111827]">
               Créer une nouvelle vente
@@ -277,42 +335,55 @@ export default function SaleWorkflowPage() {
                 value={searchV} onChange={(e) => setSearchV(e.target.value)} />
             </div>
 
-            <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
-              {filteredVoitures.length === 0 && <p className="py-4 text-center text-sm text-slate-400">Aucun véhicule disponible.</p>}
+            <div className="grid max-h-[600px] grid-cols-1 gap-4 overflow-y-auto p-1 sm:grid-cols-2">
+              {filteredVoitures.length === 0 && (
+                <p className="col-span-full py-8 text-center text-sm text-slate-400">Aucun véhicule disponible à la vente.</p>
+              )}
               {filteredVoitures.map((v) => {
                 const sel = selVoiture?.id === v.id;
                 const photo = imgUrl(v.image_principale);
                 return (
                   <button key={v.id} type="button"
-                    onClick={() => { setSelVoiture(v); patch('id_voiture', String(v.id)); patch('prix_final', String(v.prix_vente ?? v.prix ?? '')); }}
-                    className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
-                      sel ? 'border-[#374151] bg-[#374151]/[0.04] shadow-sm' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    onClick={() => { setSelVoiture(v); patch('id_voiture', String(v.id)); patch('prix_catalogue', String(v.prix_vente ?? v.prix ?? '')); }}
+                    className={`group relative overflow-hidden rounded-2xl border bg-white text-left transition-all ${
+                      sel ? 'border-[#374151] shadow-md ring-2 ring-[#374151]/15' : 'border-slate-200 hover:border-slate-300 hover:shadow-md'
                     }`}>
-                    <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
-                      {photo ? <Image src={photo} alt="" fill className="object-cover" /> : (
-                        <div className="flex h-full items-center justify-center text-slate-300">
-                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                              d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14v6H5v-6z" />
+                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
+                      {photo ? (
+                        <Image src={photo} alt="" fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-slate-200">
+                          <svg className="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
+                              d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5M5 11H3a1 1 0 00-1 1v1a1 1 0 001 1h2m14-2h2a1 1 0 011 1v1a1 1 0 01-1 1h-2" />
                           </svg>
                         </div>
                       )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-black text-[#111827]">{v.marque} {v.modele}</p>
-                      <p className="text-xs text-slate-400">{[v.annee, v.energie].filter(Boolean).join(' · ')}</p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <p className="font-black text-slate-800">{money(v.prix_vente ?? v.prix)}</p>
-                      <p className="text-xs text-slate-400">XOF</p>
-                    </div>
-                    {sel && (
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#374151]">
-                        <svg className="h-3.5 w-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
+                      {(v.annee || v.energie) && (
+                        <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-600 shadow-sm backdrop-blur">
+                          {[v.annee, v.energie].filter(Boolean).join(' · ')}
+                        </span>
+                      )}
+                      <div className={`absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full shadow-md transition-all ${
+                        sel ? 'bg-[#374151] opacity-100' : 'bg-white/95 opacity-0 group-hover:opacity-100'
+                      }`}>
+                        {sel ? (
+                          <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="9" strokeWidth={1.5} />
+                          </svg>
+                        )}
                       </div>
-                    )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="truncate text-base font-black text-[#111827]">{v.marque} {v.modele}</h3>
+                      <p className="mt-1.5 text-lg font-black text-slate-900">
+                        {money(v.prix_vente ?? v.prix)} <span className="text-xs font-semibold text-slate-400">XOF</span>
+                      </p>
+                    </div>
                   </button>
                 );
               })}
@@ -349,7 +420,10 @@ export default function SaleWorkflowPage() {
                 const full = `${c.nom}${c.prenom ? ' ' + c.prenom : ''}`;
                 return (
                   <button key={c.id} type="button"
-                    onClick={() => { setSelClient(c); patch('id_client', String(c.id)); }}
+                    onClick={() => {
+                      setSelClient(c);
+                      setForm((f) => ({ ...f, id_client: String(c.id), piece_identite: c.piece_identite ?? '', numero_piece: c.numero_piece ?? '' }));
+                    }}
                     className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
                       sel ? 'border-[#374151] bg-[#374151]/[0.04]' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                     }`}>
@@ -370,10 +444,56 @@ export default function SaleWorkflowPage() {
               })}
             </div>
 
+            {newClientOpen && (
+              <div className="space-y-3 rounded-xl border border-[#374151]/20 bg-slate-50 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Nouveau client</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="text-xs font-semibold text-slate-600">Nom *
+                    <input className="field-control mt-1.5" value={newClientForm.nom}
+                      onChange={(e) => setNewClientForm((f) => ({ ...f, nom: e.target.value }))} />
+                  </label>
+                  <label className="text-xs font-semibold text-slate-600">Prénom
+                    <input className="field-control mt-1.5" value={newClientForm.prenom}
+                      onChange={(e) => setNewClientForm((f) => ({ ...f, prenom: e.target.value }))} />
+                  </label>
+                  <label className="text-xs font-semibold text-slate-600">Téléphone
+                    <input className="field-control mt-1.5" value={newClientForm.telephone}
+                      onChange={(e) => setNewClientForm((f) => ({ ...f, telephone: e.target.value }))} />
+                  </label>
+                  <label className="text-xs font-semibold text-slate-600">Email
+                    <input type="email" className="field-control mt-1.5" value={newClientForm.email}
+                      onChange={(e) => setNewClientForm((f) => ({ ...f, email: e.target.value }))} />
+                  </label>
+                  <label className="text-xs font-semibold text-slate-600">Type de pièce d'identité
+                    <select className="field-control mt-1.5" value={newClientForm.piece_identite}
+                      onChange={(e) => setNewClientForm((f) => ({ ...f, piece_identite: e.target.value }))}>
+                      <option value="">Sélectionner</option>
+                      <option value="CNI">Carte nationale d'identité</option>
+                      <option value="passeport">Passeport</option>
+                      <option value="permis">Permis de conduire</option>
+                      <option value="titre_sejour">Titre de séjour</option>
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold text-slate-600">Numéro de pièce
+                    <input className="field-control mt-1.5" value={newClientForm.numero_piece}
+                      onChange={(e) => setNewClientForm((f) => ({ ...f, numero_piece: e.target.value }))} />
+                  </label>
+                </div>
+                {newClientError && <p className="text-xs font-semibold text-red-600">{newClientError}</p>}
+                <div className="flex justify-end">
+                  <button type="button" disabled={newClientSaving} onClick={createClient}
+                    className="btn-primary text-xs disabled:cursor-not-allowed disabled:opacity-60">
+                    {newClientSaving ? 'Création…' : 'Créer et sélectionner'}
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-              <Link href="/clients" className="text-sm font-bold text-[#111827] hover:underline">
-                + Créer un nouveau client
-              </Link>
+              <button type="button" className="text-sm font-bold text-[#111827] hover:underline"
+                onClick={() => { setNewClientOpen((v) => !v); setNewClientError(null); }}>
+                {newClientOpen ? 'Annuler la création' : '+ Créer un nouveau client'}
+              </button>
               <div className="flex gap-3">
                 <button type="button" className="btn-secondary" onClick={() => setStep(1)}>← Retour</button>
                 <button type="button" className="btn-primary" onClick={() => setStep(3)} disabled={!selClient}>
@@ -391,9 +511,9 @@ export default function SaleWorkflowPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="space-y-1.5 text-sm font-semibold text-slate-700">
-                Prix de vente (XOF) *
+                Prix catalogue (XOF) *
                 <input type="number" min={0} className="field-control font-normal"
-                  value={form.prix_final} onChange={(e) => patch('prix_final', e.target.value)} required />
+                  value={form.prix_catalogue} onChange={(e) => patch('prix_catalogue', e.target.value)} required />
               </label>
               <label className="space-y-1.5 text-sm font-semibold text-slate-700">
                 Remise (XOF)
@@ -410,12 +530,61 @@ export default function SaleWorkflowPage() {
                 <select className="field-control font-normal" value={form.id_employe}
                   onChange={(e) => patch('id_employe', e.target.value)}>
                   <option value="">Sélectionner…</option>
-                  {employes.map((e) => (
-                    <option key={e.id} value={e.id}>{e.nom}{e.prenom ? ' ' + e.prenom : ''}</option>
+                  {vendeurs.map((e) => (
+                    <option key={e.id} value={e.id}>{e.nom}{e.prenom ? ' ' + e.prenom : ''}{e.poste ? ` · ${e.poste}` : ''}</option>
                   ))}
                 </select>
               </label>
+              <label className="space-y-1.5 text-sm font-semibold text-slate-700">
+                Type de pièce d'identité *
+                <select className="field-control font-normal" value={form.piece_identite} required
+                  disabled={!!selClient?.piece_identite}
+                  onChange={(e) => patch('piece_identite', e.target.value)}>
+                  <option value="">Sélectionner…</option>
+                  <option value="CNI">Carte nationale d'identité</option>
+                  <option value="passeport">Passeport</option>
+                  <option value="permis">Permis de conduire</option>
+                  <option value="titre_sejour">Titre de séjour</option>
+                </select>
+                {selClient?.piece_identite && (
+                  <span className="flex items-center gap-1 text-xs font-semibold text-slate-400">
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Déjà enregistré, non modifiable
+                  </span>
+                )}
+              </label>
+              <label className="space-y-1.5 text-sm font-semibold text-slate-700">
+                Numéro de pièce *
+                <input type="text" className="field-control font-normal" required
+                  readOnly={!!selClient?.numero_piece}
+                  value={form.numero_piece} onChange={(e) => patch('numero_piece', e.target.value)} />
+                {selClient?.numero_piece && (
+                  <span className="flex items-center gap-1 text-xs font-semibold text-slate-400">
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Déjà enregistré, non modifiable
+                  </span>
+                )}
+              </label>
             </div>
+
+            {remiseDepasseSeuil && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                Cette remise dépasse 5% du prix catalogue : la validation d'un gestionnaire ou administrateur sera requise.
+              </div>
+            )}
+
+            {remise > 0 && (
+              <label className="block space-y-1.5 text-sm font-semibold text-slate-700">
+                Motif de la remise (optionnel)
+                <input type="text" className="field-control font-normal"
+                  placeholder="ex: reprise fidélité, déstockage, geste commercial…"
+                  value={form.motif_remise} onChange={(e) => patch('motif_remise', e.target.value)} />
+              </label>
+            )}
 
             <label className="block space-y-1.5 text-sm font-semibold text-slate-700">
               Observations
@@ -443,7 +612,7 @@ export default function SaleWorkflowPage() {
             <div className="flex justify-between border-t border-slate-100 pt-4">
               <button type="button" className="btn-secondary" onClick={() => setStep(2)}>← Retour</button>
               <button type="button" className="btn-primary" onClick={() => setStep(4)}
-                disabled={!form.prix_final || !form.date_vente}>
+                disabled={!form.prix_catalogue || !form.date_vente}>
                 Récapitulatif →
               </button>
             </div>

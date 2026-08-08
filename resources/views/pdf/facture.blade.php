@@ -13,9 +13,16 @@ body { font-family: DejaVu Sans, sans-serif; font-size: 10.5px; color: #1a2535; 
 .top-stripe { background: #1a2e4a; height: 5px; margin: 0 0 0; }
 
 /* ── Header ──────────────────────────────────── */
-.header { display: table; width: 100%; margin-top: 18px; margin-bottom: 22px; }
+.header { position: relative; display: table; width: 100%; margin-top: 18px; margin-bottom: 22px; }
+.corner-accent { position: absolute; top: -30px; right: -38px; width: 0; height: 0;
+                 border-top: 100px solid #185FA5; border-left: 100px solid transparent; }
 .h-left  { display: table-cell; vertical-align: top; width: 58%; }
 .h-right { display: table-cell; vertical-align: top; width: 42%; text-align: right; }
+.ref-box { display: inline-block; border: 1px solid #1a2e4a; border-radius: 4px;
+           padding: 8px 14px; text-align: left; background: #fff; }
+.ref-box .lbl { font-size: 7.5px; font-weight: 700; text-transform: uppercase;
+                letter-spacing: .16em; color: #7b8fa6; }
+.ref-box .val { font-size: 13px; font-weight: 700; color: #1a2e4a; margin-top: 2px; }
 
 .logo-box { display: table; margin-bottom: 8px; }
 .logo-sq  { display: table-cell; vertical-align: middle; width: 44px; height: 44px;
@@ -179,6 +186,7 @@ table.items tbody tr:last-child td { border-bottom: none; }
 
 {{-- ── HEADER ──────────────────────────────────────────────────── --}}
 <div class="header">
+  <div class="corner-accent"></div>
   <div class="h-left">
     <div class="logo-box">
       <div style="overflow:hidden; width:190px; height:58px;">
@@ -196,7 +204,10 @@ table.items tbody tr:last-child td { border-bottom: none; }
   </div>
   <div class="h-right">
     <div class="inv-label">FACTURE</div>
-    <div class="inv-num">{{ $facture->numero_facture }}</div>
+    <div class="ref-box">
+      <div class="lbl">N° Facture</div>
+      <div class="val">{{ $facture->numero_facture }}</div>
+    </div>
     <div class="inv-meta">
       <strong>Date d'émission :</strong> {{ optional($facture->date_facture)->format('d/m/Y') ?? '—' }}<br>
       @if($facture->date_echeance)

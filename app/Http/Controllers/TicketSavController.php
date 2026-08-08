@@ -8,11 +8,32 @@ use App\Models\Employe;
 use App\Models\Garantie;
 use App\Models\TicketSav;
 use App\Models\Voiture;
+use App\Notifications\AssignationNotification;
 use App\Services\BusinessReferenceService;
 use Illuminate\Http\Request;
 
 class TicketSavController extends Controller
 {
+    private function notifierResponsableAssigne(TicketSav $ticket): void
+    {
+        $responsable = $ticket->responsable;
+
+        if (! $responsable?->email) {
+            return;
+        }
+
+        $responsable->notify(new AssignationNotification(
+            sujet: "Ticket SAV assigné — {$ticket->reference_ticket}",
+            intro: "Un ticket SAV vous a été assigné : « {$ticket->objet} ».",
+            details: array_filter([
+                "Référence : {$ticket->reference_ticket}",
+                "Priorité : {$ticket->priorite}",
+            ]),
+            actionUrl: url("/sav/{$ticket->id}"),
+            actionLabel: 'Voir le ticket',
+        ));
+    }
+
     public function index(Request $request)
     {
         $this->ensurePermission('manage_sav');
@@ -58,6 +79,7 @@ class TicketSavController extends Controller
         $ticket = TicketSav::query()->create($data);
         $this->logAction('create', 'ticket_sav', $ticket, $data, $request);
         $this->resetDashboardCache();
+        $this->notifierResponsableAssigne($ticket);
 
         if (! $request->wantsJson()) {
             return redirect()->route('tickets-sav.show', $ticket)->with('success', 'Ticket SAV cree.');
@@ -99,9 +121,14 @@ class TicketSavController extends Controller
     public function update(TicketSavRequest $request, TicketSav $ticketSav)
     {
         $this->ensurePermission('manage_sav');
+        $responsableChange = $ticketSav->id_responsable !== ($request->validated()['id_responsable'] ?? $ticketSav->id_responsable);
         $ticketSav->update($request->validated());
         $this->logAction('update', 'ticket_sav', $ticketSav, $request->validated(), $request);
         $this->resetDashboardCache();
+
+        if ($responsableChange) {
+            $this->notifierResponsableAssigne($ticketSav->fresh());
+        }
 
         if (! $request->wantsJson()) {
             return redirect()->route('tickets-sav.show', $ticketSav)->with('success', 'Ticket SAV mis a jour.');

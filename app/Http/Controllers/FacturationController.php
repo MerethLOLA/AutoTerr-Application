@@ -76,6 +76,7 @@ class FacturationController extends Controller
     {
         $this->ensurePermission('manage_ventes');
         $data = $this->normalizeFactureData($request->validated(), $facturation);
+        $this->refuserModifSiPayee($facturation, $data);
         $facturation->update($data);
         $facturation->syncStatut();
         $this->logAction('update', 'facturation', $facturation, $data, $request);
@@ -110,13 +111,35 @@ class FacturationController extends Controller
         return $exportService->facture($facturation);
     }
 
+    /** Empêche de modifier le montant/rattachement d'une facture après qu'un paiement y a été enregistré. */
+    private function refuserModifSiPayee(Facturation $facturation, array $data): void
+    {
+        if (! $facturation->exists || ! $facturation->paiements()->exists()) {
+            return;
+        }
+
+        foreach (['id_vente', 'id_location', 'montant', 'remise', 'taux_tva'] as $champ) {
+            if (! array_key_exists($champ, $data)) {
+                continue;
+            }
+            $actuel = $facturation->{$champ};
+            $nouveau = $data[$champ];
+            $modifie = is_numeric($actuel) || is_numeric($nouveau)
+                ? abs((float) $nouveau - (float) $actuel) > 0.01
+                : $nouveau != $actuel;
+
+            abort_if($modifie, 422, "Impossible de modifier « {$champ} » : un paiement a déjà été enregistré sur cette facture.");
+        }
+    }
+
     private function normalizeFactureData(array $data, ?Facturation $facturation = null): array
     {
         $montantBase = (float) ($data['montant'] ?? $facturation?->montant ?? 0);
         $remise = (float) ($data['remise'] ?? $facturation?->remise ?? 0);
         $tauxTva = (float) ($data['taux_tva'] ?? $facturation?->taux_tva ?? 18);
         $montantHt = max($montantBase - $remise, 0);
-        $montantTtc = round($montantHt * (1 + ($tauxTva / 100)), 2);
+        // XOF n'a pas de sous-unité : on arrondit au franc le plus proche.
+        $montantTtc = round($montantHt * (1 + ($tauxTva / 100)));
 
         $data['numero_facture'] = $data['numero_facture']
             ?? $facturation?->numero_facture

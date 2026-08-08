@@ -14,8 +14,14 @@ class CheckLocationEcheancesCommand extends Command
 
     public function handle(): int
     {
-        $locations = Location::query()
+        $bascules = Location::query()
             ->whereIn('statut', ['planifiee', 'en_cours'])
+            ->whereDate('date_fin', '<', now()->toDateString())
+            ->whereNull('date_retour_effective')
+            ->update(['statut' => 'en_retard']);
+
+        $locations = Location::query()
+            ->whereIn('statut', ['planifiee', 'en_cours', 'en_retard'])
             ->where(function ($q) {
                 // Locations finissant dans exactement 2 jours ou déjà en retard (non notifiées aujourd'hui)
                 $q->whereDate('date_fin', now()->addDays(2)->toDateString())
@@ -41,7 +47,7 @@ class CheckLocationEcheancesCommand extends Command
             $sent++;
         }
 
-        $this->info("Rappels locations : {$sent} envoyé(s) sur {$locations->count()} trouvé(s).");
+        $this->info("Locations basculées en retard : {$bascules}. Rappels : {$sent} envoyé(s) sur {$locations->count()} trouvé(s).");
 
         return self::SUCCESS;
     }

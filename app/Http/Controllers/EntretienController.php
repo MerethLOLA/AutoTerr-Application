@@ -3,11 +3,32 @@
 namespace App\Http\Controllers;
 
 use App\Models\Entretien;
+use App\Notifications\AssignationNotification;
 use App\Services\DocumentExportService;
 use Illuminate\Http\Request;
 
 class EntretienController extends Controller
 {
+    private function notifierTechnicienAssigne(Entretien $entretien): void
+    {
+        $technicien = $entretien->technicien;
+
+        if (! $technicien?->email) {
+            return;
+        }
+
+        $technicien->notify(new AssignationNotification(
+            sujet: "Entretien véhicule assigné — {$entretien->type_entretien}",
+            intro: "Un entretien vous a été assigné : « {$entretien->type_entretien} ».",
+            details: array_filter([
+                $entretien->date_prevue ? "Date prévue : {$entretien->date_prevue->format('d/m/Y')}" : null,
+                $entretien->kilometrage_prevu ? "Kilométrage prévu : {$entretien->kilometrage_prevu} km" : null,
+            ]),
+            actionUrl: url('/entretiens'),
+            actionLabel: "Voir l'entretien",
+        ));
+    }
+
     public function index(Request $request)
     {
         $this->ensurePermission('view_voitures');
@@ -43,14 +64,17 @@ class EntretienController extends Controller
             'date_prevue'         => 'nullable|date',
             'date_realise'        => 'nullable|date',
             'kilometrage_prevu'   => 'nullable|integer|min:0',
-            'kilometrage_realise' => 'nullable|integer|min:0',
+            'kilometrage_realise' => ['nullable', 'integer', 'min:0', 'required_if:statut,effectue'],
             'cout'                => 'nullable|numeric|min:0',
             'statut'              => 'nullable|string|max:50',
             'notes'               => 'nullable|string',
+        ], [
+            'kilometrage_realise.required_if' => "Le kilométrage réalisé est obligatoire pour marquer l'entretien comme effectué.",
         ]);
 
         $entretien = Entretien::query()->create($data);
         $this->logAction('create', 'entretien', $entretien, $data, $request);
+        $this->notifierTechnicienAssigne($entretien);
 
         return $this->apiItem($entretien->load(['voiture:id,marque,modele', 'technicien:id,nom,prenom']), 201, [
             'message' => 'Entretien planifié',
@@ -75,14 +99,21 @@ class EntretienController extends Controller
             'date_prevue'         => 'nullable|date',
             'date_realise'        => 'nullable|date',
             'kilometrage_prevu'   => 'nullable|integer|min:0',
-            'kilometrage_realise' => 'nullable|integer|min:0',
+            'kilometrage_realise' => ['nullable', 'integer', 'min:0', 'required_if:statut,effectue'],
             'cout'                => 'nullable|numeric|min:0',
             'statut'              => 'nullable|string|max:50',
             'notes'               => 'nullable|string',
+        ], [
+            'kilometrage_realise.required_if' => "Le kilométrage réalisé est obligatoire pour marquer l'entretien comme effectué.",
         ]);
 
+        $technicienChange = $entretien->id_technicien !== ($data['id_technicien'] ?? $entretien->id_technicien);
         $entretien->update($data);
         $this->logAction('update', 'entretien', $entretien, $data, $request);
+
+        if ($technicienChange) {
+            $this->notifierTechnicienAssigne($entretien->fresh());
+        }
 
         return $this->apiItem($entretien->fresh()->load(['voiture:id,marque,modele', 'technicien:id,nom,prenom']), 200, [
             'message' => 'Entretien mis à jour',

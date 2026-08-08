@@ -8,9 +8,12 @@ interface Paiement {
   id: number;
   date: string;
   mode_paiement: string;
+  reference_paiement?: string;
+  banque?: string;
   montant: number;
   reste?: number;
-  facturation?: { numero_facture: string };
+  id_facture?: number;
+  facturation?: { id: number; numero_facture: string };
   vente?: { reference_vente: string };
   client?: { nom: string; prenom?: string };
 }
@@ -52,14 +55,18 @@ export default function PaymentsPage() {
   const [search, setSearch]         = useState('');
   const [modeFilter, setModeFilter] = useState('');
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey]         = useState(0);
 
-  // Formulaire création
+  // Formulaire création / édition
   const [showForm, setShowForm]   = useState(false);
   const [saving, setSaving]       = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [factures, setFactures]   = useState<Facture[]>([]);
-  const [form, setForm] = useState({ id_facture: '', date: new Date().toISOString().slice(0, 10), mode_paiement: 'especes', montant: '' });
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const emptyForm = { id_facture: '', date: new Date().toISOString().slice(0, 10), mode_paiement: 'especes', montant: '', reference_paiement: '', banque: '' };
+  const [form, setForm] = useState(emptyForm);
   const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,28 +78,63 @@ export default function PaymentsPage() {
     }
   }, [showForm, factures.length]);
 
+  // Auto-remplissage du montant depuis le reste à payer — uniquement à la création,
+  // pour ne pas écraser le montant réel d'un paiement existant en édition.
   useEffect(() => {
-    if (showForm) {
+    if (showForm && !editingId) {
       const selectedFacture = factures.find((f) => String(f.id) === form.id_facture);
       if (selectedFacture) {
         const reste = selectedFacture.reste_a_payer ?? selectedFacture.montant_ttc ?? 0;
         setForm((f) => ({ ...f, montant: String(Math.round(Number(reste))) }));
       }
     }
-  }, [form.id_facture, showForm, factures]);
+  }, [form.id_facture, showForm, editingId, factures]);
 
-  async function handleCreate(e: React.FormEvent) {
+  function beginCreate() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setFormError(null);
+    setShowForm(true);
+  }
+
+  function beginEdit(p: Paiement) {
+    setEditingId(p.id);
+    setFormError(null);
+    // La facture peut déjà être "payée" (grâce à ce paiement) et donc absente
+    // de la liste filtrée — on l'ajoute pour que le select ait une option valide.
+    if (p.facturation && !factures.some((f) => f.id === p.facturation!.id)) {
+      setFactures((cur) => [{ id: p.facturation!.id, numero_facture: p.facturation!.numero_facture }, ...cur]);
+    }
+    setForm({
+      id_facture: p.id_facture ? String(p.id_facture) : '',
+      date: p.date.slice(0, 10),
+      mode_paiement: p.mode_paiement,
+      montant: String(p.montant),
+      reference_paiement: p.reference_paiement ?? '',
+      banque: p.banque ?? '',
+    });
+    setShowForm(true);
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
     setSaving(true);
     try {
-      await apiClient.post('/paiements', {
+      const payload = {
         ...form,
         montant: Number(form.montant),
         id_facture: form.id_facture ? Number(form.id_facture) : undefined,
-      });
+      };
+      if (editingId) {
+        await apiClient.put(`/paiements/${editingId}`, payload);
+      } else {
+        await apiClient.post('/paiements', payload);
+      }
       setShowForm(false);
-      setForm({ id_facture: '', date: new Date().toISOString().slice(0, 10), mode_paiement: 'especes', montant: '' });
+      setEditingId(null);
+      setForm(emptyForm);
       setPage(1);
       setReloadKey((k) => k + 1);
     } catch (err: any) {
@@ -102,10 +144,26 @@ export default function PaymentsPage() {
     }
   }
 
+  async function handleDelete(id: number) {
+    if (!window.confirm('Confirmer la suppression de ce paiement ? Le reste à payer de la facture sera recalculé.')) return;
+    setDeletingId(id);
+    try {
+      await apiClient.delete(`/paiements/${id}`);
+      setReloadKey((k) => k + 1);
+    } catch (err: any) {
+      setDownloadError(err?.message || 'Suppression impossible');
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   async function downloadRecu(id: number) {
     setDownloadingId(id);
+    setDownloadError(null);
     try {
-      await apiClient.download(`/paiements/${id}/export`, `recu-paiement-${id}.pdf`);
+      await apiClient.openPdf(`/paiements/${id}/export`);
+    } catch (err: any) {
+      setDownloadError(err?.message || 'Impossible de télécharger le reçu.');
     } finally {
       setDownloadingId(null);
     }
@@ -151,7 +209,7 @@ export default function PaymentsPage() {
           <div className="flex shrink-0 gap-2">
             <button
               type="button"
-              onClick={() => { setShowForm((v) => !v); setFormError(null); }}
+              onClick={() => { if (showForm) { setShowForm(false); setEditingId(null); } else { beginCreate(); } }}
               className="btn-primary shrink-0"
             >
               {showForm ? '✕ Annuler' : '+ Nouveau paiement'}
@@ -181,8 +239,8 @@ export default function PaymentsPage() {
         {/* Formulaire création inline */}
         {showForm && (
           <div ref={formRef} className="surface-panel p-6">
-            <h2 className="section-title mb-4">Enregistrer un paiement</h2>
-            <form onSubmit={handleCreate} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <h2 className="section-title mb-4">{editingId ? 'Modifier le paiement' : 'Enregistrer un paiement'}</h2>
+            <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {/* Facture */}
               <label className="flex flex-col gap-1 text-xs font-semibold text-[#374151]">
                 Facture *
@@ -221,7 +279,7 @@ export default function PaymentsPage() {
                   required
                   className="field-control"
                   value={form.mode_paiement}
-                  onChange={(e) => setForm((f) => ({ ...f, mode_paiement: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, mode_paiement: e.target.value, reference_paiement: '', banque: '' }))}
                 >
                   {Object.entries(MODE_LABEL).map(([k, v]) => (
                     <option key={k} value={k}>{v}</option>
@@ -243,6 +301,37 @@ export default function PaymentsPage() {
                 />
               </label>
 
+              {/* Référence (chèque / carte / virement) */}
+              {form.mode_paiement !== 'especes' && (
+                <label className="flex flex-col gap-1 text-xs font-semibold text-[#374151]">
+                  {form.mode_paiement === 'cheque' && 'N° chèque'}
+                  {form.mode_paiement === 'carte' && '4 derniers chiffres carte'}
+                  {form.mode_paiement === 'virement' && 'Référence virement'}
+                  {form.mode_paiement === 'mobile' && 'Référence transaction'}
+                  <input
+                    type="text"
+                    className="field-control"
+                    value={form.reference_paiement}
+                    onChange={(e) => setForm((f) => ({ ...f, reference_paiement: e.target.value }))}
+                    placeholder={form.mode_paiement === 'carte' ? 'ex: 4242' : 'ex: REF-00123'}
+                  />
+                </label>
+              )}
+
+              {/* Banque (chèque / virement) */}
+              {(form.mode_paiement === 'cheque' || form.mode_paiement === 'virement') && (
+                <label className="flex flex-col gap-1 text-xs font-semibold text-[#374151]">
+                  Banque
+                  <input
+                    type="text"
+                    className="field-control"
+                    value={form.banque}
+                    onChange={(e) => setForm((f) => ({ ...f, banque: e.target.value }))}
+                    placeholder="ex: CBAO"
+                  />
+                </label>
+              )}
+
               {formError && (
                 <div className="sm:col-span-2 lg:col-span-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {formError}
@@ -251,11 +340,11 @@ export default function PaymentsPage() {
 
               <div className="sm:col-span-2 lg:col-span-4 flex gap-2">
                 <button type="submit" disabled={saving} className="btn-primary">
-                  {saving ? 'Enregistrement…' : 'Valider le paiement'}
+                  {saving ? 'Enregistrement…' : editingId ? 'Enregistrer les modifications' : 'Valider le paiement'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setShowForm(false); setFormError(null); }}
+                  onClick={() => { setShowForm(false); setEditingId(null); setFormError(null); }}
                   className="btn-secondary"
                 >
                   Annuler
@@ -286,6 +375,12 @@ export default function PaymentsPage() {
               ))}
             </div>
           </section>
+        )}
+
+        {downloadError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {downloadError}
+          </div>
         )}
 
         {/* Tableau */}
@@ -331,17 +426,18 @@ export default function PaymentsPage() {
                     <tr>
                       <th className="table-header pl-5">Date</th>
                       <th className="table-header">Mode</th>
+                      <th className="table-header">Référence</th>
                       <th className="table-header">Montant</th>
                       <th className="table-header">Reste</th>
                       <th className="table-header">Facture</th>
                       <th className="table-header">Client</th>
-                      <th className="table-header">Reçu</th>
+                      <th className="table-header">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {items.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-5 py-10 text-sm text-[#6b7280]">Aucun paiement trouvé.</td>
+                        <td colSpan={8} className="px-5 py-10 text-sm text-[#6b7280]">Aucun paiement trouvé.</td>
                       </tr>
                     ) : items.map((p) => (
                       <tr key={p.id} className="table-row">
@@ -350,6 +446,11 @@ export default function PaymentsPage() {
                           <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${MODE_COLOR[p.mode_paiement] ?? 'bg-slate-100 text-slate-600'}`}>
                             {MODE_LABEL[p.mode_paiement] ?? p.mode_paiement}
                           </span>
+                        </td>
+                        <td className="table-cell text-[#6b7280]">
+                          {p.reference_paiement || p.banque
+                            ? [p.reference_paiement, p.banque].filter(Boolean).join(' · ')
+                            : <span className="text-slate-300">—</span>}
                         </td>
                         <td className="table-cell font-bold text-[#111827]">{money(p.montant)} XOF</td>
                         <td className="table-cell">
@@ -364,14 +465,31 @@ export default function PaymentsPage() {
                           {p.client ? `${p.client.nom}${p.client.prenom ? ' ' + p.client.prenom : ''}` : '—'}
                         </td>
                         <td className="table-cell">
-                          <button
-                            type="button"
-                            disabled={downloadingId === p.id}
-                            onClick={() => downloadRecu(p.id)}
-                            className="inline-flex items-center gap-1 rounded border border-[#dfe3eb] bg-white px-2 py-1 text-xs font-semibold text-[#111827] transition hover:border-[#185FA5] hover:bg-[#185FA5] hover:text-white disabled:opacity-40"
-                          >
-                            {downloadingId === p.id ? '…' : 'PDF'}
-                          </button>
+                          <div className="flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => beginEdit(p)}
+                              className="inline-flex items-center gap-1 rounded border border-[#dfe3eb] bg-white px-2 py-1 text-xs font-semibold text-[#111827] transition hover:border-[#185FA5] hover:bg-[#185FA5] hover:text-white"
+                            >
+                              Modifier
+                            </button>
+                            <button
+                              type="button"
+                              disabled={deletingId === p.id}
+                              onClick={() => handleDelete(p.id)}
+                              className="inline-flex items-center gap-1 rounded border border-red-200 bg-white px-2 py-1 text-xs font-semibold text-red-600 transition hover:border-red-500 hover:bg-red-500 hover:text-white disabled:opacity-40"
+                            >
+                              {deletingId === p.id ? '…' : 'Supprimer'}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={downloadingId === p.id}
+                              onClick={() => downloadRecu(p.id)}
+                              className="inline-flex items-center gap-1 rounded border border-[#dfe3eb] bg-white px-2 py-1 text-xs font-semibold text-[#111827] transition hover:border-[#185FA5] hover:bg-[#185FA5] hover:text-white disabled:opacity-40"
+                            >
+                              {downloadingId === p.id ? '…' : 'Imprimer'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

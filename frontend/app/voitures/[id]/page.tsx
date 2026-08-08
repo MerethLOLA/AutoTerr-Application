@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useRole } from '@/lib/useRole';
 
 const STORAGE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '');
 function imgUrl(p?: string | null) {
@@ -24,6 +25,7 @@ const STATUT: Record<string, { label: string; cls: string }> = {
 };
 
 export default function VoitureDetailPage() {
+  const { canWrite } = useRole();
   const { id } = useParams();
   const _initV = id ? apiClient.getCached<any>(`/voitures/${id}`) : null;
   const [voiture, setVoiture] = useState<any>(_initV?.data ?? _initV ?? null);
@@ -107,7 +109,6 @@ export default function VoitureDetailPage() {
     { label: 'Numéro de châssis', value: voiture.numero_chassis },
     { label: 'Type de véhicule', value: voiture.typeVehicule?.nom },
     { label: 'Origine', value: voiture.origineMarque?.nom },
-    { label: 'Fournisseur', value: voiture.fournisseur?.nom },
     { label: "Date d'acquisition", value: voiture.date_acquisition },
   ].filter((s) => s.value);
 
@@ -295,10 +296,12 @@ export default function VoitureDetailPage() {
 
             {/* Actions secondaires */}
             <div className="flex flex-wrap gap-2">
-              <Link href={`/voitures/${voiture.id}/edit`}
-                className="flex-1 rounded-xl border border-slate-200 py-2.5 text-center text-sm font-bold text-slate-600 transition hover:bg-slate-50">
-                Modifier
-              </Link>
+              {canWrite('voitures') && (
+                <Link href={`/voitures/${voiture.id}/edit`}
+                  className="flex-1 rounded-xl border border-slate-200 py-2.5 text-center text-sm font-bold text-slate-600 transition hover:bg-slate-50">
+                  Modifier
+                </Link>
+              )}
               <Link href={`/voitures/${voiture.id}/historique`}
                 className="flex-1 rounded-xl border border-[#185FA5] bg-[#185FA5]/5 py-2.5 text-center text-sm font-bold text-[#185FA5] transition hover:bg-[#185FA5]/10">
                 Historique

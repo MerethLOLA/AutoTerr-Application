@@ -21,6 +21,24 @@ export interface ModuleFormField {
   defaultValue?: string | number;
   readOnly?: boolean;
   hidden?: boolean;
+  /** Remplit automatiquement ce champ à partir d'un autre champ select (ex: montant <- prix_final de la vente choisie). */
+  deriveFrom?: { field: string; path: string };
+  /** N'affiche ce champ que si un autre champ a l'une de ces valeurs (ex: n° chèque affiché seulement si mode = cheque). */
+  visibleWhen?: { field: string; in: string[] };
+  /** Affiche une info en lecture seule sous le select, tirée de l'option choisie (ex: prix du véhicule sélectionné). */
+  helperFrom?: { path: string; label: string; format?: 'money' };
+  /** Une fois ce champ renseigné (à l'ouverture du formulaire ou via deriveFrom), il devient non modifiable (ex: pièce d'identité déjà enregistrée). */
+  lockOnceSet?: boolean;
+  /** Ajoute un bouton "+ Nouveau" à côté d'un select pour créer l'option manquante sans quitter le formulaire (ex: nouveau client). */
+  quickCreate?: {
+    endpoint: string;
+    fields: {
+      label: string;
+      name: string;
+      type?: 'text' | 'email' | 'select';
+      staticOptions?: { value: string; label: string }[];
+    }[];
+  };
 }
 
 export interface ModuleDefinition {
@@ -94,7 +112,6 @@ export const modules: Record<string, ModuleDefinition> = {
         { value: 'hors_service', label: 'Hors service' },
         { value: 'reserve', label: 'Réservé' },
       ]},
-      { label: 'Fournisseur', name: 'id_fournisseur', type: 'select', optionsEndpoint: '/fournisseurs', optionFormatter: (option) => option?.nom || `Fournisseur #${option?.id}` },
       { label: 'Énergie', name: 'energie', type: 'select', staticOptions: [
         { value: 'essence', label: 'Essence' },
         { value: 'diesel', label: 'Diesel' },
@@ -126,13 +143,12 @@ export const modules: Record<string, ModuleDefinition> = {
     kind: 'crud',
     status: 'api-ready',
     primaryAction: 'Ajouter un client',
-    fields: ['Nom', 'Telephone', 'Email', 'Type client', 'Classe'],
+    fields: ['Nom', 'Telephone', 'Email', 'Type client'],
     columns: [
       { label: 'Nom', key: 'nom' },
       { label: 'Telephone', key: 'telephone' },
       { label: 'Email', key: 'email' },
       { label: 'Type client', key: 'type_client' },
-      { label: 'Classe', key: 'classe' },
     ],
     formFields: [
       { label: 'Nom *', name: 'nom', required: true },
@@ -141,13 +157,14 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Téléphone', name: 'telephone' },
       { label: 'Email', name: 'email', type: 'email' },
       { label: 'Adresse', name: 'adresse', type: 'textarea' },
-      { label: "Type de pièce d'identité", name: 'piece_identite', type: 'select', staticOptions: [
+      { label: "Type de pièce d'identité *", name: 'piece_identite', type: 'select', required: true, lockOnceSet: true, staticOptions: [
         { value: 'CNI', label: "Carte nationale d'identité" },
         { value: 'passeport', label: 'Passeport' },
         { value: 'permis', label: 'Permis de conduire' },
         { value: 'titre_sejour', label: 'Titre de séjour' },
       ]},
-      { label: "Numéro de pièce", name: 'numero_piece' },
+      { label: "Numéro de pièce *", name: 'numero_piece', required: true, lockOnceSet: true },
+      { label: "Scan de la pièce (photo ou PDF)", name: 'piece_identite_fichier', type: 'file', accept: 'image/*,.pdf' },
       { label: 'Type de client', name: 'type_client', type: 'select', staticOptions: [
         { value: 'particulier', label: 'Particulier' },
         { value: 'professionnel', label: 'Professionnel / Entreprise' },
@@ -230,11 +247,14 @@ export const modules: Record<string, ModuleDefinition> = {
     formFields: [
       { label: 'Vente', name: 'id_vente', type: 'select', required: true, optionsEndpoint: '/ventes', optionFormatter: (option) => option?.reference_vente || `Vente #${option?.id}` },
       { label: 'Date facture', name: 'date_facture', type: 'date', required: true },
-      { label: 'Montant', name: 'montant', type: 'number' },
+      { label: 'Montant', name: 'montant', type: 'number', readOnly: true, deriveFrom: { field: 'id_vente', path: 'prix_final' } },
       { label: 'Remise', name: 'remise', type: 'number' },
       { label: 'TVA', name: 'taux_tva', type: 'number', defaultValue: 18 },
-      { label: 'Statut', name: 'statut' },
-      { label: 'Mode livraison', name: 'mode_livraison' },
+      { label: 'Mode livraison', name: 'mode_livraison', type: 'select', staticOptions: [
+        { value: 'sur_place', label: 'Retrait en concession' },
+        { value: 'domicile', label: 'Livraison à domicile' },
+        { value: 'point_relais', label: 'Point relais' },
+      ]},
       { label: 'Echeance', name: 'date_echeance', type: 'date' },
       { label: 'Observations', name: 'observations', type: 'textarea' },
     ],
@@ -253,13 +273,23 @@ export const modules: Record<string, ModuleDefinition> = {
     columns: [
       { label: 'Date', key: 'date', type: 'date' as const },
       { label: 'Mode', key: 'mode_paiement' },
+      { label: 'Référence', key: 'reference_paiement' },
       { label: 'Montant', key: 'montant', type: 'money' as const },
       { label: 'Reste', key: 'reste', type: 'money' as const },
       { label: 'Facture', key: 'facturation.numero_facture' },
     ],
     formFields: [
       { label: 'Date', name: 'date', type: 'date', required: true },
-      { label: 'Mode paiement', name: 'mode_paiement', required: true },
+      { label: 'Mode paiement', name: 'mode_paiement', type: 'select', required: true, staticOptions: [
+        { value: 'especes', label: 'Espèces' },
+        { value: 'cheque', label: 'Chèque' },
+        { value: 'carte', label: 'Carte bancaire' },
+        { value: 'virement', label: 'Virement' },
+      ]},
+      { label: 'N° chèque', name: 'reference_paiement', visibleWhen: { field: 'mode_paiement', in: ['cheque'] } },
+      { label: '4 derniers chiffres carte', name: 'reference_paiement', visibleWhen: { field: 'mode_paiement', in: ['carte'] } },
+      { label: 'Référence virement', name: 'reference_paiement', visibleWhen: { field: 'mode_paiement', in: ['virement'] } },
+      { label: 'Banque', name: 'banque', visibleWhen: { field: 'mode_paiement', in: ['cheque', 'virement'] } },
       { label: 'Montant', name: 'montant', type: 'number', required: true },
       { label: 'Facture', name: 'id_facture', type: 'select', required: true, optionsEndpoint: '/facturations', optionFormatter: (option) => option?.numero_facture || `Facture #${option?.id}` },
       { label: 'Vente', name: 'id_vente', type: 'select', hidden: true, optionsEndpoint: '/ventes', optionFormatter: (option) => option?.reference_vente || `Vente #${option?.id}` },
@@ -354,7 +384,7 @@ export const modules: Record<string, ModuleDefinition> = {
     formFields: [
       { label: 'Client', name: 'id_client', type: 'select', required: true, optionsEndpoint: '/clients', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Client #${option?.id}` },
       { label: 'Vehicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Vehicule #${option?.id}` },
-      { label: 'Responsable SAV', name: 'id_responsable', type: 'select', required: true, optionsEndpoint: '/employes/select?role=sav', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') + (option?.poste ? ` (${option.poste})` : '') || `Employé #${option?.id}` },
+      { label: 'Conseiller SAV', name: 'id_responsable', type: 'select', required: true, optionsEndpoint: '/employes/select?role=sav', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') + (option?.poste ? ` (${option.poste})` : '') || `Employé #${option?.id}` },
       { label: 'Garantie liée', name: 'id_garantie', type: 'select', optionsEndpoint: '/garanties', optionFormatter: (option) => option?.type_garantie || `Garantie #${option?.id}` },
       { label: 'Objet', name: 'objet', required: true },
       { label: 'Priorité', name: 'priorite', type: 'select', staticOptions: [
@@ -426,11 +456,36 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Statut', key: 'statut', type: 'badge' as const },
     ],
     formFields: [
-      { label: 'Client', name: 'id_client', type: 'select', required: true, optionsEndpoint: '/clients', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Client #${option?.id}` },
-      { label: 'Vehicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Vehicule #${option?.id}` },
+      { label: 'Client', name: 'id_client', type: 'select', required: true, optionsEndpoint: '/clients', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Client #${option?.id}`,
+        quickCreate: {
+          endpoint: '/clients',
+          fields: [
+            { label: 'Nom', name: 'nom' },
+            { label: 'Prénom', name: 'prenom' },
+            { label: 'Téléphone', name: 'telephone' },
+            { label: 'Email', name: 'email', type: 'email' },
+            { label: "Type de pièce d'identité", name: 'piece_identite', type: 'select', staticOptions: [
+              { value: 'CNI', label: "Carte nationale d'identité" },
+              { value: 'passeport', label: 'Passeport' },
+              { value: 'permis', label: 'Permis de conduire' },
+              { value: 'titre_sejour', label: 'Titre de séjour' },
+            ]},
+            { label: 'Numéro de pièce', name: 'numero_piece' },
+          ],
+        },
+      },
+      { label: "Type de pièce d'identité *", name: 'piece_identite', type: 'select', required: true, lockOnceSet: true, deriveFrom: { field: 'id_client', path: 'piece_identite' }, staticOptions: [
+        { value: 'CNI', label: "Carte nationale d'identité" },
+        { value: 'passeport', label: 'Passeport' },
+        { value: 'permis', label: 'Permis de conduire' },
+        { value: 'titre_sejour', label: 'Titre de séjour' },
+      ]},
+      { label: 'Numéro de pièce *', name: 'numero_piece', required: true, lockOnceSet: true, deriveFrom: { field: 'id_client', path: 'numero_piece' } },
+      { label: 'Vehicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures?statut=disponible&type_usage=location&per_page=100', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Vehicule #${option?.id}`,
+        helperFrom: { path: 'prix', label: 'Prix catalogue du véhicule', format: 'money' } },
       { label: 'Date debut', name: 'date_debut', type: 'date', required: true },
       { label: 'Date fin', name: 'date_fin', type: 'date', required: true },
-      { label: 'Agent responsable', name: 'id_agent', type: 'select', optionsEndpoint: '/employes/select?poste=location', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Employé #${option?.id}` },
+      { label: 'Agent responsable', name: 'id_agent', type: 'select', optionsEndpoint: '/employes/select?role=commercial', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') || `Employé #${option?.id}` },
       { label: 'Tarif journalier (XOF)', name: 'tarif_journalier', type: 'number', required: true },
       { label: 'Caution (XOF)', name: 'caution', type: 'number' },
       { label: 'TVA (%)', name: 'taux_tva', type: 'number' },
@@ -438,6 +493,7 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Statut', name: 'statut', type: 'select', staticOptions: [
         { value: 'planifiee', label: 'Planifiée' },
         { value: 'en_cours', label: 'En cours' },
+        { value: 'en_retard', label: 'En retard' },
         { value: 'terminee', label: 'Terminée' },
         { value: 'annulee', label: 'Annulée' },
       ]},
@@ -499,7 +555,8 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Email',           name: 'email',         type: 'email' },
       { label: 'Adresse',         name: 'adresse',       type: 'textarea' },
       { label: 'Date embauche',   name: 'date_embauche', type: 'date' },
-      { label: 'Salaire (XOF)',   name: 'salaire',       type: 'number' },
+      { label: 'Salaire fixe (XOF)', name: 'salaire',    type: 'number' },
+      { label: 'Taux de commission (%)', name: 'taux_commission', type: 'number' },
       { label: 'Type de contrat', name: 'contrat', type: 'select', staticOptions: [
         { value: 'CDI', label: 'CDI' },
         { value: 'CDD', label: 'CDD' },
@@ -512,6 +569,9 @@ export const modules: Record<string, ModuleDefinition> = {
         { value: 'conge', label: 'En congé' },
       ]},
     ],
+    detailRoute: 'employes',
+    exportRoute: 'employes',
+    exportFilename: (item) => `fiche-paie-${item.id}.pdf`,
     menu: { label: 'Employés' },
   },
   assurances: {
@@ -599,16 +659,18 @@ export const modules: Record<string, ModuleDefinition> = {
     kind: 'crud',
     status: 'api-ready',
     primaryAction: 'Ajouter un contrôle',
-    fields: ['Véhicule', 'Type', 'Date contrôle', 'Expiration', 'Résultat'],
+    fields: ['Véhicule', 'Type', 'Date contrôle', 'Statut', 'Résultat'],
     columns: [
       { label: 'Véhicule', key: 'voiture.marque' },
+      { label: 'Technicien', key: 'technicien.nom' },
       { label: 'Type', key: 'type_controle' },
       { label: 'Date contrôle', key: 'date_controle', type: 'date' as const },
-      { label: 'Expiration', key: 'date_expiration', type: 'date' as const },
+      { label: 'Statut', key: 'statut', type: 'badge' as const },
       { label: 'Résultat', key: 'resultat', type: 'badge' as const },
     ],
     formFields: [
       { label: 'Véhicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Véhicule #${option?.id}` },
+      { label: 'Technicien', name: 'id_technicien', type: 'select', optionsEndpoint: '/employes/select', optionFormatter: (option) => [option?.nom, option?.prenom].filter(Boolean).join(' ') + (option?.poste ? ` (${option.poste})` : '') || `Employé #${option?.id}` },
       { label: 'Type de contrôle', name: 'type_controle', type: 'select', staticOptions: [
         { value: 'periodique', label: 'Périodique' },
         { value: 'mines', label: 'Mines (immatriculation)' },
@@ -617,13 +679,17 @@ export const modules: Record<string, ModuleDefinition> = {
       ]},
       { label: 'Date du contrôle', name: 'date_controle', type: 'date', required: true },
       { label: "Date d'expiration", name: 'date_expiration', type: 'date' },
-      { label: 'Résultat', name: 'resultat', type: 'select', staticOptions: [
+      { label: 'Statut', name: 'statut', type: 'select', defaultValue: 'planifie', staticOptions: [
+        { value: 'planifie', label: 'Planifié' },
+        { value: 'effectue', label: 'Effectué' },
+      ]},
+      { label: 'Résultat', name: 'resultat', type: 'select', visibleWhen: { field: 'statut', in: ['effectue'] }, staticOptions: [
         { value: 'favorable', label: 'Favorable' },
         { value: 'avec_reserves', label: 'Favorable avec réserves' },
         { value: 'defavorable', label: 'Défavorable' },
       ]},
-      { label: 'Organisme', name: 'organisme' },
-      { label: 'Coût (XOF)', name: 'cout', type: 'number' },
+      { label: 'Organisme', name: 'organisme', visibleWhen: { field: 'statut', in: ['effectue'] } },
+      { label: 'Coût (XOF)', name: 'cout', type: 'number', visibleWhen: { field: 'statut', in: ['effectue'] } },
       { label: 'Observations', name: 'observations', type: 'textarea' },
     ],
     menu: { label: 'Contrôles Tech.' },

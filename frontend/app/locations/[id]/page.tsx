@@ -50,7 +50,7 @@ interface Location {
   etatsDesLieux?: EtatDesLieux[];
 }
 
-const STATUTS_LOCATION = ['planifiee', 'en_cours', 'terminee', 'annulee'];
+const STATUTS_LOCATION = ['planifiee', 'en_cours', 'en_retard', 'terminee', 'annulee'];
 
 const MODES_PAIEMENT = ['especes', 'virement', 'cheque', 'carte', 'mobile_money'];
 
@@ -109,7 +109,7 @@ export default function LocationDetailPage() {
 
   // Paiement form
   const [showPaiForm, setShowPaiForm] = useState(false);
-  const [paiForm, setPaiForm] = useState({ montant: '', mode_paiement: 'especes', date: todayISO() });
+  const [paiForm, setPaiForm] = useState({ montant: '', mode_paiement: 'especes', date: todayISO(), reference_paiement: '', banque: '' });
   const [savingPai, setSavingPai] = useState(false);
   const [paiError, setPaiError] = useState<string | null>(null);
 
@@ -177,7 +177,7 @@ export default function LocationDetailPage() {
         setSavingPai(false);
       }
       setShowPaiForm(false);
-      setPaiForm({ montant: '', mode_paiement: 'especes', date: todayISO() });
+      setPaiForm({ montant: '', mode_paiement: 'especes', date: todayISO(), reference_paiement: '', banque: '' });
       setFeedback('Paiement enregistré.');
       setTimeout(() => setFeedback(null), 3000);
     } catch (err: any) {
@@ -202,7 +202,7 @@ export default function LocationDetailPage() {
           paiements: [...(f.paiements ?? []), res.data],
         } : f);
       }
-      setPaiForm({ montant: '', mode_paiement: 'especes', date: todayISO() });
+      setPaiForm({ montant: '', mode_paiement: 'especes', date: todayISO(), reference_paiement: '', banque: '' });
       setShowPaiForm(false);
       setFeedback('Paiement enregistré.');
       setTimeout(() => setFeedback(null), 3000);
@@ -397,7 +397,7 @@ export default function LocationDetailPage() {
                     <div>
                       <label className="mb-1 block text-xs font-semibold text-[#111827]">Mode *</label>
                       <select className="field-control" required value={paiForm.mode_paiement}
-                        onChange={(e) => setPaiForm((f) => ({ ...f, mode_paiement: e.target.value }))}>
+                        onChange={(e) => setPaiForm((f) => ({ ...f, mode_paiement: e.target.value, reference_paiement: '', banque: '' }))}>
                         {MODES_PAIEMENT.map((m) => <option key={m} value={m}>{m.replace('_', ' ')}</option>)}
                       </select>
                     </div>
@@ -406,6 +406,27 @@ export default function LocationDetailPage() {
                       <input type="date" className="field-control" required value={paiForm.date}
                         onChange={(e) => setPaiForm((f) => ({ ...f, date: e.target.value }))} />
                     </div>
+                    {paiForm.mode_paiement !== 'especes' && (
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold text-[#111827]">
+                          {paiForm.mode_paiement === 'cheque' && 'N° chèque'}
+                          {paiForm.mode_paiement === 'carte' && '4 derniers chiffres carte'}
+                          {paiForm.mode_paiement === 'virement' && 'Référence virement'}
+                          {paiForm.mode_paiement === 'mobile_money' && 'Référence transaction'}
+                        </label>
+                        <input type="text" className="field-control"
+                          value={paiForm.reference_paiement}
+                          onChange={(e) => setPaiForm((f) => ({ ...f, reference_paiement: e.target.value }))} />
+                      </div>
+                    )}
+                    {(paiForm.mode_paiement === 'cheque' || paiForm.mode_paiement === 'virement') && (
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold text-[#111827]">Banque</label>
+                        <input type="text" className="field-control"
+                          value={paiForm.banque}
+                          onChange={(e) => setPaiForm((f) => ({ ...f, banque: e.target.value }))} />
+                      </div>
+                    )}
                   </div>
                   {(paiError || factureError) && (
                     <p className="mt-2 text-xs text-red-600">{paiError || factureError}</p>

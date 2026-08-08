@@ -95,6 +95,10 @@ class VoitureController extends Controller
             ->when($request->filled('energie'), fn ($query) => $query->where('energie', $request->string('energie')->toString()))
             ->when($request->filled('type_vehicule_id'), fn ($query) => $query->where('type_vehicule_id', $request->integer('type_vehicule_id')))
             ->when($request->filled('origine_marque_id'), fn ($query) => $query->parOrigine((int) $request->integer('origine_marque_id')))
+            ->when($request->string('type_usage')->toString(), function ($query, $usage) {
+                if ($usage === 'location') $query->pourLocation();
+                elseif ($usage === 'vente') $query->pourVente();
+            })
             ->latest()
             ->paginate(15);
 
@@ -103,7 +107,7 @@ class VoitureController extends Controller
 
     public function store(VoitureRequest $request)
     {
-        $this->ensurePermission('view_voitures');
+        $this->ensurePermission('manage_voitures');
 
         $data = $request->validated();
         $data['numero_chassis'] = $data['numero_chassis'] ?? $this->generateNumeroChassis();
@@ -177,7 +181,7 @@ class VoitureController extends Controller
 
     public function update(VoitureRequest $request, Voiture $voiture)
     {
-        $this->ensurePermission('view_voitures');
+        $this->ensurePermission('manage_voitures');
         $beforePrice = $voiture->prix;
         $voiture->update($request->validated());
         $details = $request->validated();
@@ -242,7 +246,7 @@ class VoitureController extends Controller
 
     public function deleteImage(Voiture $voiture, ImageVoiture $image): JsonResponse
     {
-        $this->ensurePermission('view_voitures');
+        $this->ensurePermission('manage_voitures');
 
         Storage::disk('public')->delete($image->chemin);
 

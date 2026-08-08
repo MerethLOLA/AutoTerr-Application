@@ -17,6 +17,8 @@ class Paiement extends Model
     protected $fillable = [
         'date',
         'mode_paiement',
+        'reference_paiement',
+        'banque',
         'montant',
         'reste',
         'id_facture',

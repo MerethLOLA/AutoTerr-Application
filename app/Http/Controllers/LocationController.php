@@ -126,6 +126,8 @@ class LocationController extends Controller
         $voiture = Voiture::query()->findOrFail($data['id_voiture']);
         abort_if($voiture->statut !== 'disponible', 422, 'Le vehicule doit etre disponible pour etre loue.');
 
+        $this->syncClientPiece($data);
+
         $data['reference_location'] = 'LOC-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
         $location = Location::query()->create($data);
 
@@ -139,7 +141,8 @@ class LocationController extends Controller
             $jours      = max(1, (int) ceil($location->date_debut->diffInSeconds($location->date_fin) / 86400));
             $tauxTva    = (float) ($data['taux_tva'] ?? 18.0);
             $montantHt  = round($tarif * $jours, 2);
-            $montantTtc = round($montantHt * (1 + $tauxTva / 100), 2);
+            // XOF n'a pas de sous-unité : on arrondit au franc le plus proche.
+            $montantTtc = round($montantHt * (1 + $tauxTva / 100));
 
             Facturation::query()->create([
                 'numero_facture' => $referenceService->nextFacture(),
@@ -201,18 +204,27 @@ class LocationController extends Controller
         $data = $request->validated();
         $originalVoitureId = $location->id_voiture;
 
+        $this->syncClientPiece($data, $location);
+        $this->verrouillerChamps($location, $data);
+
         if (isset($data['id_voiture']) && (int) $originalVoitureId !== (int) $data['id_voiture']) {
             $nouvelleVoiture = Voiture::query()->findOrFail($data['id_voiture']);
             abort_if($nouvelleVoiture->statut !== 'disponible', 422, 'Le vehicule selectionne n est pas disponible.');
             $location->voiture?->update(['statut' => 'disponible']);
-            $nouvelleVoiture->update(['statut' => in_array($data['statut'] ?? $location->statut, ['planifiee', 'en_cours'], true) ? 'loue' : 'disponible']);
+            $nouvelleVoiture->update(['statut' => in_array($data['statut'] ?? $location->statut, ['planifiee', 'en_cours', 'en_retard'], true) ? 'loue' : 'disponible']);
         } elseif (isset($data['statut'])) {
             $location->voiture?->update([
-                'statut' => in_array($data['statut'], ['planifiee', 'en_cours'], true) ? 'loue' : 'disponible',
+                'statut' => in_array($data['statut'], ['planifiee', 'en_cours', 'en_retard'], true) ? 'loue' : 'disponible',
             ]);
         }
 
+        $becameTerminee = ($data['statut'] ?? null) === 'terminee' && $location->statut !== 'terminee';
+
         $location->update($data);
+
+        if ($becameTerminee && ! isset($data['date_retour_effective']) && ! $location->date_retour_effective) {
+            $location->update(['date_retour_effective' => now()]);
+        }
 
         if (in_array($location->statut, ['terminee', 'annulee'], true)) {
             $location->voiture?->update(['statut' => 'disponible']);
@@ -228,6 +240,96 @@ class LocationController extends Controller
         return $this->apiItem($location->fresh()->load(['client', 'voiture', 'etatsDesLieux']), 200, [
             'message' => 'Location mise a jour',
         ]);
+    }
+
+    /**
+     * Verrouille les champs d'une location selon son état :
+     *  - véhicule et client : jamais modifiables après création ;
+     *  - location terminée/annulée : entièrement figée (sauf observations) ;
+     *  - location en cours : seuls statut/observations/date_retour_effective restent modifiables ;
+     *  - location planifiée avec un paiement déjà enregistré : tarif/dates/caution figés.
+     */
+    private function verrouillerChamps(Location $location, array $data): void
+    {
+        if (! $location->exists) {
+            return;
+        }
+
+        foreach (['id_voiture', 'id_client'] as $champ) {
+            if (array_key_exists($champ, $data) && $this->valeurDifferente($champ, $data[$champ], $location->{$champ})) {
+                abort(422, "Impossible de modifier « {$champ} » : le véhicule et le client d'une location sont définitifs après sa création.");
+            }
+        }
+
+        if (in_array($location->statut, ['terminee', 'annulee'], true)) {
+            foreach ($data as $champ => $valeur) {
+                if ($champ === 'observations') {
+                    continue;
+                }
+                if ($this->valeurDifferente($champ, $valeur, $location->{$champ})) {
+                    abort(422, "Impossible de modifier « {$champ} » : cette location est {$location->statut} et ne peut plus être modifiée.");
+                }
+            }
+
+            return;
+        }
+
+        if ($location->statut === 'en_cours') {
+            $autorises = ['statut', 'observations', 'date_retour_effective'];
+            foreach ($data as $champ => $valeur) {
+                if (in_array($champ, $autorises, true)) {
+                    continue;
+                }
+                if ($this->valeurDifferente($champ, $valeur, $location->{$champ})) {
+                    abort(422, "Impossible de modifier « {$champ} » : la location est en cours.");
+                }
+            }
+
+            return;
+        }
+
+        $facture = $location->facturation()->first();
+        if ($facture && $facture->paiements()->exists()) {
+            foreach (['tarif_journalier', 'date_debut', 'date_fin', 'caution'] as $champ) {
+                if (! array_key_exists($champ, $data)) {
+                    continue;
+                }
+                if ($this->valeurDifferente($champ, $data[$champ], $location->{$champ})) {
+                    abort(422, "Impossible de modifier « {$champ} » : un paiement a déjà été enregistré sur la facture de cette location.");
+                }
+            }
+        }
+    }
+
+    private function valeurDifferente(string $champ, mixed $nouveau, mixed $actuel): bool
+    {
+        if (in_array($champ, ['date_debut', 'date_fin', 'date_retour_effective', 'date_echeance'], true)) {
+            if ($nouveau === null && $actuel === null) {
+                return false;
+            }
+            if ($nouveau === null || $actuel === null) {
+                return true;
+            }
+
+            return ! \Carbon\Carbon::parse($nouveau)->eq(\Carbon\Carbon::parse($actuel));
+        }
+
+        if (is_numeric($actuel) || is_numeric($nouveau)) {
+            return abs((float) $nouveau - (float) $actuel) > 0.01;
+        }
+
+        return (string) $nouveau !== (string) $actuel;
+    }
+
+    private function syncClientPiece(array $data, ?Location $location = null): void
+    {
+        $clientId = $data['id_client'] ?? $location?->id_client;
+        if (! $clientId) {
+            return;
+        }
+
+        $client = Client::query()->find($clientId);
+        $client?->appliquerPieceIdentite($data);
     }
 
     public function destroy(Location $location)
@@ -248,7 +350,7 @@ class LocationController extends Controller
     public function markReturned(Request $request, Location $location)
     {
         $this->ensurePermission('manage_location');
-        abort_if(! in_array($location->statut, ['planifiee', 'en_cours'], true), 422, 'Cette location ne peut pas etre cloturee.');
+        abort_if(! in_array($location->statut, ['planifiee', 'en_cours', 'en_retard'], true), 422, 'Cette location ne peut pas etre cloturee.');
 
         $location->update([
             'statut' => 'terminee',
@@ -303,7 +405,7 @@ class LocationController extends Controller
         ]);
 
         $debut = $location->date_debut;
-        $fin   = $location->date_fin;
+        $fin   = $location->date_retour_effective ?? now();
         $jours = max(1, (int) ceil($debut->diffInSeconds($fin) / 86400));
 
         $tarif      = (float) ($data['tarif_journalier'] ?? $location->tarif_journalier);
@@ -313,7 +415,7 @@ class LocationController extends Controller
 
         $facture = Facturation::query()->create([
             'numero_facture' => $referenceService->nextFacture(),
-            'date_facture'   => now()->toDateString(),
+            'date_facture'   => $fin->toDateString(),
             'montant'        => $montantHt,
             'montant_ht'     => $montantHt,
             'taux_tva'       => $tauxTva,
@@ -350,9 +452,11 @@ class LocationController extends Controller
         abort_if($facture->statut === 'payee', 422, 'Cette facture est déjà entièrement payée.');
 
         $data = $request->validate([
-            'montant'       => 'required|numeric|min:0.01',
-            'mode_paiement' => 'required|string|max:100',
-            'date'          => 'required|date',
+            'montant'            => 'required|numeric|min:0.01',
+            'mode_paiement'      => 'required|string|max:100',
+            'reference_paiement' => 'nullable|string|max:100',
+            'banque'             => 'nullable|string|max:150',
+            'date'               => 'required|date',
         ]);
 
         $resteExact = round((float) $facture->reste_a_payer, 2);
@@ -365,13 +469,15 @@ class LocationController extends Controller
 
         $paiement = DB::transaction(function () use ($data, $facture, $location) {
             $p = Paiement::query()->create([
-                'date'          => $data['date'],
-                'mode_paiement' => $data['mode_paiement'],
-                'montant'       => $data['montant'],
-                'reste'         => max(round($facture->reste_a_payer - $data['montant'], 2), 0),
-                'id_facture'    => $facture->id,
-                'id_location'   => $location->id,
-                'id_client'     => $location->id_client,
+                'date'               => $data['date'],
+                'mode_paiement'      => $data['mode_paiement'],
+                'reference_paiement' => $data['reference_paiement'] ?? null,
+                'banque'             => $data['banque'] ?? null,
+                'montant'            => $data['montant'],
+                'reste'              => max(round($facture->reste_a_payer - $data['montant'], 2), 0),
+                'id_facture'         => $facture->id,
+                'id_location'        => $location->id,
+                'id_client'          => $location->id_client,
             ]);
 
             $facture->refresh()->load('paiements');

@@ -60,7 +60,9 @@ class AuthController extends Controller
             )
             ->when(
                 empty($credentials['email']) && ! empty($credentials['username']),
+                // Le champ "nom d'utilisateur" accepte aussi une adresse email par confort.
                 fn ($query) => $query->where('username', $credentials['username'])
+                    ->orWhere('email', $credentials['username'])
             )
             ->first();
 

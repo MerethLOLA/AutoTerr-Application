@@ -16,7 +16,6 @@ interface SelectOption { id: number; nom: string; }
 interface FormOptions {
   types_vehicules: SelectOption[];
   origines_marques: SelectOption[];
-  fournisseurs: SelectOption[];
 }
 interface ExistingImage { id: number; chemin: string; vue?: string; }
 
@@ -46,7 +45,7 @@ export default function EditVoiturePage() {
 
   const _initOpts = apiClient.getCached<FormOptions>('/voitures/form-options');
   const _initVoiture = id ? apiClient.getCached<any>(`/voitures/${id}`) : null;
-  const [options, setOptions]         = useState<FormOptions>(_initOpts ?? { types_vehicules: [], origines_marques: [], fournisseurs: [] });
+  const [options, setOptions]         = useState<FormOptions>(_initOpts ?? { types_vehicules: [], origines_marques: [] });
   const [loading, setLoading]         = useState(_initOpts === null || _initVoiture === null);
   const [saving, setSaving]           = useState(false);
   const [errors, setErrors]           = useState<Record<string, string>>({});
@@ -67,7 +66,7 @@ export default function EditVoiturePage() {
     prix_vente: '', type_usage: 'les_deux',
     kilometrage: '', numero_chassis: '', date_acquisition: '',
     statut: 'disponible', etat: '', energie: '', type_boite: '',
-    type_vehicule_id: '', origine_marque_id: '', id_fournisseur: '',
+    type_vehicule_id: '', origine_marque_id: '',
     description: '',
   });
 
@@ -96,7 +95,6 @@ export default function EditVoiturePage() {
         type_boite:        v.type_boite        ?? '',
         type_vehicule_id:  String(v.type_vehicule_id  ?? ''),
         origine_marque_id: String(v.origine_marque_id ?? ''),
-        id_fournisseur:    String(v.id_fournisseur    ?? ''),
         description:       v.description       ?? '',
       });
       setExistingImages(v.images ?? []);
@@ -335,12 +333,6 @@ export default function EditVoiturePage() {
               <Field label="Date d'acquisition" error={errors.date_acquisition}>
                 <input className="field-control" type="date"
                   value={form.date_acquisition} onChange={(e) => set('date_acquisition', e.target.value)} />
-              </Field>
-              <Field label="Fournisseur" error={errors.id_fournisseur}>
-                <select className="field-control" value={form.id_fournisseur} onChange={(e) => set('id_fournisseur', e.target.value)}>
-                  <option value="">— Sélectionner —</option>
-                  {options.fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
-                </select>
               </Field>
             </div>
           </section>

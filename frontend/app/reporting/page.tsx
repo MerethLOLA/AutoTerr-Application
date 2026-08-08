@@ -53,7 +53,6 @@ export default function ReportingPage() {
   const totalLocations   = payload?.locationsMonthly?.reduce((s, m) => s + Number(m.count  || 0), 0) ?? 0;
   const totalLocAmount   = payload?.locationsMonthly?.reduce((s, m) => s + Number(m.amount || 0), 0) ?? 0;
   const fin  = payload?.financeStats;
-  const stk  = payload?.stockStats;
   const sav  = payload?.savStats;
   const loc  = payload?.locationStats;
   const conf = payload?.conformiteStats;
@@ -65,7 +64,7 @@ export default function ReportingPage() {
         <div className="page-header">
           <div>
             <h1 className="page-title mt-0.5">Reporting</h1>
-            <p className="page-subtitle">Analyse des performances — ventes, finances, stock, SAV et locations.</p>
+            <p className="page-subtitle">Analyse des performances — ventes, finances, SAV et locations.</p>
           </div>
           <div className="flex shrink-0 gap-2">
             <button
@@ -124,12 +123,9 @@ export default function ReportingPage() {
               </div>
 
               <div className="surface-panel p-5">
-                <h2 className="section-title mb-2">Stock & SAV</h2>
-                <StatRow label="Alertes stock" value={stk?.alertes ?? 0} />
-                <StatRow label="Valeur du stock" value={`${money(stk?.valeur_stock)} XOF`} />
-                <StatRow label="Tickets SAV ouverts" value={sav?.tickets_ouverts ?? 0} />
-                <StatRow label="Ordres atelier ouverts" value={sav?.ordres_ouverts ?? 0} />
-                <StatRow label="Ordres en retard" value={sav?.ordres_en_retard ?? 0} />
+                <h2 className="section-title mb-2">SAV</h2>
+                <StatRow label="Tickets ouverts" value={sav?.tickets_ouverts ?? 0} />
+                <StatRow label="Résolus ce mois" value={sav?.tickets_resolus_mois ?? 0} />
               </div>
 
               <div className="surface-panel p-5">
@@ -140,60 +136,19 @@ export default function ReportingPage() {
               </div>
             </div>
 
-            {/* Blocs conformité & coûts */}
-            <div className="grid gap-5 lg:grid-cols-3">
+            {/* Blocs conformité */}
+            <div className="grid gap-5 lg:grid-cols-2">
               <div className="surface-panel p-5">
-                <h2 className="section-title mb-2">Assurances & Sinistres</h2>
+                <h2 className="section-title mb-2">Assurances</h2>
                 <StatRow label="Assurances expirant (30j)" value={conf?.assurances_expirant ?? 0} />
                 <StatRow label="Assurances expirées" value={conf?.assurances_expirees ?? 0} />
-                <StatRow label="Sinistres ouverts" value={conf?.sinistres_ouverts ?? 0} />
               </div>
               <div className="surface-panel p-5">
-                <h2 className="section-title mb-2">Entretiens & Carburant</h2>
+                <h2 className="section-title mb-2">Entretiens</h2>
                 <StatRow label="Entretiens à venir (30j)" value={conf?.entretiens_a_venir ?? 0} />
                 <StatRow label="Coût entretiens (mois)" value={`${money(conf?.cout_entretien_mois)} XOF`} />
-                <StatRow label="Coût carburant (mois)" value={`${money(conf?.cout_carburant_mois)} XOF`} />
-              </div>
-              <div className="surface-panel p-5">
-                <h2 className="section-title mb-2">SAV & Atelier</h2>
-                <StatRow label="Tickets SAV ouverts" value={sav?.tickets_ouverts ?? 0} />
-                <StatRow label="Résolus ce mois" value={sav?.tickets_resolus_mois ?? 0} />
-                <StatRow label="Ordres atelier ouverts" value={sav?.ordres_ouverts ?? 0} />
-                <StatRow label="Ordres en retard" value={sav?.ordres_en_retard ?? 0} />
               </div>
             </div>
-
-            {/* Alertes stock */}
-            {(stk?.top_alerts?.length ?? 0) > 0 && (
-              <div className="surface-panel">
-                <div className="border-b border-[#dfe3eb] px-5 py-4">
-                  <h2 className="section-title">Pièces en rupture imminente</h2>
-                  <p className="mt-0.5 text-xs text-[#6b7280]">Stock inférieur ou égal au seuil d&apos;alerte</p>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr>
-                        <th className="table-header pl-5">Désignation</th>
-                        <th className="table-header text-right">En stock</th>
-                        <th className="table-header text-right">Seuil</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stk!.top_alerts!.map((p) => (
-                        <tr key={p.id} className="table-row">
-                          <td className="table-cell pl-5 font-medium text-[#111827]">{p.designation}</td>
-                          <td className="table-cell text-right">
-                            <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">{p.quantite_stock}</span>
-                          </td>
-                          <td className="table-cell text-right text-[#6b7280]">{p.seuil_alerte}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
 
             {/* Tableaux mensuels */}
             <div className="grid gap-5 lg:grid-cols-2">

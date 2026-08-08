@@ -1,8 +1,9 @@
 FROM php:8.3-apache
 
 RUN apt-get update && apt-get install -y \
-    unzip curl git libzip-dev \
-    && docker-php-ext-install pdo pdo_mysql zip opcache \
+    unzip curl git libzip-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
+    && docker-php-ext-configure gd --with-jpeg --with-freetype \
+    && docker-php-ext-install pdo pdo_mysql zip opcache gd \
     && pecl install redis \
     && docker-php-ext-enable redis opcache \
     && a2enmod rewrite headers \

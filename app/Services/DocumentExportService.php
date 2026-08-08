@@ -3,12 +3,14 @@
 namespace App\Services;
 
 use App\Models\Assurance;
+use App\Models\Employe;
 use App\Models\Entretien;
 use App\Models\Facturation;
 use App\Models\Garantie;
 use App\Models\Location;
 use App\Models\Paiement;
 use App\Models\Sinistre;
+use App\Models\Vente;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -16,7 +18,7 @@ class DocumentExportService
 {
     private const ENTREPRISE = [
         'nom' => 'AutoTerr Auto Services',
-        'adresse' => 'Dakar, Senegal',
+        'adresse' => 'Route de la Corniche Ouest, Dakar, Sénégal',
         'ninea' => 'SN-DKR-2026-001',
         'rccm' => 'RCCM-SN-DKR-2026-A-001',
     ];
@@ -32,21 +34,27 @@ class DocumentExportService
 
     public function paiement(Paiement $paiement): Response
     {
-        $paiement->loadMissing(['client', 'vente', 'facturation']);
+        $paiement->loadMissing(['client', 'vente.voiture', 'location.voiture', 'facturation']);
 
-        return Pdf::loadView('pdf.document', [
-            'title' => 'Recu de paiement',
+        $voiture = $paiement->vente?->voiture ?? $paiement->location?->voiture;
+        $objet = $paiement->vente
+            ? 'Vente '.$paiement->vente->reference_vente
+            : ($paiement->location ? 'Location '.$paiement->location->reference_location : null);
+
+        return Pdf::loadView('pdf.recu_paiement', [
             'entreprise' => self::ENTREPRISE,
-            'rows' => [
-                'Client' => $paiement->client?->nom_complet,
-                'Date' => optional($paiement->date)->format('Y-m-d'),
-                'Mode de paiement' => $paiement->mode_paiement,
-                'Montant' => $paiement->montant.' XOF',
-                'Reste' => $paiement->reste.' XOF',
-                'Reference vente' => $paiement->vente?->reference_vente,
-                'Facture' => $paiement->facturation?->numero_facture,
-            ],
-        ])->download("paiement-{$paiement->id}.pdf");
+            'client' => $paiement->client,
+            'paiement' => $paiement,
+            'reference' => 'REC-'.str_pad((string) $paiement->id, 6, '0', STR_PAD_LEFT),
+            'resteAPayer' => max((float) ($paiement->facturation?->reste_a_payer ?? 0), 0),
+            'rows' => array_filter([
+                'Concerne' => $objet,
+                'Véhicule' => $voiture ? trim($voiture->marque.' '.$voiture->modele) : null,
+                'Facture réglée' => $paiement->facturation?->numero_facture,
+                'Mode de paiement' => ucfirst(str_replace('_', ' ', $paiement->mode_paiement)),
+                'Référence / banque' => trim(($paiement->reference_paiement ?? '').($paiement->banque ? ' · '.$paiement->banque : '')) ?: null,
+            ], fn ($v) => $v !== null && $v !== ''),
+        ])->setPaper('a4')->download("recu-{$paiement->id}.pdf");
     }
 
     public function location(Location $location): Response
@@ -56,6 +64,7 @@ class DocumentExportService
         return Pdf::loadView('pdf.document', [
             'title' => 'Contrat de location',
             'entreprise' => self::ENTREPRISE,
+            'reference' => $location->reference_location,
             'rows' => [
                 'Reference' => $location->reference_location,
                 'Client' => $location->client?->nom_complet,
@@ -76,6 +85,7 @@ class DocumentExportService
         return Pdf::loadView('pdf.document', [
             'title' => 'Certificat de garantie',
             'entreprise' => self::ENTREPRISE,
+            'reference' => 'GAR-'.str_pad((string) $garantie->id, 6, '0', STR_PAD_LEFT),
             'rows' => [
                 'Vehicule' => trim(($garantie->voiture?->marque ?? '').' '.($garantie->voiture?->modele ?? '')),
                 'Type garantie' => $garantie->type_garantie,
@@ -95,6 +105,7 @@ class DocumentExportService
         return Pdf::loadView('pdf.document', [
             'title' => 'Attestation d\'assurance',
             'entreprise' => self::ENTREPRISE,
+            'reference' => $assurance->numero_police ?? ('ASS-'.str_pad((string) $assurance->id, 6, '0', STR_PAD_LEFT)),
             'rows' => [
                 'Compagnie' => $assurance->compagnie,
                 'Numero police' => $assurance->numero_police ?? '-',
@@ -118,6 +129,7 @@ class DocumentExportService
         return Pdf::loadView('pdf.document', [
             'title' => 'Declaration de sinistre',
             'entreprise' => self::ENTREPRISE,
+            'reference' => $sinistre->numero_declaration ?? ('SIN-'.str_pad((string) $sinistre->id, 6, '0', STR_PAD_LEFT)),
             'rows' => [
                 'Numero declaration' => $sinistre->numero_declaration ?? '-',
                 'Type sinistre' => $sinistre->type_sinistre,
@@ -141,6 +153,7 @@ class DocumentExportService
         return Pdf::loadView('pdf.document', [
             'title' => 'Fiche d\'entretien',
             'entreprise' => self::ENTREPRISE,
+            'reference' => 'ENT-'.str_pad((string) $entretien->id, 6, '0', STR_PAD_LEFT),
             'rows' => [
                 'Type entretien' => $entretien->type_entretien,
                 'Vehicule' => $vehicule,
@@ -154,5 +167,40 @@ class DocumentExportService
                 'Notes' => $entretien->notes ?? '-',
             ],
         ])->download("entretien-{$entretien->id}.pdf");
+    }
+
+    public function fichePaie(Employe $employe): Response
+    {
+        // Paie du mois qui vient de se terminer (et non le mois en cours, encore incomplet).
+        $periode = now()->subMonthNoOverflow();
+
+        $totalVentes = (float) Vente::query()
+            ->where('id_employe', $employe->id)
+            ->whereMonth('date_vente', $periode->month)
+            ->whereYear('date_vente', $periode->year)
+            ->sum('prix_final');
+
+        $totalLocations = (float) Facturation::query()
+            ->whereNotNull('id_location')
+            ->whereHas('location', fn ($q) => $q->where('id_agent', $employe->id))
+            ->whereMonth('date_facture', $periode->month)
+            ->whereYear('date_facture', $periode->year)
+            ->sum('montant_ttc');
+
+        $totalActivite = $totalVentes + $totalLocations;
+        $tauxCommission = (float) ($employe->taux_commission ?? 0);
+        $commission = round($totalActivite * ($tauxCommission / 100));
+        $salaireFixe = (float) ($employe->salaire ?? 0);
+
+        return Pdf::loadView('pdf.fiche_paie', [
+            'entreprise' => self::ENTREPRISE,
+            'employe' => $employe,
+            'reference' => 'PAIE-'.$employe->id.'-'.$periode->format('Ym'),
+            'periode' => ucfirst($periode->locale('fr')->translatedFormat('F Y')),
+            'totalActivite' => $totalActivite,
+            'tauxCommission' => $tauxCommission,
+            'commission' => $commission,
+            'salaireFixe' => $salaireFixe,
+        ])->setPaper('a4')->download('fiche-paie-'.$employe->id.'-'.$periode->format('Ym').'.pdf');
     }
 }

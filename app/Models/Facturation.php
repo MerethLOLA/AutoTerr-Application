@@ -16,6 +16,8 @@ class Facturation extends Model
 
     const UPDATED_AT = null;
 
+    protected $appends = ['montant_paye', 'reste_a_payer', 'est_payee', 'est_en_retard'];
+
     protected $fillable = [
         'numero_facture',
         'date_facture',

@@ -8,6 +8,7 @@ use App\Models\Employe;
 use App\Models\Facturation;
 use App\Models\Vente;
 use App\Models\Voiture;
+use App\Notifications\AssignationNotification;
 use App\Services\BusinessReferenceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,58 @@ use Illuminate\Support\Str;
 
 class VenteController extends Controller
 {
+    /** Rôles habilités à valider une remise au-delà du seuil. */
+    private const ROLES_VALIDATION_REMISE = ['manager', 'admin', 'super_admin'];
+
+    private function notifierValidateursRemise(Vente $vente): void
+    {
+        $validateurs = Employe::query()
+            ->whereHas('user', fn ($q) => $q->whereIn('role', self::ROLES_VALIDATION_REMISE))
+            ->get();
+
+        $montantRemise = number_format((float) $vente->remise, 0, ',', ' ').' XOF';
+        $vendeur = $vente->employe?->nom_complet ?? 'Un commercial';
+
+        foreach ($validateurs as $validateur) {
+            if (! $validateur->email) {
+                continue;
+            }
+
+            $validateur->notify(new AssignationNotification(
+                sujet: "Remise à valider — vente {$vente->reference_vente}",
+                intro: "{$vendeur} a soumis une vente avec une remise de {$montantRemise}, ".
+                    'au-delà du seuil autorisé ('.self::SEUIL_REMISE_POURCENT.'% du prix catalogue).',
+                details: array_filter([
+                    'Véhicule : '.trim(($vente->voiture?->marque ?? '').' '.($vente->voiture?->modele ?? '')),
+                    $vente->client ? "Client : {$vente->client->nom_complet}" : null,
+                    'Motif : '.($vente->motif_remise ?: 'non précisé'),
+                ]),
+                actionUrl: url("/ventes/{$vente->id}"),
+                actionLabel: 'Examiner la vente',
+            ));
+        }
+    }
+
+    private function notifierCommercialDecisionRemise(Vente $vente, bool $approuvee, ?string $motif = null): void
+    {
+        $commercial = $vente->employe;
+
+        if (! $commercial?->email) {
+            return;
+        }
+
+        $commercial->notify(new AssignationNotification(
+            sujet: $approuvee
+                ? "Vente {$vente->reference_vente} validée"
+                : "Vente {$vente->reference_vente} refusée",
+            intro: $approuvee
+                ? 'Votre vente avec remise a été validée : la facture a été générée.'
+                : 'Votre vente avec remise a été refusée par un responsable.'.($motif ? " Motif : {$motif}." : ''),
+            actionUrl: url("/ventes/{$vente->id}"),
+            actionLabel: 'Voir la vente',
+        ));
+    }
+
     public function create()
     {
         $this->ensurePermission('create_vente');
@@ -33,7 +86,7 @@ class VenteController extends Controller
         $ventes = Vente::query()
             ->select([
                 'id', 'reference_vente', 'date_vente', 'id_client', 'id_voiture',
-                'prix_final', 'statut', 'id_employe',
+                'prix_catalogue', 'remise', 'motif_remise', 'prix_final', 'statut', 'id_employe',
             ])
             ->with([
                 'client:id,nom,prenom',
@@ -49,14 +102,78 @@ class VenteController extends Controller
         return $this->apiCollection($ventes);
     }
 
+    /** Remises au-delà de ce pourcentage du prix catalogue nécessitent l'accord d'un gestionnaire/admin. */
+    private const SEUIL_REMISE_POURCENT = 5.0;
+
+    private function verifierSeuilRemise(Request $request, float $prixCatalogue, float $remise): void
+    {
+        $seuil = $prixCatalogue * (self::SEUIL_REMISE_POURCENT / 100);
+        $role = $request->user()?->role;
+        $roleAutorise = in_array($role, ['admin', 'super_admin', 'manager'], true);
+
+        abort_if(
+            $remise > $seuil && ! $roleAutorise,
+            422,
+            'Cette remise depasse le seuil autorise ('.self::SEUIL_REMISE_POURCENT.'% du prix catalogue) et necessite la validation d\'un gestionnaire ou administrateur.'
+        );
+    }
+
+    private function syncClientPiece(array $data): void
+    {
+        if (empty($data['id_client'])) {
+            return;
+        }
+
+        $client = Client::query()->find($data['id_client']);
+        $client?->appliquerPieceIdentite($data);
+    }
+
     public function store(VenteRequest $request, BusinessReferenceService $referenceService)
     {
         $this->ensurePermission('create_vente');
         $data = $request->validated();
-        $result = DB::transaction(function () use ($data, $referenceService) {
-            $remise = (float) ($data['remise'] ?? 0);
-            unset($data['remise']);
+        $this->syncClientPiece($data);
 
+        $prixCatalogue = (float) $data['prix_catalogue'];
+        $remise = (float) ($data['remise'] ?? 0);
+        $seuil = $prixCatalogue * (self::SEUIL_REMISE_POURCENT / 100);
+        $roleAutorise = in_array($request->user()?->role, self::ROLES_VALIDATION_REMISE, true);
+        $enAttenteValidation = $remise > $seuil && ! $roleAutorise;
+
+        $data['prix_catalogue'] = $prixCatalogue;
+        $data['remise'] = $remise;
+        $data['prix_final'] = max($prixCatalogue - $remise, 0);
+
+        if ($enAttenteValidation) {
+            $data['statut'] = 'en_attente_validation';
+            $data['reference_vente'] = 'VTE-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
+
+            $vente = DB::transaction(function () use ($data) {
+                $voiture = Voiture::query()->lockForUpdate()->findOrFail($data['id_voiture']);
+                abort_if($voiture->statut !== 'disponible', 422, 'Le vehicule doit etre disponible pour etre vendu.');
+
+                $vente = Vente::query()->create($data);
+                $voiture->update(['statut' => 'reservee']);
+
+                return $vente;
+            });
+
+            $this->logAction('create', 'vente', $vente, $data, $request);
+            $this->resetDashboardCache();
+
+            $vente->load(['client', 'voiture', 'employe']);
+            $this->notifierValidateursRemise($vente);
+
+            if ($request->wantsJson()) {
+                return response()->json(array_merge($vente->toArray(), [
+                    'message' => 'Remise superieure au seuil autorise ('.self::SEUIL_REMISE_POURCENT.'% du prix catalogue) : vente en attente de validation par un responsable commercial.',
+                ]), 202);
+            }
+
+            return redirect()->route('ventes.show', $vente)->with('success', 'Vente en attente de validation.');
+        }
+
+        $result = DB::transaction(function () use ($data, $referenceService) {
             $voiture = Voiture::query()->lockForUpdate()->findOrFail($data['id_voiture']);
 
             abort_if($voiture->statut !== 'disponible', 422, 'Le vehicule doit etre disponible pour etre vendu.');
@@ -65,16 +182,17 @@ class VenteController extends Controller
 
             $vente = Vente::query()->create($data);
 
-            $montantHt = max((float) $vente->prix_final - $remise, 0);
+            $montantHt = (float) $vente->prix_final;
             $tauxTva = 18.0;
-            $montantTtc = round($montantHt * (1 + ($tauxTva / 100)), 2);
+            // XOF n'a pas de sous-unité : on arrondit au franc le plus proche.
+            $montantTtc = round($montantHt * (1 + ($tauxTva / 100)));
 
             $facture = Facturation::query()->create([
                 'numero_facture' => $referenceService->nextFacture(),
                 'date_facture' => $vente->date_vente,
                 'mode_livraison' => 'sur_place',
-                'montant' => $vente->prix_final,
-                'remise' => $remise,
+                'montant' => $vente->prix_catalogue,
+                'remise' => $vente->remise,
                 'montant_ht' => $montantHt,
                 'taux_tva' => $tauxTva,
                 'montant_ttc' => $montantTtc,
@@ -103,6 +221,79 @@ class VenteController extends Controller
         }
 
         return redirect()->route('ventes.show', $vente)->with('success', 'Vente enregistree avec facture automatique.');
+    }
+
+    public function valider(Vente $vente, BusinessReferenceService $referenceService)
+    {
+        $this->ensureRole(...self::ROLES_VALIDATION_REMISE);
+        abort_if($vente->statut !== 'en_attente_validation', 422, "Cette vente n'est pas en attente de validation.");
+
+        $facture = DB::transaction(function () use ($vente, $referenceService) {
+            $voiture = Voiture::query()->lockForUpdate()->findOrFail($vente->id_voiture);
+            abort_if($voiture->statut !== 'reservee', 422, "Le vehicule n'est plus disponible pour cette vente.");
+
+            $montantHt = (float) $vente->prix_final;
+            $tauxTva = 18.0;
+            $montantTtc = round($montantHt * (1 + ($tauxTva / 100)));
+
+            $facture = Facturation::query()->create([
+                'numero_facture' => $referenceService->nextFacture(),
+                'date_facture' => $vente->date_vente,
+                'mode_livraison' => 'sur_place',
+                'montant' => $vente->prix_catalogue,
+                'remise' => $vente->remise,
+                'montant_ht' => $montantHt,
+                'taux_tva' => $tauxTva,
+                'montant_ttc' => $montantTtc,
+                'statut' => 'impayee',
+                'date_echeance' => $vente->date_vente?->copy()->addDays(7),
+                'observations' => $vente->observations,
+                'id_vente' => $vente->id,
+            ]);
+
+            $voiture->update(['statut' => 'vendu']);
+            $vente->update(['statut' => 'finalisee']);
+
+            return $facture;
+        });
+
+        $this->logAction('valider_remise', 'vente', $vente, [], request());
+        $this->resetDashboardCache();
+
+        $vente = $vente->fresh()->load(['client', 'voiture', 'employe', 'facturation']);
+        $this->notifierCommercialDecisionRemise($vente, approuvee: true);
+
+        return $this->apiItem($vente, 200, [
+            'message' => 'Vente validee et facture generee',
+        ]);
+    }
+
+    public function refuser(Request $request, Vente $vente)
+    {
+        $this->ensureRole(...self::ROLES_VALIDATION_REMISE);
+        abort_if($vente->statut !== 'en_attente_validation', 422, "Cette vente n'est pas en attente de validation.");
+
+        $motif = $request->string('motif')->toString();
+
+        DB::transaction(function () use ($vente) {
+            $voiture = Voiture::query()->lockForUpdate()->find($vente->id_voiture);
+
+            if ($voiture && $voiture->statut === 'reservee') {
+                $voiture->update(['statut' => 'disponible']);
+            }
+
+            $vente->update(['statut' => 'refusee']);
+        });
+
+        $this->logAction('refuser_remise', 'vente', $vente, ['motif' => $motif], $request);
+        $this->resetDashboardCache();
+
+        $vente = $vente->fresh()->load(['client', 'voiture', 'employe']);
+        $this->notifierCommercialDecisionRemise($vente, approuvee: false, motif: $motif ?: null);
+
+        return $this->apiItem($vente, 200, [
+            'message' => 'Vente refusee',
+        ]);
     }
 
     public function show(Vente $vente)
@@ -139,20 +330,29 @@ class VenteController extends Controller
     {
         $this->ensurePermission('manage_ventes');
         $data = $request->validated();
+        $this->syncClientPiece($data);
+
+        $prixCatalogue = (float) ($data['prix_catalogue'] ?? $vente->prix_catalogue ?? $vente->prix_final);
+        $remise = (float) ($data['remise'] ?? $vente->remise ?? 0);
+        $this->verifierSeuilRemise($request, $prixCatalogue, $remise);
+
+        $data['prix_catalogue'] = $prixCatalogue;
+        $data['remise'] = $remise;
+        $data['prix_final'] = max($prixCatalogue - $remise, 0);
 
         DB::transaction(function () use ($vente, $data) {
             $vente->update($data);
 
             if ($vente->facturation) {
-                $montantBase = (float) $vente->prix_final;
-                $remise = (float) ($vente->facturation->remise ?? 0);
+                $montantHt = (float) $vente->prix_final;
                 $tauxTva = (float) ($vente->facturation->taux_tva ?? 18);
-                $montantHt = max($montantBase - $remise, 0);
-                $montantTtc = round($montantHt * (1 + ($tauxTva / 100)), 2);
+                // XOF n'a pas de sous-unité : on arrondit au franc le plus proche.
+                $montantTtc = round($montantHt * (1 + ($tauxTva / 100)));
 
                 $vente->facturation->update([
                     'date_facture' => $vente->date_vente,
-                    'montant' => $montantBase,
+                    'montant' => $vente->prix_catalogue,
+                    'remise' => $vente->remise,
                     'montant_ht' => $montantHt,
                     'montant_ttc' => $montantTtc,
                     'observations' => $vente->observations,

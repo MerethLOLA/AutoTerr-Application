@@ -91,20 +91,6 @@ class RolePermissionsTest extends TestCase
         $this->actingAs($user)->get(route('tickets-sav.index'))->assertForbidden();
     }
 
-    public function test_stock_role_can_access_stock_and_reporting_only(): void
-    {
-        $user = User::factory()->create(['role' => 'stock']);
-
-        $this->actingAs($user)->get(route('dashboard'))->assertOk();
-        $this->actingAs($user)->get(route('reporting.index'))->assertOk();
-        $this->actingAs($user)->get(route('pieces-stock.index'))->assertOk();
-        $this->actingAs($user)->get(route('mouvements-stock.index'))->assertOk();
-        $this->actingAs($user)->get(route('ventes.index'))->assertForbidden();
-        $this->actingAs($user)->get(route('locations.index'))->assertForbidden();
-        $this->actingAs($user)->get(route('tickets-sav.index'))->assertForbidden();
-        $this->actingAs($user)->get(route('ordres-travail.index'))->assertForbidden();
-    }
-
     public function test_client_is_confined_to_customer_space(): void
     {
         $user = User::factory()->create(['role' => 'client']);

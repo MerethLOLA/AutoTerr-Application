@@ -16,6 +16,10 @@ function fmtDate(d?: string | null) {
 function initials(nom?: string, prenom?: string) {
   return [(nom ?? '')[0], (prenom ?? '')[0]].filter(Boolean).join('').toUpperCase() || '?';
 }
+const STORAGE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '');
+function fileUrl(p?: string | null) {
+  return p ? `${STORAGE_URL}/storage/${p}` : null;
+}
 
 interface Vente {
   id: number;
@@ -39,6 +43,13 @@ interface Paiement {
   montant: number;
   mode_paiement: string;
 }
+interface DocumentClient {
+  id: number;
+  type_document: string;
+  numero_document?: string;
+  chemin_fichier?: string;
+  date_document?: string;
+}
 interface Client {
   id: number;
   nom: string;
@@ -60,6 +71,7 @@ interface Client {
   ventes?: Vente[];
   locations?: Location[];
   paiements?: Paiement[];
+  documents?: DocumentClient[];
 }
 
 const STATUT_VENTE: Record<string, string> = {
@@ -201,6 +213,23 @@ export default function ClientDetailPage() {
             <Row label="Pièce d'identité" value={client.piece_identite} />
             <Row label="N° pièce"      value={client.numero_piece} />
             <Row label="N° pièce 2"    value={client.numero_piece2} />
+            {(() => {
+              const piece = (client.documents ?? []).find((d) => d.chemin_fichier);
+              if (!piece) return null;
+              return (
+                <div className="flex items-baseline justify-between gap-4 border-b border-slate-100 py-2.5 last:border-0">
+                  <span className="shrink-0 text-xs font-semibold text-slate-500">Scan de la pièce</span>
+                  <a
+                    href={fileUrl(piece.chemin_fichier)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-right text-sm font-bold text-[#185FA5] hover:underline"
+                  >
+                    Voir le document →
+                  </a>
+                </div>
+              );
+            })()}
             <Row label="SIRET"         value={client.numero_siret} />
             <Row label="Vendeur attribué" value={client.vendeurAttribue ? [client.vendeurAttribue.nom, client.vendeurAttribue.prenom].filter(Boolean).join(' ') : null} />
             <Row label="Client depuis" value={fmtDate(client.created_at)} />

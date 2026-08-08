@@ -10,7 +10,6 @@ interface SelectOption { id: number; nom: string; }
 interface FormOptions {
   types_vehicules: SelectOption[];
   origines_marques: SelectOption[];
-  fournisseurs: SelectOption[];
 }
 
 const STATUTS = ['disponible', 'reserve', 'en_reparation'];
@@ -36,7 +35,7 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 export default function NewVoiturePage() {
   const router = useRouter();
 
-  const [options, setOptions] = useState<FormOptions>({ types_vehicules: [], origines_marques: [], fournisseurs: [] });
+  const [options, setOptions] = useState<FormOptions>({ types_vehicules: [], origines_marques: [] });
   const [saving, setSaving]   = useState(false);
   const [errors, setErrors]   = useState<Record<string, string>>({});
   const [globalError, setGlobalError] = useState('');
@@ -53,7 +52,7 @@ export default function NewVoiturePage() {
     prix_vente: '', type_usage: 'les_deux',
     kilometrage: '', numero_chassis: '', date_acquisition: '',
     statut: 'disponible', etat: '', energie: '', type_boite: '',
-    type_vehicule_id: '', origine_marque_id: '', id_fournisseur: '',
+    type_vehicule_id: '', origine_marque_id: '',
     description: '',
   });
 
@@ -261,12 +260,6 @@ export default function NewVoiturePage() {
               <Field label="Date d'acquisition" error={errors.date_acquisition}>
                 <input className="field-control" type="date"
                   value={form.date_acquisition} onChange={(e) => set('date_acquisition', e.target.value)} />
-              </Field>
-              <Field label="Fournisseur" error={errors.id_fournisseur}>
-                <select className="field-control" value={form.id_fournisseur} onChange={(e) => set('id_fournisseur', e.target.value)}>
-                  <option value="">— Sélectionner —</option>
-                  {options.fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
-                </select>
               </Field>
             </div>
           </section>

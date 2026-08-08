@@ -75,7 +75,7 @@ Route::middleware(['auth:sanctum', 'role:client'])->group(function () {
 });
 
 // ── Routes employés (tous sauf client) ───────────────────────────────────────
-$employeeRoles = 'admin,super_admin,manager,commercial,agent_location,sav,atelier,stock,assurance,accountant';
+$employeeRoles = 'admin,super_admin,manager,commercial,sav,atelier,stock,accountant';
 
 Route::middleware(['auth:sanctum', "role:{$employeeRoles}"])->group(function () {
 
@@ -91,6 +91,8 @@ Route::middleware(['auth:sanctum', "role:{$employeeRoles}"])->group(function () 
     // Commercial
     Route::apiResource('clients', ClientController::class);
     Route::apiResource('ventes', VenteController::class);
+    Route::post('/ventes/{vente}/valider', [VenteController::class, 'valider']);
+    Route::post('/ventes/{vente}/refuser', [VenteController::class, 'refuser']);
     Route::apiResource('facturations', FacturationController::class);
     Route::get('/facturations/{facturation}/export', [FacturationController::class, 'export']);
     Route::apiResource('paiements', PaiementController::class);
@@ -150,6 +152,7 @@ Route::middleware(['auth:sanctum', "role:{$employeeRoles}"])->group(function () 
 // ── Routes admin uniquement ───────────────────────────────────────────────────
 Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function () {
     Route::apiResource('employes', EmployeController::class);
+    Route::get('/employes/{employe}/export', [EmployeController::class, 'export']);
 
     // Gestion des comptes utilisateurs
     Route::get('/admin/employes-sans-compte', [UserManagementController::class, 'emploiesSansCompte']);

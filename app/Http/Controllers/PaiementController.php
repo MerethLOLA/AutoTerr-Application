@@ -19,7 +19,7 @@ class PaiementController extends Controller
 
         return response()->json([
             'paiement' => new Paiement(['date' => now()->toDateString()]),
-            'factures' => Facturation::query()->with('vente.client')->orderByDesc('date_facture')->get(),
+            'factures' => Facturation::query()->with(['vente.client', 'location.client'])->orderByDesc('date_facture')->get(),
             'ventes' => Vente::query()->with('client')->orderByDesc('date_vente')->get(['id', 'reference_vente', 'id_client']),
             'clients' => Client::query()->orderBy('nom')->get(['id', 'nom', 'prenom', 'raison_sociale']),
         ]);
@@ -56,9 +56,10 @@ class PaiementController extends Controller
                     422,
                     'Le montant doit être exactement '.number_format($resteExact, 0, ',', ' ').' XOF (reste à payer intégral).'
                 );
-                $data['id_vente']  = $facture->id_vente;
-                $data['id_client'] = $facture->vente->id_client;
-                $data['reste']     = 0;
+                $data['id_vente']    = $facture->id_vente;
+                $data['id_location'] = $facture->id_location;
+                $data['id_client']   = optional($facture->vente)->id_client ?? optional($facture->location)->id_client;
+                $data['reste']       = 0;
             }
 
             $paiement = Paiement::query()->create($data);
@@ -100,7 +101,7 @@ class PaiementController extends Controller
 
         return response()->json([
             'paiement' => $paiement,
-            'factures' => Facturation::query()->with('vente.client')->orderByDesc('date_facture')->get(),
+            'factures' => Facturation::query()->with(['vente.client', 'location.client'])->orderByDesc('date_facture')->get(),
             'ventes' => Vente::query()->with('client')->orderByDesc('date_vente')->get(['id', 'reference_vente', 'id_client']),
             'clients' => Client::query()->orderBy('nom')->get(['id', 'nom', 'prenom', 'raison_sociale']),
         ]);
@@ -125,9 +126,10 @@ class PaiementController extends Controller
                     422,
                     'Le montant doit être exactement '.number_format($resteDisponible, 0, ',', ' ').' XOF (reste à payer intégral).'
                 );
-                $data['id_vente']  = $facture->id_vente;
-                $data['id_client'] = $facture->vente->id_client;
-                $data['reste']     = 0;
+                $data['id_vente']    = $facture->id_vente;
+                $data['id_location'] = $facture->id_location;
+                $data['id_client']   = optional($facture->vente)->id_client ?? optional($facture->location)->id_client;
+                $data['reste']       = 0;
             }
 
             $paiement->update($data);

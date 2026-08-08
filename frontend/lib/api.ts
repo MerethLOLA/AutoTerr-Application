@@ -295,6 +295,24 @@ class ApiClient {
     }
   }
 
+  /** Ouvre un PDF dans un nouvel onglet (visionneuse native du navigateur, avec bouton imprimer) au lieu de forcer un téléchargement silencieux. */
+  async openPdf(resource: string): Promise<void> {
+    try {
+      const response = await this.client.get(resource, { responseType: 'blob' });
+      const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const win = window.open(url, '_blank');
+      if (!win) {
+        // Popup bloquée par le navigateur : on retombe sur le téléchargement classique.
+        const a = document.createElement('a');
+        a.href = url;
+        a.click();
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   async postForm<T>(resource: string, data: FormData): Promise<T> {
     try {
       const response = await this.client.post<T>(resource, data);

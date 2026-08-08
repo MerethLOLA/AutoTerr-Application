@@ -17,6 +17,8 @@ class LocationRequest extends FormRequest
 
         return [
             'id_client'            => [$required, 'integer', 'exists:clients,id'],
+            'piece_identite'       => [$required, 'string', 'max:100'],
+            'numero_piece'         => [$required, 'string', 'max:100'],
             'id_voiture'           => [$required, 'integer', 'exists:voitures,id'],
             'id_agent'             => ['nullable', 'integer', 'exists:employes,id'],
             'date_debut'           => [$required, 'date'],

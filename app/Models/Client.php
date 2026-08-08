@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Notifications\Notifiable;
 
 class Client extends Model
 {
-    use HasFactory;
+    use HasFactory, Notifiable;
 
     protected $table = 'clients';
 
@@ -71,6 +72,31 @@ class Client extends Model
     public function getNomCompletAttribute(): string
     {
         return trim("{$this->prenom} {$this->nom}");
+    }
+
+    /**
+     * Applique le type/numéro de pièce d'identité, en écriture unique : une fois qu'une
+     * valeur est enregistrée, toute tentative de la modifier est refusée (422).
+     */
+    public function appliquerPieceIdentite(array $data): void
+    {
+        $updates = [];
+
+        foreach (['piece_identite', 'numero_piece'] as $champ) {
+            if (! array_key_exists($champ, $data) || $data[$champ] === null || $data[$champ] === '') {
+                continue;
+            }
+
+            if (! empty($this->{$champ}) && $this->{$champ} !== $data[$champ]) {
+                abort(422, "Impossible de modifier « {$champ} » : la pièce d'identité de ce client est déjà enregistrée et ne peut plus être modifiée.");
+            }
+
+            $updates[$champ] = $data[$champ];
+        }
+
+        if ($updates) {
+            $this->update($updates);
+        }
     }
 
     public function scopeRecherche($query, $term)

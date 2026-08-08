@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { useSession } from 'next-auth/react';
 
 const NAVY = '#185FA5';
 const BLUE = '#1d6fb8';
@@ -154,6 +155,7 @@ const WELCOME: Message = {
 };
 
 export function Chatbot() {
+  const { data: session } = useSession();
   const [open,     setOpen]     = useState(false);
   const [input,    setInput]    = useState('');
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
@@ -180,9 +182,14 @@ export function Chatbot() {
     setLoading(true);
 
     try {
+      const token = (session as any)?.token;
       const res = await fetch(`${API}/api/chatbot/message`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body:    JSON.stringify({ message: text, history }),
       });
 
@@ -251,10 +258,13 @@ export function Chatbot() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         ) : (
-          <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#fff">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-          </svg>
+          <div style={{
+            width: 34, height: 34, borderRadius: '50%', background: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/favicon.svg" alt="AutoTerr" width={20} height={20} />
+          </div>
         )}
       </button>
 
@@ -277,14 +287,12 @@ export function Chatbot() {
           }}>
             <div style={{
               width: 36, height: 36, borderRadius: '50%',
-              background: 'rgba(255,255,255,0.15)',
+              background: '#fff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}>
-              <svg width={18} height={18} fill="none" stroke="#fff" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/favicon.svg" alt="AutoTerr" width={20} height={20} />
             </div>
             <div style={{ flex: 1 }}>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff' }}>

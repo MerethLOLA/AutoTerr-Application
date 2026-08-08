@@ -265,10 +265,17 @@ export interface ReportingPayload {
     cout_entretien_mois?: number;
     cout_carburant_mois?: number;
   };
-  utilisateurs_inscrits?: number;
-  en_attente_validation?: number;
-  ventes_par_marque?: Array<{ marque: string; count: number; pct: number }>;
-  top_vendeurs?: Array<{ prenom: string; nom: string; poste?: string; count: number; total: number }>;
-  activite_recente?: Array<{ type: string; label: string; sub: string; at: string }>;
-  dernieres_voitures?: Array<{ id: number; marque: string; modele: string; annee?: number; prix_vente?: number; prix?: number; statut: string; image_principale?: string; energie?: string; vendeur?: string | null }>;
+  utilisateursInscrits?: number;
+  enAttenteValidation?: number;
+  ventesParMarque?: Array<{ marque: string; count: number; pct: number }>;
+  topVendeurs?: Array<{ prenom: string; nom: string; poste?: string; count: number; total: number }>;
+  activiteRecente?: Array<{ type: string; label: string; sub: string; at: string }>;
+  dernieresVoitures?: Array<{ id: number; marque: string; modele: string; annee?: number; prix_vente?: number; prix?: number; statut: string; image_principale?: string; energie?: string; vendeur?: string | null }>;
+  salairesCommerciaux?: Array<{
+    id: number; nom: string; poste?: string;
+    salaire_fixe: number; taux_commission: number;
+    total_ventes_mois: number; total_locations_mois: number;
+    commission_mois: number; salaire_total_mois: number;
+  }>;
+  salairesPeriode?: string;
 }

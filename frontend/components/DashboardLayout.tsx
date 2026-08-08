@@ -8,7 +8,7 @@ import { useNotificationBadges } from '@/lib/useNotificationBadges';
 import { useRole } from '@/lib/useRole';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Chatbot } from '@/components/Chatbot';
 
@@ -69,8 +69,8 @@ const navGroups = [
     lk: 'nav.groups.fleet',
     items: [
       { lk: 'nav.items.vehicles',  href: '/voitures',    badgeKey: null as string | null, icon: IC.car },
-      { lk: 'nav.items.parts',     href: '/stock',        badgeKey: 'alertes_stock',       icon: IC.box },
-      { lk: 'nav.items.suppliers', href: '/fournisseurs', badgeKey: null,                  icon: IC.truck },
+      { lk: 'nav.items.parts',     href: '/stock',        badgeKey: 'alertes_stock',       icon: IC.box, standby: true },
+      { lk: 'nav.items.suppliers', href: '/fournisseurs', badgeKey: null,                  icon: IC.truck, standby: true },
     ],
   },
   {
@@ -80,7 +80,7 @@ const navGroups = [
       { lk: 'nav.items.sales',     href: '/ventes/historique', badgeKey: null,                  icon: IC.cart },
       { lk: 'nav.items.rentals',   href: '/locations',         badgeKey: 'reservations',        icon: IC.key },
       { lk: 'nav.items.requests',  href: '/demandes',          badgeKey: 'demandes_en_attente', icon: IC.support },
-      { lk: 'nav.items.messages',  href: '/messages',          badgeKey: null,                  icon: IC.document },
+      { lk: 'nav.items.messages',  href: '/messages',          badgeKey: null,                  icon: IC.document, standby: true },
       { lk: 'nav.items.billing',   href: '/facturations',      badgeKey: 'factures_impayees',   icon: IC.invoice },
       { lk: 'nav.items.payments',  href: '/paiements',         badgeKey: null,                  icon: IC.card },
     ],
@@ -89,8 +89,8 @@ const navGroups = [
     lk: 'nav.groups.afterSales',
     items: [
       { lk: 'nav.items.support',     href: '/sav',        badgeKey: 'tickets_ouverts', icon: IC.support },
-      { lk: 'nav.items.workshop',    href: '/atelier',    badgeKey: 'ordres_ouverts',  icon: IC.sliders },
-      { lk: 'nav.items.planning',    href: '/planning',   badgeKey: null,              icon: IC.calendar },
+      { lk: 'nav.items.workshop',    href: '/atelier',    badgeKey: 'ordres_ouverts',  icon: IC.sliders, standby: true },
+      { lk: 'nav.items.planning',    href: '/planning',   badgeKey: null,              icon: IC.calendar, standby: true },
       { lk: 'nav.items.maintenance', href: '/entretiens', badgeKey: null,              icon: IC.wrench },
       { lk: 'nav.items.warranties',  href: '/garanties',  badgeKey: null,              icon: IC.shield },
     ],
@@ -100,8 +100,8 @@ const navGroups = [
     items: [
       { lk: 'nav.items.insurance',   href: '/assurances',           badgeKey: null, icon: IC.shield },
       { lk: 'nav.items.techChecks',  href: '/controles-techniques', badgeKey: null, icon: IC.clip },
-      { lk: 'nav.items.claims',      href: '/sinistres',            badgeKey: null, icon: IC.exclamation },
-      { lk: 'nav.items.fuel',        href: '/carburant',            badgeKey: null, icon: IC.fuel },
+      { lk: 'nav.items.claims',      href: '/sinistres',            badgeKey: null, icon: IC.exclamation, standby: true },
+      { lk: 'nav.items.fuel',        href: '/carburant',            badgeKey: null, icon: IC.fuel, standby: true },
       { lk: 'nav.items.alerts',      href: '/alertes',              badgeKey: null, icon: IC.bell },
     ],
   },
@@ -110,7 +110,7 @@ const navGroups = [
     items: [
       { lk: 'nav.items.employees',  href: '/employes',     badgeKey: null, icon: IC.person,   adminOnly: false },
       { lk: 'nav.items.users',      href: '/utilisateurs', badgeKey: null, icon: IC.users,    adminOnly: true  },
-      { lk: 'nav.items.documents',  href: '/documents',    badgeKey: null, icon: IC.document, adminOnly: false },
+      { lk: 'nav.items.documents',  href: '/documents',    badgeKey: null, icon: IC.document, adminOnly: false, standby: true },
       { lk: 'nav.items.reporting',  href: '/reporting',    badgeKey: null, icon: IC.chart,    adminOnly: false },
     ],
   },
@@ -123,7 +123,7 @@ const quickActions = [
   { lk: 'nav.quickActions.stock',      href: '/stock',        variant: 'secondary' as const },
 ];
 
-const employeeRoles = ['admin', 'super_admin', 'manager', 'commercial', 'agent_location', 'sav', 'atelier', 'stock', 'assurance'];
+export const employeeRoles = ['admin', 'super_admin', 'manager', 'commercial', 'sav', 'atelier', 'accountant'];
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const LIGHT = {
@@ -180,6 +180,9 @@ export default function DashboardLayout({
   const [notifMenuOpen,    setNotifMenuOpen]     = useState(false);
   const [notifItems,       setNotifItems]        = useState<NotificationItem[]>([]);
   const [isDark,           setIsDark]           = useState(false);
+
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const notifMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -262,6 +265,21 @@ export default function DashboardLayout({
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
+  useEffect(() => {
+    if (!userMenuOpen && !notifMenuOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      const target = e.target as Node;
+      if (userMenuOpen && userMenuRef.current && !userMenuRef.current.contains(target)) {
+        setUserMenuOpen(false);
+      }
+      if (notifMenuOpen && notifMenuRef.current && !notifMenuRef.current.contains(target)) {
+        setNotifMenuOpen(false);
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [userMenuOpen, notifMenuOpen]);
+
   useEffect(() => { setSidebarOpen(false); setSearchOpen(false); }, [pathname]);
 
   function getInitials(name: string) {
@@ -290,7 +308,7 @@ export default function DashboardLayout({
     .map((g) => ({
       ...g,
       items: g.items.filter((item) =>
-        canAccessRoute(item.href) && (!(item as any).adminOnly || isAdmin)
+        !(item as any).standby && canAccessRoute(item.href) && (!(item as any).adminOnly || isAdmin)
       ),
     }))
     .filter((g) => g.items.length > 0);
@@ -455,6 +473,7 @@ export default function DashboardLayout({
 
       {/* ── Menu utilisateur ───────────────────────────────────────────────── */}
       <div
+        ref={userMenuRef}
         className="relative mt-auto px-2 pb-3 pt-2"
         style={{ borderTop: `0.5px solid ${C.borderLight}` }}
       >
@@ -640,7 +659,7 @@ export default function DashboardLayout({
             </button>
 
             {/* Cloche notifications */}
-            <div className="relative">
+            <div ref={notifMenuRef} className="relative">
               <button
                 id={notifBtnId}
                 type="button"

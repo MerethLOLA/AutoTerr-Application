@@ -22,6 +22,7 @@ class EmployeRequest extends FormRequest
             'adresse' => ['nullable', 'string', 'max:500'],
             'date_embauche' => ['nullable', 'date'],
             'salaire' => ['nullable', 'numeric', 'min:0'],
+            'taux_commission' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'contrat' => ['nullable', 'string', 'max:100'],
             'poste' => ['required', 'string', 'max:100'],
             'telephone' => ['nullable', 'string', 'max:50'],

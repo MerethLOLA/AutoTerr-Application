@@ -23,21 +23,30 @@ class RappelFactureNotification extends Notification implements ShouldQueue
     {
         $echeance  = optional($this->facture->date_echeance)?->format('d/m/Y') ?? '-';
         $isLate    = optional($this->facture->date_echeance)?->isPast() ?? false;
+        $joursRetard = $isLate ? (int) optional($this->facture->date_echeance)?->diffInDays(now()) : 0;
+        $isUrgent  = $isLate && $joursRetard >= 2;
         $montant   = number_format((float) $this->facture->reste_a_payer, 0, ',', ' ') . ' XOF';
 
-        $subject = $isLate
-            ? "⚠️ Facture {$this->facture->numero_facture} — paiement en retard"
-            : "Rappel : facture {$this->facture->numero_facture} à régler avant le {$echeance}";
+        $subject = match (true) {
+            $isUrgent => "🚨 Facture {$this->facture->numero_facture} — {$joursRetard} jours de retard, régularisation urgente",
+            $isLate   => "⚠️ Facture {$this->facture->numero_facture} — paiement en retard",
+            default   => "Rappel : facture {$this->facture->numero_facture} à régler avant le {$echeance}",
+        };
 
-        return (new MailMessage)
-            ->subject($subject)
-            ->greeting("Bonjour {$notifiable->name},")
-            ->line($isLate
-                ? "La facture **{$this->facture->numero_facture}** (montant restant : **{$montant}**) était échue le **{$echeance}**. Elle n'a pas encore été intégralement réglée."
-                : "La facture **{$this->facture->numero_facture}** (montant restant : **{$montant}**) arrive à échéance le **{$echeance}**."
-            )
-            ->line("Pour éviter tout frais de retard, nous vous invitons à procéder au règlement dans les meilleurs délais.")
-            ->action('Voir ma facture', url('/espace-client'))
+        $message = (new MailMessage)->subject($subject)->greeting("Bonjour {$notifiable->nom_complet},");
+
+        if ($isUrgent) {
+            $message->line("La facture **{$this->facture->numero_facture}** (montant restant : **{$montant}**) est impayée depuis **{$joursRetard} jours** (échéance dépassée le **{$echeance}**).")
+                ->line("Merci de régulariser votre situation dans les plus brefs délais afin d'éviter toute suspension de service.");
+        } elseif ($isLate) {
+            $message->line("La facture **{$this->facture->numero_facture}** (montant restant : **{$montant}**) était échue le **{$echeance}**. Elle n'a pas encore été intégralement réglée.")
+                ->line("Pour éviter tout frais de retard, nous vous invitons à procéder au règlement dans les meilleurs délais.");
+        } else {
+            $message->line("La facture **{$this->facture->numero_facture}** (montant restant : **{$montant}**) arrive à échéance le **{$echeance}**.")
+                ->line("Pour éviter tout frais de retard, nous vous invitons à procéder au règlement dans les meilleurs délais.");
+        }
+
+        return $message->action('Voir ma facture', url('/espace-client'))
             ->line("Merci de votre confiance — l'équipe AutoTerr.");
     }
 }

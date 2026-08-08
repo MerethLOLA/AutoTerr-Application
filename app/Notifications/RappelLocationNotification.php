@@ -32,7 +32,7 @@ class RappelLocationNotification extends Notification implements ShouldQueue
 
         return (new MailMessage)
             ->subject($subject)
-            ->greeting("Bonjour {$notifiable->name},")
+            ->greeting("Bonjour {$notifiable->nom_complet},")
             ->line($isLate
                 ? "La location **{$this->location->reference_location}** ({$label}) était prévue pour le retour le **{$dateFin}**. Le véhicule n'a pas encore été restitué."
                 : "Votre location **{$this->location->reference_location}** ({$label}) arrive à échéance le **{$dateFin}**."

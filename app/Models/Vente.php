@@ -19,6 +19,9 @@ class Vente extends Model
         'date_vente',
         'id_client',
         'id_voiture',
+        'prix_catalogue',
+        'remise',
+        'motif_remise',
         'prix_final',
         'mode_paiement',
         'statut',
@@ -30,6 +33,8 @@ class Vente extends Model
     {
         return [
             'date_vente' => 'date',
+            'prix_catalogue' => 'decimal:2',
+            'remise' => 'decimal:2',
             'prix_final' => 'decimal:2',
         ];
     }

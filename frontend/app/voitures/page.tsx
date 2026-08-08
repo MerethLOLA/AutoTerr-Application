@@ -5,6 +5,7 @@ import { apiClient } from '@/lib/api';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { useRole } from '@/lib/useRole';
 
 const STORAGE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '');
 function imgUrl(p?: string | null) {
@@ -176,6 +177,7 @@ function VoitureCard({ v }: { v: Voiture }) {
 }
 
 export default function VoituresPage() {
+  const { canWrite } = useRole();
   const _initVoitures = apiClient.getCached<any>('/voitures', { page: 1 });
   const [items, setItems]         = useState<Voiture[]>(_initVoitures?.data ?? []);
   const [loading, setLoading]     = useState(_initVoitures === null);
@@ -230,9 +232,11 @@ export default function VoituresPage() {
               {loading ? 'Chargement…' : `${total} véhicule${total !== 1 ? 's' : ''} dans le parc`}
             </p>
           </div>
-          <Link href="/voitures/new" className="btn-primary shrink-0">
-            + Ajouter un véhicule
-          </Link>
+          {canWrite('voitures') && (
+            <Link href="/voitures/new" className="btn-primary shrink-0">
+              + Ajouter un véhicule
+            </Link>
+          )}
         </div>
 
         {/* Filtres */}

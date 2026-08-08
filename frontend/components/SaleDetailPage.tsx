@@ -2,6 +2,7 @@
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
+import { useRole } from '@/lib/useRole';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -16,11 +17,13 @@ interface SaleDetail {
   reference_vente: string;
   date_vente: string;
   prix_final: number;
+  remise?: number;
   statut: string;
   mode_paiement?: string;
   observations?: string;
   client?: { id: number; nom: string; prenom?: string };
   voiture?: { id: number; marque: string; modele: string };
+  employe?: { id: number; nom: string; prenom?: string };
   facturation?: { id: number; numero_facture: string; montant_ttc: number; statut: string };
   paiements?: Paiement[];
 }
@@ -36,12 +39,15 @@ function fmtDate(d?: string | null) {
 
 function badge(statut: string) {
   const map: Record<string, string> = {
-    termine:    'bg-emerald-100 text-emerald-800 border-emerald-200',
-    en_cours:   'bg-blue-100 text-blue-800 border-blue-200',
-    annule:     'bg-[#f5f8fa] text-[#6b7280] border-[#dfe3eb]',
-    en_attente: 'bg-amber-100 text-amber-800 border-amber-200',
-    payee:      'bg-emerald-100 text-emerald-800 border-emerald-200',
-    impayee:    'bg-red-100 text-red-700 border-red-200',
+    termine:               'bg-emerald-100 text-emerald-800 border-emerald-200',
+    en_cours:              'bg-blue-100 text-blue-800 border-blue-200',
+    annule:                'bg-[#f5f8fa] text-[#6b7280] border-[#dfe3eb]',
+    en_attente:            'bg-amber-100 text-amber-800 border-amber-200',
+    payee:                 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    impayee:               'bg-red-100 text-red-700 border-red-200',
+    finalisee:             'bg-emerald-100 text-emerald-800 border-emerald-200',
+    en_attente_validation: 'bg-amber-100 text-amber-800 border-amber-200',
+    refusee:               'bg-red-100 text-red-700 border-red-200',
   };
   return `inline-flex items-center rounded border px-2.5 py-0.5 text-xs font-semibold ${map[statut] ?? 'bg-[#f5f8fa] text-[#6b7280] border-[#dfe3eb]'}`;
 }
@@ -61,6 +67,25 @@ export default function SaleDetailPage({ saleId }: { saleId: string }) {
   const [loading, setLoading]     = useState(_initSale === null);
   const [error, setError]         = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [deciding, setDeciding]   = useState<'valider' | 'refuser' | null>(null);
+  const [motifRefus, setMotifRefus] = useState('');
+  const [decisionError, setDecisionError] = useState<string | null>(null);
+  const { role } = useRole();
+  const peutValider = ['manager', 'admin', 'super_admin'].includes(role);
+
+  async function decider(action: 'valider' | 'refuser') {
+    if (!sale) return;
+    setDeciding(action);
+    setDecisionError(null);
+    try {
+      const res = await apiClient.post<any>(`/ventes/${sale.id}/${action}`, action === 'refuser' ? { motif: motifRefus } : {});
+      setSale(res?.data ?? res);
+    } catch (err: any) {
+      setDecisionError(err?.message || "Une erreur est survenue.");
+    } finally {
+      setDeciding(null);
+    }
+  }
 
   async function downloadFacture(factureId: number, numero: string) {
     setDownloading(true);
@@ -178,6 +203,53 @@ export default function SaleDetailPage({ saleId }: { saleId: string }) {
             {sale.mode_paiement && <InfoRow label="Mode paiement" value={sale.mode_paiement} />}
           </div>
         </div>
+
+        {/* Validation de remise */}
+        {sale.statut === 'en_attente_validation' && (
+          <div className="surface-panel border-amber-200 bg-amber-50 p-5">
+            <h2 className="section-title mb-2 text-amber-800">Remise en attente de validation</h2>
+            <p className="text-sm text-amber-700">
+              Cette vente comporte une remise de {money(sale.remise)} XOF, au-delà du seuil autorisé.
+              {sale.employe && ` Soumise par ${sale.employe.nom}${sale.employe.prenom ? ' ' + sale.employe.prenom : ''}.`}
+              {' '}Un email a été envoyé aux responsables habilités à valider.
+            </p>
+
+            {peutValider ? (
+              <div className="mt-4 space-y-3">
+                <input
+                  type="text"
+                  placeholder="Motif du refus (optionnel)"
+                  className="field-control"
+                  value={motifRefus}
+                  onChange={(e) => setMotifRefus(e.target.value)}
+                />
+                {decisionError && <p className="text-sm font-medium text-red-700">{decisionError}</p>}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => decider('valider')}
+                    disabled={deciding !== null}
+                    className="btn-primary disabled:opacity-60"
+                  >
+                    {deciding === 'valider' ? 'Validation…' : '✓ Valider la remise'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => decider('refuser')}
+                    disabled={deciding !== null}
+                    className="rounded border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-60"
+                  >
+                    {deciding === 'refuser' ? 'Refus…' : '✕ Refuser'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-3 text-xs font-semibold text-amber-600">
+                Seul un responsable commercial, un manager ou un administrateur peut valider ou refuser cette remise.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Facture */}
         {sale.facturation && (

@@ -22,8 +22,8 @@ class EnvoyerRappelFactureJob implements ShouldQueue
 
     public function handle(): void
     {
-        $facture = $this->facture->load(['vente.client']);
-        $client  = optional($facture->vente)->client;
+        $facture = $this->facture->load(['vente.client', 'location.client']);
+        $client  = optional($facture->vente)->client ?? optional($facture->location)->client;
 
         if (! $client || ! $client->email) {
             return;

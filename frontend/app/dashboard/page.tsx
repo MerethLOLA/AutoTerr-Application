@@ -156,10 +156,11 @@ export default function DashboardPage() {
   const ventesPrev   = payload?.salesMonthly?.[prevMonth]?.count   ?? 0;
   const ventesDelta  = ventesPrev > 0 ? Math.round(((ventesCurr - ventesPrev) / ventesPrev) * 100) : 5;
 
-  const dernieres = payload?.dernieres_voitures ?? [];
-  const marques   = payload?.ventes_par_marque  ?? [];
-  const vendeurs  = payload?.top_vendeurs       ?? [];
-  const activites = payload?.activite_recente   ?? [];
+  const dernieres = payload?.dernieresVoitures ?? [];
+  const marques   = payload?.ventesParMarque   ?? [];
+  const vendeurs  = payload?.topVendeurs       ?? [];
+  const activites = payload?.activiteRecente   ?? [];
+  const salaires  = payload?.salairesCommerciaux ?? [];
 
   return (
     <DashboardLayout>
@@ -169,7 +170,7 @@ export default function DashboardPage() {
         <div className="page-header">
           <div>
             <h1 className="page-title mt-1">Vue d&apos;ensemble</h1>
-            <p className="page-subtitle">Tableau de bord — indicateurs clés et activité récente.</p>
+            <p className="page-subtitle">Indicateurs clés et activité récente.</p>
           </div>
           <div className="flex shrink-0 gap-2">
             <Link href="/voitures/new" className="btn-primary gap-2">
@@ -206,7 +207,7 @@ export default function DashboardPage() {
               />
               <KpiCard
                 label="Utilisateurs inscrits"
-                value={num(payload?.utilisateurs_inscrits)}
+                value={num(payload?.utilisateursInscrits)}
                 delta="+8% ce mois"
                 icon={<IconUsers className="h-4 w-4" />}
                 href="/clients"
@@ -220,7 +221,7 @@ export default function DashboardPage() {
               />
               <KpiCard
                 label="En attente validation"
-                value={num(payload?.en_attente_validation)}
+                value={num(payload?.enAttenteValidation)}
                 delta={`+${payload?.locationStats?.reservations ?? 0} aujourd'hui`}
                 deltaPositive={false}
                 icon={<IconClock className="h-4 w-4" />}
@@ -348,6 +349,42 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
+
+            {/* ── Salaires commerciaux (fixe + commission) ─────── */}
+            {salaires.length > 0 && (
+              <div className="card" style={{ padding: '12px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <h2 className="section-title">Salaires commerciaux · {payload?.salairesPeriode ?? new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</h2>
+                  <Link href="/employes" style={{ fontSize: 12, color: BLUE }}>Voir tout →</Link>
+                </div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ textAlign: 'left', color: '#9ca3af', fontWeight: 500 }}>
+                        <th style={{ padding: '6px 8px' }}>Employé</th>
+                        <th style={{ padding: '6px 8px' }}>Salaire fixe</th>
+                        <th style={{ padding: '6px 8px' }}>Ventes + locations</th>
+                        <th style={{ padding: '6px 8px' }}>Taux</th>
+                        <th style={{ padding: '6px 8px' }}>Commission</th>
+                        <th style={{ padding: '6px 8px' }}>Total à verser</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {salaires.map((s) => (
+                        <tr key={s.id} style={{ borderTop: '1px solid #f0f2f5' }}>
+                          <td style={{ padding: '8px', fontWeight: 500, color: '#111827' }}>{s.nom}</td>
+                          <td style={{ padding: '8px', color: '#374151' }}>{money(s.salaire_fixe)}</td>
+                          <td style={{ padding: '8px', color: '#374151' }}>{money(s.total_ventes_mois + s.total_locations_mois)}</td>
+                          <td style={{ padding: '8px', color: '#374151' }}>{s.taux_commission}%</td>
+                          <td style={{ padding: '8px', color: BLUE, fontWeight: 500 }}>{money(s.commission_mois)}</td>
+                          <td style={{ padding: '8px', fontWeight: 600, color: '#111827' }}>{money(s.salaire_total_mois)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
           </>
         )}

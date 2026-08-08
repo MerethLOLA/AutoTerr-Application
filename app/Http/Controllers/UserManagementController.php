@@ -11,7 +11,7 @@ use Illuminate\Validation\Rule;
 
 class UserManagementController extends Controller
 {
-    private const ROLES = ['admin', 'manager', 'commercial', 'agent_location', 'sav', 'atelier', 'stock', 'assurance', 'accountant', 'client'];
+    private const ROLES = ['admin', 'manager', 'commercial', 'sav', 'atelier', 'accountant', 'client'];
 
     public function index(): JsonResponse
     {
@@ -39,6 +39,8 @@ class UserManagementController extends Controller
             'id_employe' => ['nullable', 'integer', 'exists:employes,id', 'unique:users,id_employe'],
         ]);
 
+        $employe = isset($data['id_employe']) ? Employe::find($data['id_employe']) : null;
+
         $user = User::query()->create([
             'name'          => $data['name'],
             'username'      => $data['username'],
@@ -46,7 +48,7 @@ class UserManagementController extends Controller
             'password'      => Hash::make($data['password']),
             'password_hash' => Hash::make($data['password']),
             'role'          => $data['role'],
-            'statut'        => 'actif',
+            'statut'        => ($employe && $employe->statut !== 'actif') ? 'inactif' : 'actif',
             'id_employe'    => $data['id_employe'] ?? null,
         ]);
 
@@ -75,6 +77,14 @@ class UserManagementController extends Controller
         }
 
         $user->update($data);
+
+        if (array_key_exists('statut', $data) && $user->employe) {
+            $employeStatut = $data['statut'] === 'actif' ? 'actif' : 'inactif';
+            if ($user->employe->statut !== $employeStatut) {
+                $user->employe->update(['statut' => $employeStatut]);
+            }
+        }
+
         $this->logAction('update', 'user', $user, $data, $request);
 
         return $this->apiItem($user->fresh()->load('employe'), 200, ['message' => 'Utilisateur mis à jour']);

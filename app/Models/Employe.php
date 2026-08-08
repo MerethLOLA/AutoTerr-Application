@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Notifications\Notifiable;
 
 class Employe extends Model
 {
-    use HasFactory;
+    use HasFactory, Notifiable;
 
     protected $table = 'employes';
 
@@ -19,6 +20,7 @@ class Employe extends Model
         'adresse',
         'date_embauche',
         'salaire',
+        'taux_commission',
         'contrat',
         'poste',
         'telephone',
@@ -31,6 +33,7 @@ class Employe extends Model
         return [
             'date_embauche' => 'date',
             'salaire' => 'decimal:2',
+            'taux_commission' => 'decimal:2',
         ];
     }
 

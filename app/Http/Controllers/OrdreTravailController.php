@@ -10,12 +10,34 @@ use App\Models\Employe;
 use App\Models\TicketSav;
 use App\Models\Voiture;
 use App\Http\Requests\OrdreTravailRequest;
+use App\Notifications\AssignationNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class OrdreTravailController extends Controller
 {
+    private function notifierTechnicienAssigne(OrdreTravail $ordre): void
+    {
+        $technicien = $ordre->technicien;
+
+        if (! $technicien?->email) {
+            return;
+        }
+
+        $technicien->notify(new AssignationNotification(
+            sujet: "Ordre de travail assigné — {$ordre->reference_ot}",
+            intro: "Un ordre de travail vous a été assigné : « {$ordre->description} ».",
+            details: array_filter([
+                "Référence : {$ordre->reference_ot}",
+                "Priorité : {$ordre->priorite}",
+                $ordre->deadline ? "Échéance : {$ordre->deadline->format('d/m/Y')}" : null,
+            ]),
+            actionUrl: url("/atelier/{$ordre->id}"),
+            actionLabel: "Voir l'ordre de travail",
+        ));
+    }
+
     public function index(Request $request)
     {
         $this->ensurePermission('manage_atelier');
@@ -40,14 +62,26 @@ class OrdreTravailController extends Controller
         ]);
     }
 
+    private function estResponsableAtelier($user): bool
+    {
+        return in_array($user->role, ['admin', 'super_admin', 'manager'], true);
+    }
+
     public function store(OrdreTravailRequest $request)
     {
         $this->ensurePermission('manage_atelier');
         $data = $request->validated();
         $data['reference_ot'] = 'OT-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
 
+        $user = auth()->user();
+        if (! $this->estResponsableAtelier($user)) {
+            abort_unless($user->id_employe, 422, "Votre compte n'est pas lié à une fiche employé.");
+            $data['id_technicien'] = $user->id_employe;
+        }
+
         $ordre = OrdreTravail::query()->create($data);
         $this->logAction('create', 'ordre_travail', $ordre, $data, $request);
+        $this->notifierTechnicienAssigne($ordre);
 
         if (! $request->wantsJson()) {
             return redirect()->route('ordres-travail.show', $ordre)->with('success', 'Ordre de travail cree.');
@@ -82,8 +116,21 @@ class OrdreTravailController extends Controller
     public function update(OrdreTravailRequest $request, OrdreTravail $ordreTravail)
     {
         $this->ensurePermission('manage_atelier');
-        $ordreTravail->update($request->validated());
-        $this->logAction('update', 'ordre_travail', $ordreTravail, $request->validated(), $request);
+        $data = $request->validated();
+
+        $user = auth()->user();
+        $nouveauTechnicien = $data['id_technicien'] ?? $ordreTravail->id_technicien;
+        if (! $this->estResponsableAtelier($user) && (int) $nouveauTechnicien !== (int) $ordreTravail->id_technicien) {
+            abort(403, 'Seul un responsable peut réassigner un ordre de travail à un autre technicien.');
+        }
+
+        $technicienChange = $ordreTravail->id_technicien !== $nouveauTechnicien;
+        $ordreTravail->update($data);
+        $this->logAction('update', 'ordre_travail', $ordreTravail, $data, $request);
+
+        if ($technicienChange) {
+            $this->notifierTechnicienAssigne($ordreTravail->fresh());
+        }
 
         if (! $request->wantsJson()) {
             return redirect()->route('ordres-travail.show', $ordreTravail)->with('success', 'Ordre de travail mis a jour.');

@@ -56,8 +56,14 @@ class CustomerPortalController extends Controller
 
         $facturations = $client
             ? Facturation::query()
-                ->with(['vente:id,id_client,id_voiture,reference_vente', 'vente.voiture:id,marque,modele'])
-                ->whereHas('vente', fn ($query) => $query->where('id_client', $client->id))
+                ->with([
+                    'vente:id,id_client,id_voiture,reference_vente', 'vente.voiture:id,marque,modele',
+                    'location:id,id_client,reference_location,id_voiture', 'location.voiture:id,marque,modele',
+                ])
+                ->where(function ($query) use ($client) {
+                    $query->whereHas('vente', fn ($q) => $q->where('id_client', $client->id))
+                        ->orWhereHas('location', fn ($q) => $q->where('id_client', $client->id));
+                })
                 ->latest('date_facture')
                 ->get()
             : collect();

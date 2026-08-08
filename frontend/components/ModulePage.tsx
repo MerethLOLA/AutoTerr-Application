@@ -4,7 +4,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
 import { ModuleColumn, ModuleDefinition, ModuleFormField } from '@/lib/modules';
 import { useRole } from '@/lib/useRole';
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -28,8 +28,10 @@ const BADGE_MAP: Record<string, { bg: string; text: string; label: string }> = {
   en_location:  { bg: '#ffedd5', text: '#9a3412', label: 'En location' },
   hors_service: { bg: '#fee2e2', text: '#991b1b', label: 'Hors service' },
   en_cours:     { bg: '#dbeafe', text: '#1e40af', label: 'En cours' },
+  en_retard:    { bg: '#fee2e2', text: '#991b1b', label: 'En retard' },
   planifie:     { bg: '#fef9c3', text: '#854d0e', label: 'Planifié' },
   planifiee:    { bg: '#fef9c3', text: '#854d0e', label: 'Planifiée' },
+  terminee:     { bg: '#dcfce7', text: '#166534', label: 'Terminée' },
   realise:      { bg: '#dcfce7', text: '#166534', label: 'Réalisé' },
   resolu:       { bg: '#dcfce7', text: '#166534', label: 'Résolu' },
   payee:        { bg: '#dcfce7', text: '#166534', label: 'Payée' },
@@ -49,6 +51,10 @@ const BADGE_MAP: Record<string, { bg: string; text: string; label: string }> = {
   basse:        { bg: '#dcfce7', text: '#166534', label: 'Basse' },
   favorable:    { bg: '#dcfce7', text: '#166534', label: 'Favorable' },
   defavorable:  { bg: '#fee2e2', text: '#991b1b', label: 'Défavorable' },
+  actif:        { bg: '#dcfce7', text: '#166534', label: 'Actif' },
+  inactif:      { bg: '#fee2e2', text: '#991b1b', label: 'Inactif' },
+  conge:        { bg: '#fef9c3', text: '#854d0e', label: 'En congé' },
+  effectue:     { bg: '#dcfce7', text: '#166534', label: 'Effectué' },
 };
 
 function formatValue(value: any): string {
@@ -169,8 +175,17 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
   const [searchQuery, setSearchQuery]   = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [downloadingId, setDownloadingId] = useState<number | string | null>(null);
+  const [lockedFields, setLockedFields] = useState<Record<string, boolean>>({});
+  const [quickCreateField, setQuickCreateField] = useState<string | null>(null);
+  const [quickCreateValues, setQuickCreateValues] = useState<Record<string, string>>({});
+  const [quickCreateSaving, setQuickCreateSaving] = useState(false);
+  const [quickCreateError, setQuickCreateError] = useState<string | null>(null);
 
-  const visibleFormFields = mod.formFields?.filter((f) => !f.hidden) ?? [];
+  const visibleFormFields = mod.formFields?.filter((f) => {
+    if (f.hidden) return false;
+    if (f.visibleWhen && !f.visibleWhen.in.includes(formValues[f.visibleWhen.field] ?? '')) return false;
+    return true;
+  }) ?? [];
   const columns: ModuleColumn[] = mod.columns ?? mod.fields.slice(0, 5).map((f) => ({
     label: f,
     key: f.toLowerCase().split(' ').join('_'),
@@ -207,26 +222,42 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
   useEffect(() => { loadData(); }, [loadData]);
 
   // ── Chargement des options pour les selects ───────────────────────────────
-  useEffect(() => {
+  const loadOptions = useCallback(async () => {
     const fields = mod.formFields?.filter((f) => f.type === 'select' && f.optionsEndpoint) ?? [];
     if (fields.length === 0) return;
-    let mounted = true;
-    async function loadOptions() {
-      const loaded: Record<string, any[]> = {};
-      await Promise.all(fields.map(async (field) => {
-        if (!field.optionsEndpoint) return;
-        try {
-          const response = await apiClient.get<any>(field.optionsEndpoint);
-          loaded[field.name] = asCollection(response);
-        } catch {
-          loaded[field.name] = [];
-        }
-      }));
-      if (mounted) setOptions(loaded);
-    }
-    loadOptions();
-    return () => { mounted = false; };
+    const loaded: Record<string, any[]> = {};
+    await Promise.all(fields.map(async (field) => {
+      if (!field.optionsEndpoint) return;
+      try {
+        const response = await apiClient.get<any>(field.optionsEndpoint);
+        loaded[field.name] = asCollection(response);
+      } catch {
+        loaded[field.name] = [];
+      }
+    }));
+    setOptions((cur) => ({ ...cur, ...loaded }));
   }, [mod.formFields]);
+
+  useEffect(() => { loadOptions(); }, [loadOptions]);
+
+  // ── Création rapide d'une option manquante (ex: nouveau client) ───────────
+  async function submitQuickCreate(field: ModuleFormField) {
+    if (!field.quickCreate) return;
+    setQuickCreateSaving(true);
+    setQuickCreateError(null);
+    try {
+      const created = await apiClient.post<any>(field.quickCreate.endpoint, quickCreateValues);
+      const item = created?.data ?? created;
+      await loadOptions();
+      setFormValues((cur) => ({ ...cur, [field.name]: String(item.id) }));
+      setQuickCreateField(null);
+      setQuickCreateValues({});
+    } catch (err: any) {
+      setQuickCreateError(err?.message || 'Création impossible');
+    } finally {
+      setQuickCreateSaving(false);
+    }
+  }
 
   // ── Debounce de la recherche ──────────────────────────────────────────────
   useEffect(() => {
@@ -242,6 +273,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
     setFormValues(getInitialFormValues(mod));
     setFileValues({});
     setEditingItemId(null);
+    setLockedFields({});
     setFormError(null);
     setFormErrorDetails(null);
     setShowForm(false);
@@ -250,6 +282,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
   function beginCreate() {
     setEditingItemId(null);
     setFormValues(getInitialFormValues(mod));
+    setLockedFields({});
     setFormError(null);
     setFormErrorDetails(null);
     setShowForm((cur) => !cur || isEditing);
@@ -264,9 +297,16 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
         : normalizeFieldValue(val);
       return acc;
     }, {});
+    const initialLocks = mod.formFields.reduce<Record<string, boolean>>((acc, field) => {
+      if (field.lockOnceSet && nextValues[field.name]) {
+        acc[field.name] = true;
+      }
+      return acc;
+    }, {});
     setFileValues({});
     setEditingItemId(item.id);
     setFormValues(nextValues);
+    setLockedFields(initialLocks);
     setFormError(null);
     setFormErrorDetails(null);
     setShowForm(true);
@@ -280,6 +320,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
     const data = Object.fromEntries(
       mod.formFields
         .filter((f) => f.type !== 'file')
+        .filter((f) => !f.visibleWhen || f.visibleWhen.in.includes(formValues[f.visibleWhen.field] ?? ''))
         .map((f) => {
           const value = formValues[f.name] ?? '';
           if (value === '') return null;
@@ -353,7 +394,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
     if (!mod.exportRoute || !mod.exportFilename) return;
     setDownloadingId(item.id);
     try {
-      await apiClient.download(`/${mod.exportRoute}/${item.id}/export`, mod.exportFilename(item));
+      await apiClient.openPdf(`/${mod.exportRoute}/${item.id}/export`);
     } catch {
       // l'utilisateur peut réessayer
     } finally {
@@ -414,16 +455,76 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   {visibleFormFields.map((field) => (
-                    <label key={field.name} className="text-sm font-semibold text-[#111827]">
-                      {field.label}
+                    <Fragment key={field.name}>
+                    <label className="text-sm font-semibold text-[#111827]">
+                      <span className="flex items-center justify-between gap-2">
+                        {field.label}
+                        {field.quickCreate && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setQuickCreateError(null);
+                              setQuickCreateValues({});
+                              setQuickCreateField((cur) => (cur === field.name ? null : field.name));
+                            }}
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
+                              quickCreateField === field.name
+                                ? 'border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                : 'border-[#185FA5]/30 bg-[#185FA5]/[0.06] text-[#185FA5] hover:bg-[#185FA5]/[0.12]'
+                            }`}
+                          >
+                            {quickCreateField === field.name ? (
+                              <>
+                                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Annuler
+                              </>
+                            ) : (
+                              <>
+                                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                                </svg>
+                                Nouveau
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </span>
                       {field.type === 'select' ? (
                         <select
                           className="field-control mt-2"
                           name={field.name}
-                          disabled={field.readOnly}
+                          disabled={field.readOnly || lockedFields[field.name]}
                           required={field.required}
                           value={formValues[field.name] ?? ''}
-                          onChange={(e) => setFormValues((cur) => ({ ...cur, [field.name]: e.target.value }))}
+                          onChange={(e) => {
+                            const nextValue = e.target.value;
+                            setFormValues((cur) => {
+                              const next = { ...cur, [field.name]: nextValue };
+                              const dependents = mod.formFields?.filter((f) => f.deriveFrom?.field === field.name) ?? [];
+                              if (dependents.length > 0) {
+                                const chosen = (options[field.name] ?? []).find((opt) => String(opt.id) === nextValue);
+                                setLockedFields((curLocks) => {
+                                  const nextLocks = { ...curLocks };
+                                  dependents.forEach((dep) => {
+                                    if (dep.lockOnceSet) {
+                                      nextLocks[dep.name] = false;
+                                    }
+                                  });
+                                  return nextLocks;
+                                });
+                                dependents.forEach((dep) => {
+                                  const derived = chosen ? getValue(chosen, dep.deriveFrom!.path) : '';
+                                  next[dep.name] = normalizeFieldValue(derived);
+                                  if (dep.lockOnceSet && derived) {
+                                    setLockedFields((curLocks) => ({ ...curLocks, [dep.name]: true }));
+                                  }
+                                });
+                              }
+                              return next;
+                            });
+                          }}
                         >
                           <option value="">Sélectionner</option>
                           {field.staticOptions
@@ -468,13 +569,88 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                           className="field-control mt-2"
                           name={field.name}
                           type={field.type ?? 'text'}
-                          readOnly={field.readOnly}
+                          readOnly={field.readOnly || lockedFields[field.name]}
                           required={field.required}
                           value={formValues[field.name] ?? ''}
                           onChange={(e) => setFormValues((cur) => ({ ...cur, [field.name]: e.target.value }))}
                         />
                       )}
+                      {field.type === 'select' && field.helperFrom && (() => {
+                        const chosen = (options[field.name] ?? []).find((opt) => String(opt.id) === formValues[field.name]);
+                        if (!chosen) return null;
+                        const raw = getValue(chosen, field.helperFrom.path);
+                        if (raw === undefined || raw === null || raw === '') return null;
+                        const displayed = field.helperFrom!.format === 'money'
+                          ? `${new Intl.NumberFormat('fr-FR').format(Number(raw))} XOF`
+                          : String(raw);
+                        return (
+                          <p className="mt-1.5 text-xs font-semibold text-slate-500">
+                            {field.helperFrom!.label} : <span className="text-[#185FA5]">{displayed}</span>
+                          </p>
+                        );
+                      })()}
+                      {field.lockOnceSet && lockedFields[field.name] && (
+                        <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-slate-400">
+                          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                          Déjà enregistré, non modifiable
+                        </p>
+                      )}
                     </label>
+                    {quickCreateField === field.name && field.quickCreate && (
+                      <div className="md:col-span-2 space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#185FA5]/10 text-[#185FA5]">
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </div>
+                          <p className="text-sm font-bold text-[#111827]">Nouveau {field.label.toLowerCase()}</p>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {field.quickCreate.fields.map((qf) => (
+                            <label key={qf.name} className="text-xs font-semibold text-slate-600">
+                              {qf.label}
+                              {qf.type === 'select' ? (
+                                <select
+                                  className="field-control mt-1.5"
+                                  value={quickCreateValues[qf.name] ?? ''}
+                                  onChange={(e) => setQuickCreateValues((cur) => ({ ...cur, [qf.name]: e.target.value }))}
+                                >
+                                  <option value="">Sélectionner</option>
+                                  {qf.staticOptions?.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input
+                                  className="field-control mt-1.5"
+                                  type={qf.type ?? 'text'}
+                                  value={quickCreateValues[qf.name] ?? ''}
+                                  onChange={(e) => setQuickCreateValues((cur) => ({ ...cur, [qf.name]: e.target.value }))}
+                                />
+                              )}
+                            </label>
+                          ))}
+                        </div>
+                        {quickCreateError && <p className="text-xs font-semibold text-red-600">{quickCreateError}</p>}
+                        <div className="flex justify-end gap-2">
+                          <button type="button" className="btn-secondary text-xs" onClick={() => { setQuickCreateField(null); setQuickCreateValues({}); }}>
+                            Annuler
+                          </button>
+                          <button
+                            type="button"
+                            disabled={quickCreateSaving}
+                            className="btn-primary text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                            onClick={() => submitQuickCreate(field)}
+                          >
+                            {quickCreateSaving ? 'Création…' : 'Créer et sélectionner'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    </Fragment>
                   ))}
                 </div>
 

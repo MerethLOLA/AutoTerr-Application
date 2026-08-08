@@ -84,17 +84,21 @@ class AutomationAlertService
         return Facturation::query()
             ->whereIn('statut', ['impayee', 'partiellement_payee', 'en_retard'])
             ->whereDate('date_echeance', '<=', now()->addDays(3)->toDateString())
-            ->with('vente.client')
+            ->with(['vente.client', 'location.client'])
             ->get()
             ->map(function (Facturation $facture) {
-                $client = optional(optional($facture->vente)->client)->nom_complet ?? 'Client';
+                $client = optional(optional($facture->vente)->client)->nom_complet
+                    ?? optional(optional($facture->location)->client)->nom_complet
+                    ?? 'Client';
                 $isLate = optional($facture->date_echeance)?->isPast() ?? false;
+                $joursRetard = $isLate ? (int) optional($facture->date_echeance)?->diffInDays(now()) : 0;
+                $isUrgent = $isLate && $joursRetard >= 2;
 
                 return [
                     'type' => 'impaye',
                     'signature' => 'facture-'.$facture->id,
                     'niveau' => $isLate ? 'danger' : 'warning',
-                    'titre' => $isLate ? 'Facture en retard' : 'Facture a relancer',
+                    'titre' => $isUrgent ? "Facture impayee depuis {$joursRetard}j - urgent" : ($isLate ? 'Facture en retard' : 'Facture a relancer'),
                     'message' => sprintf(
                         '%s - %s, reste %s XOF, echeance %s.',
                         $facture->numero_facture,
@@ -132,7 +136,7 @@ class AutomationAlertService
     private function buildLocationDueAlerts(): Collection
     {
         return Location::query()
-            ->whereIn('statut', ['planifiee', 'en_cours'])
+            ->whereIn('statut', ['planifiee', 'en_cours', 'en_retard'])
             ->whereDate('date_fin', '<=', now()->addDays(2)->toDateString())
             ->with(['client', 'voiture'])
             ->get()

@@ -23,13 +23,13 @@ class CheckFactureEcheancesCommand extends Command
                          ->where('date_echeance', '>=', now()->subDays(7));
                   });
             })
-            ->with(['vente.client'])
+            ->with(['vente.client', 'location.client'])
             ->get();
 
         $sent = 0;
 
         foreach ($factures as $facture) {
-            $client = optional($facture->vente)->client;
+            $client = optional($facture->vente)->client ?? optional($facture->location)->client;
 
             if (! $client || ! $client->email) {
                 continue;
