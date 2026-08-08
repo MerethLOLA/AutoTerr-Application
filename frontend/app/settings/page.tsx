@@ -6,6 +6,7 @@ import { AUTH_CHANGED_EVENT } from '@/lib/auth-storage';
 import type { UserProfile } from '@/lib/types';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation, setLocale } from '@/lib/i18n';
+import { useSession } from 'next-auth/react';
 
 interface PasswordForm {
   current_password: string;
@@ -39,6 +40,7 @@ export default function SettingsPage() {
     new_password_confirmation: '',
   });
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const { update: updateSession } = useSession();
 
   useEffect(() => {
     let mounted = true;
@@ -119,6 +121,7 @@ export default function SettingsPage() {
         sessionStorage.setItem('user', JSON.stringify({ ...JSON.parse(stored), profile_photo_url: url }));
         window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
       }
+      await updateSession({ profile_photo_url: url });
       flash('Photo de profil mise à jour.');
     } catch (err: any) {
       flash(err?.message || 'Impossible de mettre à jour la photo.', true);
@@ -136,6 +139,7 @@ export default function SettingsPage() {
         setUser(updatedUser);
         sessionStorage.setItem('user', JSON.stringify(updatedUser));
         window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
+        await updateSession({ name: updatedUser.name, profile_photo_url: updatedUser.profile_photo_url });
       }
       flash('Profil mis à jour.');
     } catch (err: any) {

@@ -53,7 +53,7 @@ export const authOptions: NextAuthOptions = {
   // Set it conditionally below when the env var is present to avoid TS error.
 
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.accessToken      = (user as any).token;
         token.role             = (user as any).role;
@@ -61,6 +61,13 @@ export const authOptions: NextAuthOptions = {
         token.userId           = (user as any).id;
         token.profilePhotoUrl  = (user as any).profile_photo_url ?? null;
         token.name             = (user as any).name ?? null;
+      }
+      // Déclenché par un appel client à `update(...)` (ex: après changement de
+      // photo/profil dans les paramètres) — sans ça le JWT garde les valeurs de
+      // la connexion initiale jusqu'à la prochaine authentification.
+      if (trigger === 'update' && session) {
+        if ('profile_photo_url' in session) token.profilePhotoUrl = session.profile_photo_url ?? null;
+        if ('name' in session) token.name = session.name ?? null;
       }
       return token;
     },
