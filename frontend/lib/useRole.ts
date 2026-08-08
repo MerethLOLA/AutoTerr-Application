@@ -46,7 +46,7 @@ const ROLE_WRITE_ACCESS: Record<string, string[] | null> = {
   admin:          null,
   super_admin:    null,
   manager: [
-    'voitures', 'ventes', 'locations', 'facturations', 'paiements', 'documents',
+    'ventes', 'locations', 'facturations', 'paiements', 'documents',
     'clients', 'garanties', 'assurances', 'sinistres',
   ],
   commercial:     [

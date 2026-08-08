@@ -29,7 +29,6 @@ export default function SettingsPage() {
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [loggingOutDevices, setLoggingOutDevices] = useState(false);
-  const [updatingTwoFactor, setUpdatingTwoFactor] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -169,24 +168,6 @@ export default function SettingsPage() {
       flash(err?.message || 'Impossible de changer le mot de passe.', true);
     } finally {
       setUpdatingPassword(false);
-    }
-  }
-
-  async function toggleTwoFactor(enabled: boolean) {
-    setUpdatingTwoFactor(true);
-    try {
-      const response = await apiClient.put<{ data: { user: UserProfile }; message: string }>('/user/2fa', { enabled });
-      const updatedUser = response.data?.user;
-      if (updatedUser) {
-        setUser(updatedUser);
-        sessionStorage.setItem('user', JSON.stringify(updatedUser));
-        window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
-      }
-      flash(enabled ? 'Double authentification activée.' : 'Double authentification désactivée.');
-    } catch (err: any) {
-      flash(err?.message || 'Impossible de modifier la double authentification.', true);
-    } finally {
-      setUpdatingTwoFactor(false);
     }
   }
 
@@ -575,23 +556,12 @@ export default function SettingsPage() {
                             <div>
                               <h3 className="text-sm font-bold text-[#111827] dark:text-slate-100">Double authentification</h3>
                               <p className="mt-1 text-xs text-[#6b7280] dark:text-slate-400">
-                                Un code à 6 chiffres vous sera envoyé par e-mail à chaque connexion.
+                                Obligatoire pour tous les comptes : un code à 6 chiffres vous est envoyé par e-mail à chaque connexion.
                               </p>
                             </div>
-                            <button
-                              type="button"
-                              role="switch"
-                              aria-checked={!!user?.two_factor_enabled}
-                              disabled={updatingTwoFactor}
-                              onClick={() => toggleTwoFactor(!user?.two_factor_enabled)}
-                              className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition disabled:opacity-50"
-                              style={{ backgroundColor: user?.two_factor_enabled ? '#185FA5' : '#cbd5e1' }}
-                            >
-                              <span
-                                className="inline-block h-4 w-4 transform rounded-full bg-white transition"
-                                style={{ translate: user?.two_factor_enabled ? '22px' : '2px' }}
-                              />
-                            </button>
+                            <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                              Activée
+                            </span>
                           </div>
                         </div>
 

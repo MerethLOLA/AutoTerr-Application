@@ -72,8 +72,6 @@ class PermissionRoleSeeder extends Seeder
                 'view_dashboard',
                 'view_reporting',
                 'view_voitures',
-                'manage_voitures',
-                'delete_voitures',
                 'view_clients',
                 'view_employes',
                 'create_vente',

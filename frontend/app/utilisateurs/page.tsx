@@ -133,7 +133,7 @@ export default function UtilisateursPage() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout allowedRoles={['admin', 'super_admin']}>
       <div className="mx-auto max-w-5xl space-y-6">
 
         <div className="page-header">

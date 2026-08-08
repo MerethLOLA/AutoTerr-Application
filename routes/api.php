@@ -61,7 +61,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user/profile', [UserSettingsController::class, 'updateProfile']);
     Route::post('/user/photo', [UserSettingsController::class, 'uploadPhoto']);
     Route::put('/user/preferences', [UserSettingsController::class, 'updatePreferences']);
-    Route::put('/user/2fa', [UserSettingsController::class, 'updateTwoFactor']);
     Route::put('/user/password', [UserSettingsController::class, 'updatePassword']);
     Route::post('/user/logout-all-devices', [UserSettingsController::class, 'logoutAllDevices']);
     Route::delete('/user/account', [UserSettingsController::class, 'deleteAccount']);

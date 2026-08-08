@@ -63,29 +63,6 @@ class UserSettingsController extends Controller
         ]);
     }
 
-    public function updateTwoFactor(Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        $data = $request->validate([
-            'enabled' => ['required', 'boolean'],
-        ]);
-
-        $user->update([
-            'two_factor_enabled' => $data['enabled'],
-            'two_factor_code' => null,
-            'two_factor_expires_at' => null,
-        ]);
-
-        return $this->apiItem([
-            'user' => $this->userPayload($user),
-        ], 200, [
-            'message' => $data['enabled']
-                ? 'Double authentification activee'
-                : 'Double authentification desactivee',
-        ]);
-    }
-
     public function updatePreferences(Request $request): JsonResponse
     {
         $user = $request->user();
