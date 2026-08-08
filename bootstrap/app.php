@@ -13,6 +13,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Render (et la plupart des PaaS) terminent le HTTPS sur leur proxy et
+        // transmettent la requête en HTTP au conteneur : sans faire confiance à ce
+        // proxy, Laravel ne voit jamais X-Forwarded-Proto et génère des URLs
+        // absolues en http:// (url(), route()...), bloquées en mixed-content par
+        // le navigateur sur le frontend en https.
+        $middleware->trustProxies(at: '*');
+
         $middleware->web(append: [
             \App\Http\Middleware\SetLocale::class,
         ]);
