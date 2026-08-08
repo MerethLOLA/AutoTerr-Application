@@ -31,28 +31,40 @@ class ReportingController extends Controller
 
         $year = (int) $request->integer('annee', now()->year);
 
-        $salesMonthly = collect(range(1, 12))->map(function (int $month) use ($year) {
-            $ventes = Vente::query()
-                ->whereYear('date_vente', $year)
-                ->whereMonth('date_vente', $month);
+        // Une seule requête groupée par mois au lieu de 12 x 2 (évite les allers-retours
+        // répétés vers la base distante, qui faisaient largement dépasser le délai côté front).
+        $salesByMonth = Vente::query()
+            ->whereYear('date_vente', $year)
+            ->selectRaw('MONTH(date_vente) as mois, COUNT(*) as count, COALESCE(SUM(prix_final), 0) as amount')
+            ->groupBy('mois')
+            ->get()
+            ->keyBy('mois');
+
+        $salesMonthly = collect(range(1, 12))->map(function (int $month) use ($salesByMonth) {
+            $row = $salesByMonth->get($month);
 
             return [
                 'label' => now()->setMonth($month)->locale('fr')->translatedFormat('M'),
-                'count' => (clone $ventes)->count(),
-                'amount' => (float) (clone $ventes)->sum('prix_final'),
+                'count' => $row ? (int) $row->count : 0,
+                'amount' => $row ? (float) $row->amount : 0.0,
             ];
         });
 
-        $locationsMonthly = collect(range(1, 12))->map(function (int $month) use ($year) {
-            $base = Facturation::query()
-                ->whereNotNull('id_location')
-                ->whereYear('date_facture', $year)
-                ->whereMonth('date_facture', $month);
+        $locationsByMonth = Facturation::query()
+            ->whereNotNull('id_location')
+            ->whereYear('date_facture', $year)
+            ->selectRaw('MONTH(date_facture) as mois, COUNT(*) as count, COALESCE(SUM(montant_ttc), 0) as amount')
+            ->groupBy('mois')
+            ->get()
+            ->keyBy('mois');
+
+        $locationsMonthly = collect(range(1, 12))->map(function (int $month) use ($locationsByMonth) {
+            $row = $locationsByMonth->get($month);
 
             return [
                 'label'  => now()->setMonth($month)->locale('fr')->translatedFormat('M'),
-                'count'  => (clone $base)->count(),
-                'amount' => (float) (clone $base)->sum('montant_ttc'),
+                'count'  => $row ? (int) $row->count : 0,
+                'amount' => $row ? (float) $row->amount : 0.0,
             ];
         });
 
@@ -173,22 +185,31 @@ class ReportingController extends Controller
         // Paie du mois qui vient de se terminer (et non le mois en cours, encore incomplet).
         $periodeSalaires = now()->subMonthNoOverflow();
 
+        // Pré-agrégées en 2 requêtes globales plutôt qu'en 2 requêtes par employé.
+        $ventesParEmploye = Vente::query()
+            ->whereNotNull('id_employe')
+            ->whereMonth('date_vente', $periodeSalaires->month)
+            ->whereYear('date_vente', $periodeSalaires->year)
+            ->selectRaw('id_employe, COALESCE(SUM(prix_final), 0) as total')
+            ->groupBy('id_employe')
+            ->pluck('total', 'id_employe');
+
+        $locationsParAgent = Facturation::query()
+            ->whereNotNull('id_location')
+            ->whereMonth('date_facture', $periodeSalaires->month)
+            ->whereYear('date_facture', $periodeSalaires->year)
+            ->join('locations', 'facturations.id_location', '=', 'locations.id')
+            ->whereNotNull('locations.id_agent')
+            ->selectRaw('locations.id_agent as id_agent, COALESCE(SUM(facturations.montant_ttc), 0) as total')
+            ->groupBy('locations.id_agent')
+            ->pluck('total', 'id_agent');
+
         $salairesCommerciaux = Employe::query()
             ->where('statut', 'actif')
             ->get(['id', 'nom', 'prenom', 'poste', 'salaire', 'taux_commission'])
-            ->map(function ($employe) use ($periodeSalaires) {
-                $totalVentes = (float) Vente::query()
-                    ->where('id_employe', $employe->id)
-                    ->whereMonth('date_vente', $periodeSalaires->month)
-                    ->whereYear('date_vente', $periodeSalaires->year)
-                    ->sum('prix_final');
-
-                $totalLocations = (float) Facturation::query()
-                    ->whereNotNull('id_location')
-                    ->whereHas('location', fn ($q) => $q->where('id_agent', $employe->id))
-                    ->whereMonth('date_facture', $periodeSalaires->month)
-                    ->whereYear('date_facture', $periodeSalaires->year)
-                    ->sum('montant_ttc');
+            ->map(function ($employe) use ($ventesParEmploye, $locationsParAgent) {
+                $totalVentes = (float) ($ventesParEmploye[$employe->id] ?? 0);
+                $totalLocations = (float) ($locationsParAgent[$employe->id] ?? 0);
 
                 $totalActivite = $totalVentes + $totalLocations;
                 $tauxCommission = (float) ($employe->taux_commission ?? 0);
