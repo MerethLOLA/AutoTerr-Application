@@ -2,6 +2,7 @@
 
 import PublicLayout from '@/components/PublicLayout';
 import { apiClient } from '@/lib/api';
+import { useReveal } from '@/lib/useReveal';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -200,6 +201,7 @@ export default function CataloguePage() {
   const [typeUsage, setTypeUsage] = useState('');
   const [sortVal, setSortVal]   = useState(SORT_OPTS[0]);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useReveal([voitures]);
 
   const load = useCallback(async (p: number, q: string, e: string, t: string) => {
     setLoading(true);
@@ -228,14 +230,14 @@ export default function CataloguePage() {
 
       {/* ── Hero ── */}
       <div style={{ background: '#E6F1FB', padding: '28px 20px', textAlign: 'center' }}>
-        <h1 style={{ fontSize: 22, fontWeight: 500, color: '#0C447C', marginBottom: 6 }}>
+        <h1 className="reveal" style={{ fontSize: 22, fontWeight: 500, color: '#0C447C', marginBottom: 6 }}>
           Trouvez votre véhicule idéal
         </h1>
-        <p style={{ fontSize: 13, color: '#185FA5', marginBottom: 16 }}>
+        <p className="reveal d-100" style={{ fontSize: 13, color: '#185FA5', marginBottom: 16 }}>
           {meta ? `Plus de ${meta.total} véhicule${meta.total > 1 ? 's' : ''} disponible${meta.total > 1 ? 's' : ''} au Sénégal` : 'Parcourez notre flotte disponible'}
         </p>
         {/* Search bar */}
-        <div style={{ display: 'flex', gap: 8, maxWidth: 560, margin: '0 auto', background: '#fff', border: '0.5px solid #B5D4F4', borderRadius: 8, padding: '8px 12px', alignItems: 'center' }}>
+        <div className="reveal d-200" style={{ display: 'flex', gap: 8, maxWidth: 560, margin: '0 auto', background: '#fff', border: '0.5px solid #B5D4F4', borderRadius: 8, padding: '8px 12px', alignItems: 'center' }}>
           <svg width={16} height={16} fill="none" stroke="#6b7280" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -369,7 +371,11 @@ export default function CataloguePage() {
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
-              {voitures.map((v) => <VehicleCard key={v.id} v={v} />)}
+              {voitures.map((v, i) => (
+                <div key={v.id} className={`reveal-scale ${['d-100','d-200','d-300','d-400'][i % 4]}`}>
+                  <VehicleCard v={v} />
+                </div>
+              ))}
             </div>
           )}
 

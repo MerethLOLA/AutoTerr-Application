@@ -2,6 +2,7 @@
 
 import PublicLayout from '@/components/PublicLayout';
 import { apiClient } from '@/lib/api';
+import { useReveal } from '@/lib/useReveal';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -33,20 +34,6 @@ function buildPhotos(v: Voiture): string[] {
   if (g.length) return g.slice(0, 5);
   const m = imgUrl(v.image_principale);
   return m ? [m] : [];
-}
-
-function useReveal() {
-  useEffect(() => {
-    const els = document.querySelectorAll<Element>('.reveal, .reveal-left, .reveal-scale');
-    const io = new IntersectionObserver(
-      (entries) => entries.forEach((e) => {
-        if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
-      }),
-      { threshold: 0.12 }
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, []);
 }
 
 function StarIcon({ filled }: { filled: boolean }) {
