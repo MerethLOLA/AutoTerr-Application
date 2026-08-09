@@ -25,7 +25,7 @@ const ROLE_NAV_ACCESS: Record<string, string[] | null> = {
   ],
   commercial:     [
     '/dashboard', '/voitures', '/clients', '/ventes', '/locations',
-    '/facturations', '/paiements', '/documents', '/sav', '/alertes',
+    '/facturations', '/paiements', '/documents', '/alertes',
     '/reporting', '/analytics', '/catalogue',
   ],
   sav: [
@@ -51,7 +51,7 @@ const ROLE_WRITE_ACCESS: Record<string, string[] | null> = {
   ],
   commercial:     [
     'ventes', 'locations', 'facturations', 'paiements', 'documents',
-    'clients', 'garanties', 'sav',
+    'clients', 'garanties',
   ],
   sav:            ['sav', 'garanties', 'entretiens'],
   atelier:        ['atelier', 'entretiens', 'stock'],

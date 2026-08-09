@@ -51,7 +51,6 @@ class PermissionRoleSeeder extends Seeder
                 'manage_recouvrement',
                 'view_paiements',
                 'manage_location',
-                'manage_sav',
             ],
             'sav' => [
                 'view_dashboard',
