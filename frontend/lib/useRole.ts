@@ -19,13 +19,13 @@ const ROLE_NAV_ACCESS: Record<string, string[] | null> = {
   super_admin:    null,
   manager: [
     '/dashboard', '/voitures', '/clients', '/ventes', '/locations',
-    '/facturations', '/paiements', '/documents',
+    '/facturations', '/paiements', '/documents', '/atelier',
     '/reporting', '/analytics', '/catalogue', '/employes', '/demandes',
     '/assurances', '/sinistres', '/controles-techniques', '/alertes', '/garanties',
   ],
   commercial:     [
     '/dashboard', '/voitures', '/clients', '/ventes', '/locations',
-    '/facturations', '/paiements', '/documents',
+    '/facturations', '/paiements', '/documents', '/sav', '/alertes',
     '/reporting', '/analytics', '/catalogue',
   ],
   sav: [
@@ -46,12 +46,12 @@ const ROLE_WRITE_ACCESS: Record<string, string[] | null> = {
   admin:          null,
   super_admin:    null,
   manager: [
-    'ventes', 'locations', 'facturations', 'paiements', 'documents',
-    'clients', 'garanties', 'assurances', 'sinistres',
+    'voitures', 'ventes', 'locations', 'facturations', 'paiements', 'documents',
+    'clients', 'garanties', 'assurances', 'sinistres', 'atelier',
   ],
   commercial:     [
     'ventes', 'locations', 'facturations', 'paiements', 'documents',
-    'clients', 'garanties',
+    'clients', 'garanties', 'sav',
   ],
   sav:            ['sav', 'garanties', 'entretiens'],
   atelier:        ['atelier', 'entretiens', 'stock'],

@@ -51,6 +51,7 @@ class PermissionRoleSeeder extends Seeder
                 'manage_recouvrement',
                 'view_paiements',
                 'manage_location',
+                'manage_sav',
             ],
             'sav' => [
                 'view_dashboard',
@@ -72,6 +73,8 @@ class PermissionRoleSeeder extends Seeder
                 'view_dashboard',
                 'view_reporting',
                 'view_voitures',
+                'manage_voitures',
+                'delete_voitures',
                 'view_clients',
                 'view_employes',
                 'create_vente',
@@ -80,6 +83,7 @@ class PermissionRoleSeeder extends Seeder
                 'view_paiements',
                 'manage_location',
                 'manage_assurance',
+                'manage_atelier',
             ],
             'accountant' => [
                 'view_dashboard',
