@@ -45,7 +45,12 @@ return [
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-            'timeout' => null,
+            // Certains hébergeurs (Render, etc.) bloquent les connexions SMTP
+            // sortantes : sans timeout court, une connexion refusée silencieusement
+            // (paquets SYN perdus) fait pendre la requête PHP 60s+ au lieu d'échouer
+            // proprement — critique ici car le login (2FA) envoie un mail de façon
+            // synchrone (pas de worker de file déployé).
+            'timeout' => (int) env('MAIL_TIMEOUT', 8),
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 

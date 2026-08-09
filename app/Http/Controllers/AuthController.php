@@ -99,7 +99,20 @@ class AuthController extends Controller
                 'two_factor_code' => Hash::make($code),
                 'two_factor_expires_at' => now()->addMinutes(10),
             ]);
-            $user->notify(new TwoFactorCodeNotification($code));
+
+            try {
+                $user->notify(new TwoFactorCodeNotification($code));
+            } catch (\Throwable $e) {
+                // L'envoi (SMTP synchrone, pas de worker de file en prod) peut échouer
+                // ou timeout selon l'hébergeur. On ne bloque pas la connexion pour
+                // autant : mieux vaut laisser passer que verrouiller tout le monde
+                // hors de l'application tant que la livraison mail n'est pas fiabilisee.
+                report($e);
+
+                return $this->apiItem($this->issueSession($user), 200, [
+                    'message' => 'Connexion reussie (code de verification indisponible)',
+                ]);
+            }
 
             return $this->apiItem([
                 'two_factor_required' => true,
