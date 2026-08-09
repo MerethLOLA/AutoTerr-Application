@@ -2,7 +2,15 @@
 
 use Illuminate\Support\Facades\Route;
 
-// Point d'entrée Blade minimal — le frontend est géré par Next.js (SPA).
-// Les routes métier sont toutes dans api.php.
+// Le frontend (Next.js) est un service séparé — ce backend est API-only.
+// La vue Blade "auth.login" référencée ici auparavant a été retirée quand
+// le projet est passé à ce modèle, laissant GET / planter en 500.
+Route::get('/', function () {
+    $frontendUrl = env('FRONTEND_URL');
 
-Route::view('/', 'auth.login')->name('home');
+    if ($frontendUrl) {
+        return redirect()->away($frontendUrl);
+    }
+
+    return response()->json(['status' => 'ok', 'service' => 'AutoTerr API']);
+})->name('home');
