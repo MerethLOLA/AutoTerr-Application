@@ -16,7 +16,7 @@ const LOCALES: { code: Locale; flag: string }[] = [
 /* ── Icons SVG inline ─────────────────────────────────────────────────────── */
 const NAV_LINKS = [
   {
-    label: 'Accueil',
+    labelKey: 'public.nav.home',
     href: '/',
     icon: (
       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -26,7 +26,7 @@ const NAV_LINKS = [
     ),
   },
   {
-    label: 'Vente',
+    labelKey: 'public.nav.sale',
     href: '/catalogue/vente',
     icon: (
       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,7 +36,7 @@ const NAV_LINKS = [
     ),
   },
   {
-    label: 'Location',
+    labelKey: 'public.nav.rental',
     href: '/catalogue/location',
     icon: (
       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -46,7 +46,7 @@ const NAV_LINKS = [
     ),
   },
   {
-    label: 'Services',
+    labelKey: 'public.nav.services',
     href: '/#services',
     icon: (
       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,7 +57,7 @@ const NAV_LINKS = [
     ),
   },
   {
-    label: 'À propos',
+    labelKey: 'public.nav.about',
     href: '/apropos',
     icon: (
       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,7 +67,7 @@ const NAV_LINKS = [
     ),
   },
   {
-    label: 'Contact',
+    labelKey: 'public.nav.contact',
     href: '/#contact',
     icon: (
       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,7 +83,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isDark,   setIsDark]   = useState(false);
-  const { locale } = useTranslation();
+  const { t, locale } = useTranslation();
 
   useEffect(() => {
     const html = document.documentElement;
@@ -153,7 +153,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                     className="relative flex items-center gap-1.5 px-4 py-2 text-sm font-semibold transition-colors rounded-lg mx-0.5"
                     style={{ color: active ? accent : txtSec }}>
                     <span style={{ color: active ? accent : (isDark ? '#4A9FE040' : '#9ca3af') }}>{l.icon}</span>
-                    {l.label}
+                    {t(l.labelKey)}
                     {active && <span className="absolute bottom-0 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full" style={{ backgroundColor: accent }} />}
                   </Link>
                 );
@@ -162,14 +162,14 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
             {/* Thème + Langue */}
             <div className="hidden items-center gap-1 lg:flex shrink-0">
-              <button onClick={toggleTheme} title={isDark ? 'Mode clair' : 'Mode sombre'}
+              <button onClick={toggleTheme} title={isDark ? t('public.theme.toLight') : t('public.theme.toDark')}
                 style={{ display:'flex', alignItems:'center', justifyContent:'center', width:32, height:32, borderRadius:'50%', border:`1px solid ${border}`, color: accent, background: 'transparent', cursor:'pointer', transition:'background .15s' }}>
                 {isDark
                   ? <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                   : <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
                 }
               </button>
-              <button onClick={cycleLocale} title="Changer de langue"
+              <button onClick={cycleLocale} title={t('public.langSwitch')}
                 style={{ display:'flex', alignItems:'center', gap:4, height:32, borderRadius:16, border:`1px solid ${border}`, padding:'0 10px', fontSize:11, fontWeight:700, color: accent, background:'transparent', cursor:'pointer', transition:'background .15s' }}>
                 <span>{LOCALES.find(l => l.code === locale)?.flag}</span>
                 <span>{locale.toUpperCase()}</span>
@@ -183,7 +183,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                Connexion
+                {t('public.auth.login')}
               </Link>
               <Link href="/inscription"
                 className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:opacity-90 hover:shadow-md"
@@ -191,12 +191,12 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                 </svg>
-                S&apos;inscrire
+                {t('public.auth.register')}
               </Link>
             </div>
 
             {/* Hamburger */}
-            <button onClick={() => setMenuOpen((v) => !v)} aria-label="Menu"
+            <button onClick={() => setMenuOpen((v) => !v)} aria-label={t('public.menu')}
               className="flex flex-col justify-center gap-1.5 rounded-lg p-2 transition hover:bg-[#eff6ff] lg:hidden">
               <span className={`block h-0.5 w-6 rounded-full bg-[#185FA5] transition-all ${menuOpen ? 'translate-y-2 rotate-45' : ''}`} />
               <span className={`block h-0.5 w-6 rounded-full bg-[#185FA5] transition-all ${menuOpen ? 'opacity-0' : ''}`} />
@@ -219,7 +219,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                         : 'text-[#6b7280] hover:text-[#185FA5]'
                     }`}>
                     <span className={active ? 'text-[#1d6fb8]' : 'text-[#9ca3af]'}>{l.icon}</span>
-                    {l.label}
+                    {t(l.labelKey)}
                   </Link>
                 );
               })}
@@ -230,7 +230,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                Se connecter
+                {t('public.auth.loginMobile')}
               </Link>
               <Link href="/inscription" onClick={() => setMenuOpen(false)}
                 className="flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-bold text-white transition hover:opacity-90"
@@ -238,7 +238,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                 </svg>
-                Créer mon compte
+                {t('public.auth.registerMobile')}
               </Link>
               <div className="flex items-center justify-end pt-1">
                 <div className="flex gap-1.5">
@@ -271,16 +271,16 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <img src="/LOgo2.png" alt="AutoTerr" style={{ position: 'absolute', width: '110px', height: 'auto', top: '50%', transform: 'translateY(-57%)' }} />
         </div>
         <div style={{ display: 'flex', gap: 16, fontSize: 12, color: txtSec, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Link href="/" style={{ color: txtSec, textDecoration: 'none' }}>Accueil</Link>
-          <Link href="/catalogue/vente" style={{ color: txtSec, textDecoration: 'none' }}>Vente</Link>
-          <Link href="/catalogue/location" style={{ color: txtSec, textDecoration: 'none' }}>Location</Link>
-          <Link href="/apropos" style={{ color: txtSec, textDecoration: 'none' }}>À propos</Link>
-          <span style={{ cursor: 'pointer', color: txtSec }}>CGU</span>
-          <span style={{ cursor: 'pointer', color: txtSec }}>Confidentialité</span>
-          <span style={{ cursor: 'pointer', color: txtSec }}>Aide</span>
+          <Link href="/" style={{ color: txtSec, textDecoration: 'none' }}>{t('public.nav.home')}</Link>
+          <Link href="/catalogue/vente" style={{ color: txtSec, textDecoration: 'none' }}>{t('public.nav.sale')}</Link>
+          <Link href="/catalogue/location" style={{ color: txtSec, textDecoration: 'none' }}>{t('public.nav.rental')}</Link>
+          <Link href="/apropos" style={{ color: txtSec, textDecoration: 'none' }}>{t('public.nav.about')}</Link>
+          <span style={{ cursor: 'pointer', color: txtSec }}>{t('public.footer.terms')}</span>
+          <span style={{ cursor: 'pointer', color: txtSec }}>{t('public.footer.privacy')}</span>
+          <span style={{ cursor: 'pointer', color: txtSec }}>{t('public.footer.help')}</span>
         </div>
         <div style={{ fontSize: 12, color: txtSec }}>
-          © {new Date().getFullYear()} AutoTerr Sénégal
+          © {new Date().getFullYear()} {t('public.footer.copyright')}
         </div>
       </footer>
     </div>

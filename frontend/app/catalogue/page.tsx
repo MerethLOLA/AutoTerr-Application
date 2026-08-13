@@ -41,42 +41,12 @@ function buildPhotos(v: Voiture): string[] {
 function VehicleCard({ v }: { v: Voiture }) {
   const photos = buildPhotos(v);
   const [idx, setIdx] = useState(0);
-  const [liked, setLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(v.likes_count ?? 0);
-  const [likeLoading, setLikeLoading] = useState(false);
 
   useEffect(() => {
     if (photos.length < 2) return;
     const t = setInterval(() => setIdx((i) => (i + 1) % photos.length), 2500);
     return () => clearInterval(t);
   }, [photos.length]);
-
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(`sp_like_${v.id}`) === '1') setLiked(true);
-    } catch {}
-  }, [v.id]);
-
-  async function toggleLike(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (likeLoading) return;
-    setLikeLoading(true);
-    try {
-      const base = (process.env.NEXT_PUBLIC_API_URL ?? '/api');
-      const res = await fetch(`${base}/voitures/${v.id}/like`, { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        setLiked(data.liked);
-        setLikesCount(data.likes_count);
-        try {
-          if (data.liked) localStorage.setItem(`sp_like_${v.id}`, '1');
-          else localStorage.removeItem(`sp_like_${v.id}`);
-        } catch {}
-      }
-    } catch {}
-    setLikeLoading(false);
-  }
 
   const isLocation = v.type_usage === 'location' || v.type_usage === 'les_deux';
   const isVente    = v.type_usage === 'vente'    || v.type_usage === 'les_deux';
@@ -114,29 +84,6 @@ function VehicleCard({ v }: { v: Voiture }) {
             Location · Vente
           </span>
         )}
-        {/* Heart */}
-        <button
-          onClick={toggleLike}
-          aria-label={liked ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-          style={{
-            position: 'absolute', top: 8, right: 8,
-            minWidth: 24, height: 24,
-            borderRadius: 12,
-            background: liked ? '#FEF2F2' : '#fff',
-            border: `0.5px solid ${liked ? '#FECACA' : '#e8ecf0'}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: likeLoading ? 'default' : 'pointer',
-            color: liked ? '#EF4444' : '#9ca3af',
-            padding: '0 5px', gap: 3,
-            opacity: likeLoading ? 0.6 : 1,
-            transition: 'all .15s',
-          }}
-        >
-          <svg width={12} height={12} fill={liked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
-          {likesCount > 0 && <span style={{ fontSize: 10, fontWeight: 500 }}>{likesCount}</span>}
-        </button>
       </div>
 
       {/* Info */}

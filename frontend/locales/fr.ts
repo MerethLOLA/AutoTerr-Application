@@ -133,6 +133,34 @@ const fr = {
     cancel: 'Annuler',
     deleting: 'Suppression…',
   },
+  public: {
+    nav: {
+      home: 'Accueil',
+      sale: 'Vente',
+      rental: 'Location',
+      services: 'Services',
+      about: 'À propos',
+      contact: 'Contact',
+    },
+    auth: {
+      login: 'Connexion',
+      loginMobile: 'Se connecter',
+      register: "S'inscrire",
+      registerMobile: 'Créer mon compte',
+    },
+    footer: {
+      terms: 'CGU',
+      privacy: 'Confidentialité',
+      help: 'Aide',
+      copyright: 'AutoTerr Sénégal',
+    },
+    theme: {
+      toLight: 'Mode clair',
+      toDark: 'Mode sombre',
+    },
+    langSwitch: 'Changer de langue',
+    menu: 'Menu',
+  },
 };
 
 export default fr;

@@ -4,7 +4,7 @@ import PublicLayout from '@/components/PublicLayout';
 import { apiClient } from '@/lib/api';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface Image { id: number; chemin: string; vue?: string; }
 interface Voiture {
@@ -13,9 +13,11 @@ interface Voiture {
   energie?: string; kilometrage?: number;
   puissance?: number; cylindree?: string; couleur?: string; type_boite?: string;
   nombre_vitesses?: number; transmission?: string; nombre_portes?: number; nombre_places?: number;
-  consommation?: number; emissions_co2?: number;
+  consommation?: number; emissions_co2?: number; etat?: string;
+  type_vehicule?: { id: number; nom: string };
+  origine_marque?: { id: number; nom: string };
   statut?: string; type_usage?: string; image_principale?: string;
-  images?: Image[];
+  images?: Image[]; likes_count?: number;
 }
 
 const NAVY = '#185FA5';
@@ -303,20 +305,41 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
   const [voiture, setVoiture]     = useState<Voiture | null>(_initCatV ?? null);
   const [loading, setLoading]     = useState(_initCatV === null);
   const [notFound, setNotFound]   = useState(false);
-  const [activeImg, setActiveImg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('reserver');
+
+  // Galerie
+  const [selected, setSelected] = useState(0);
+  const [paused, setPaused]     = useState(false);
+  const thumbsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     apiClient.getPublicVoiture(Number(id))
       .then((data: any) => {
         setVoiture(data);
         if (data.type_usage === 'vente') setActiveTab('achat');
-        const first = imgUrl(data?.image_principale) ?? imgUrl(data?.images?.[0]?.chemin);
-        setActiveImg(first ?? null);
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const allImages: string[] = [];
+  if (voiture?.image_principale) { const u = imgUrl(voiture.image_principale); if (u) allImages.push(u); }
+  voiture?.images?.forEach((img) => { const u = imgUrl(img.chemin); if (u && !allImages.includes(u)) allImages.push(u); });
+  const count = allImages.length;
+
+  const goTo = useCallback((i: number) => {
+    setSelected(i);
+    const el = thumbsRef.current?.children[i] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  }, []);
+  const prev = useCallback(() => goTo((selected - 1 + count) % count), [goTo, selected, count]);
+  const next = useCallback(() => goTo((selected + 1) % count), [goTo, selected, count]);
+
+  useEffect(() => {
+    if (count <= 1 || paused) return;
+    const timer = setInterval(() => setSelected((s) => (s + 1) % count), 4000);
+    return () => clearInterval(timer);
+  }, [count, paused]);
 
   if (loading) {
     return (
@@ -346,26 +369,45 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
     );
   }
 
-  const allImages: string[] = [];
-  if (voiture.image_principale) { const u = imgUrl(voiture.image_principale); if (u) allImages.push(u); }
-  voiture.images?.forEach((img) => { const u = imgUrl(img.chemin); if (u && !allImages.includes(u)) allImages.push(u); });
-  const currentImg = activeImg ?? allImages[0] ?? null;
-
-  const specs = [
-    voiture.energie                    && { label: 'Énergie',     value: voiture.energie },
-    voiture.kilometrage !== undefined  && { label: 'Kilométrage', value: `${money(voiture.kilometrage)} km` },
-    voiture.type_boite                 && { label: 'Boîte',       value: voiture.type_boite },
-    voiture.nombre_vitesses !== undefined && { label: 'Vitesses', value: String(voiture.nombre_vitesses) },
-    voiture.transmission               && { label: 'Transmission', value: voiture.transmission },
-    voiture.nombre_places !== undefined && { label: 'Places',     value: String(voiture.nombre_places) },
-    voiture.puissance                  && { label: 'Puissance',   value: `${voiture.puissance} ch` },
-    voiture.cylindree                  && { label: 'Cylindrée',   value: voiture.cylindree },
-    voiture.couleur                    && { label: 'Couleur',     value: voiture.couleur },
-    voiture.nombre_portes !== undefined && { label: 'Portes',     value: String(voiture.nombre_portes) },
-    voiture.annee                      && { label: 'Année',       value: String(voiture.annee) },
-    voiture.consommation !== undefined && { label: 'Consommation', value: `${voiture.consommation} L/100 km` },
-    voiture.emissions_co2 !== undefined && { label: 'CO₂', value: `${voiture.emissions_co2} g/km` },
-  ].filter(Boolean) as { label: string; value: string }[];
+  type Spec = { label: string; value: string };
+  const specGroups: { title: string; icon: string; items: Spec[] }[] = [
+    {
+      title: 'Général',
+      icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
+      items: [
+        voiture.modele                      && { label: 'Modèle',      value: voiture.modele },
+        voiture.annee                       && { label: 'Année',       value: String(voiture.annee) },
+        voiture.kilometrage !== undefined   && { label: 'Kilométrage', value: `${money(voiture.kilometrage)} km` },
+        voiture.etat                        && { label: 'État',        value: voiture.etat.replace(/^\w/, (c) => c.toUpperCase()) },
+        voiture.type_vehicule?.nom          && { label: 'Type de véhicule', value: voiture.type_vehicule.nom },
+        voiture.origine_marque?.nom         && { label: 'Origine',     value: voiture.origine_marque.nom },
+      ].filter(Boolean) as Spec[],
+    },
+    {
+      title: 'Motorisation & Performance',
+      icon: 'M13 10V3L4 14h7v7l9-11h-7z',
+      items: [
+        voiture.energie                     && { label: 'Énergie',      value: voiture.energie },
+        voiture.puissance                   && { label: 'Puissance',    value: `${voiture.puissance} ch` },
+        voiture.cylindree                   && { label: 'Cylindrée',    value: voiture.cylindree },
+        voiture.type_boite                  && { label: 'Boîte',        value: voiture.type_boite },
+        voiture.nombre_vitesses !== undefined && { label: 'Vitesses',   value: String(voiture.nombre_vitesses) },
+        voiture.transmission                && { label: 'Transmission', value: voiture.transmission },
+        voiture.consommation !== undefined  && { label: 'Consommation', value: `${voiture.consommation} L/100 km` },
+        voiture.emissions_co2 !== undefined  && { label: 'CO₂',          value: `${voiture.emissions_co2} g/km` },
+      ].filter(Boolean) as Spec[],
+    },
+    {
+      title: 'Confort & Dimensions',
+      icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a4 4 0 100-8 4 4 0 000 8z',
+      items: [
+        voiture.couleur                     && { label: 'Couleur',     value: voiture.couleur },
+        voiture.nombre_portes !== undefined  && { label: 'Portes',      value: String(voiture.nombre_portes) },
+        voiture.nombre_places !== undefined  && { label: 'Places',      value: String(voiture.nombre_places) },
+      ].filter(Boolean) as Spec[],
+    },
+  ].filter((g) => g.items.length > 0);
+  const specsCount = specGroups.reduce((n, g) => n + g.items.length, 0);
 
   const isLocation = voiture.type_usage === 'location' || voiture.type_usage === 'les_deux';
   const isVente    = voiture.type_usage === 'vente'    || voiture.type_usage === 'les_deux';
@@ -389,14 +431,22 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
           <span className="font-semibold text-[#111827]">{voiture.marque} {voiture.modele}</span>
         </nav>
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_420px]">
+        <div className="grid items-start gap-8 lg:grid-cols-[1fr_420px]">
 
           {/* ── Galerie ── */}
           <div className="space-y-3">
-            <div className="relative overflow-hidden rounded-xl bg-[#eff6ff]" style={{ aspectRatio: '16/9' }}>
-              {currentImg ? (
-                <Image src={currentImg} alt={`${voiture.marque} ${voiture.modele}`}
-                  fill className="object-cover" />
+            <div
+              className="group relative overflow-hidden rounded-2xl bg-[#eff6ff] shadow-sm"
+              style={{ aspectRatio: '4/3' }}
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
+            >
+              {count > 0 ? (
+                allImages.map((src, i) => (
+                  <Image key={src} src={src} alt={`${voiture.marque} ${voiture.modele} — photo ${i + 1}`}
+                    fill className="object-cover transition-opacity duration-500"
+                    style={{ opacity: i === selected ? 1 : 0, zIndex: i === selected ? 1 : 0 }} />
+                ))
               ) : (
                 <div className="flex h-full items-center justify-center">
                   <svg className="h-20 w-20 text-[#93c5fd]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -405,12 +455,52 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
                   </svg>
                 </div>
               )}
+
+              {/* Badge type */}
+              <div className="absolute left-3 top-3 flex items-center gap-2">
+                {voiture.type_usage === 'location' && <span className="rounded-full bg-blue-500/90 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm backdrop-blur-sm">Location</span>}
+                {voiture.type_usage === 'vente'    && <span className="rounded-full bg-emerald-500/90 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm backdrop-blur-sm">Vente</span>}
+                {voiture.type_usage === 'les_deux' && <span className="rounded-full px-2.5 py-1 text-[11px] font-bold text-white shadow-sm backdrop-blur-sm" style={{ backgroundColor: `${NAVY}e6` }}>Location · Vente</span>}
+              </div>
+
+              {count > 1 && (
+                <>
+                  {/* Flèches */}
+                  <button type="button" aria-label="Photo précédente" onClick={prev}
+                    className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100 hover:bg-black/60">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button type="button" aria-label="Photo suivante" onClick={next}
+                    className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100 hover:bg-black/60">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+
+                  {/* Indicateurs */}
+                  <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5">
+                    {allImages.map((_, i) => (
+                      <button key={i} type="button" aria-label={`Photo ${i + 1}`} onClick={() => goTo(i)}
+                        className={`rounded-full transition-all duration-300 ${i === selected ? 'h-2 w-6 bg-white' : 'h-2 w-2 bg-white/50 hover:bg-white/80'}`} />
+                    ))}
+                  </div>
+
+                  {/* Compteur */}
+                  <span className="absolute bottom-3 right-3 rounded-full bg-black/50 px-2 py-0.5 text-xs font-bold text-white">
+                    {selected + 1} / {count}
+                  </span>
+                </>
+              )}
             </div>
-            {allImages.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
+
+            {/* Miniatures */}
+            {count > 1 && (
+              <div ref={thumbsRef} className="flex gap-2 overflow-x-auto pb-1">
                 {allImages.map((src, i) => (
-                  <button key={i} onClick={() => setActiveImg(src)}
-                    className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 transition ${src === currentImg ? 'border-[#185FA5]' : 'border-transparent hover:border-[#93c5fd]'}`}>
+                  <button key={src} type="button" onClick={() => goTo(i)}
+                    className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 transition ${i === selected ? 'border-[#185FA5]' : 'border-transparent hover:border-[#93c5fd]'}`}>
                     <Image src={src} alt="" fill className="object-cover" />
                   </button>
                 ))}
@@ -418,14 +508,26 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
             )}
 
             {/* Specs */}
-            {specs.length > 0 && (
+            {specsCount > 0 && (
               <div className="rounded-xl border border-[#ede8f4] bg-[#f9f7fc] p-5">
-                <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#6b7280]">Caractéristiques</p>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
-                  {specs.map((s) => (
-                    <div key={s.label}>
-                      <p className="text-xs text-[#6b7280]">{s.label}</p>
-                      <p className="text-sm font-bold text-[#111827]">{s.value}</p>
+                <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[#6b7280]">Caractéristiques</p>
+                <div className="space-y-5">
+                  {specGroups.map((group) => (
+                    <div key={group.title}>
+                      <div className="mb-2.5 flex items-center gap-1.5">
+                        <svg className="h-4 w-4 shrink-0" fill="none" stroke={NAVY} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={group.icon} />
+                        </svg>
+                        <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: NAVY }}>{group.title}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {group.items.map((s) => (
+                          <div key={s.label} className="rounded-lg border border-[#ede8f4] bg-white px-3 py-2">
+                            <p className="text-[11px] text-[#6b7280]">{s.label}</p>
+                            <p className="mt-0.5 text-sm font-bold text-[#111827]">{s.value}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -434,7 +536,7 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
           </div>
 
           {/* ── Panneau droit ── */}
-          <div className="space-y-4">
+          <div className="space-y-4 lg:sticky lg:top-6">
             {/* Titre + prix */}
             <div>
               <div className="flex items-center gap-2 flex-wrap">

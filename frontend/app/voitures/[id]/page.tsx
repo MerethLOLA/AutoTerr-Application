@@ -102,13 +102,14 @@ export default function VoitureDetailPage() {
   const dispo = voiture.statut === 'disponible';
 
   const specs = [
+    { label: 'Modèle', value: voiture.modele },
     { label: 'Kilométrage', value: voiture.kilometrage != null ? `${money(voiture.kilometrage)} km` : null },
     { label: 'Énergie', value: voiture.energie },
     { label: 'Boîte', value: voiture.type_boite },
     { label: 'Couleur', value: voiture.couleur },
     { label: 'Numéro de châssis', value: voiture.numero_chassis },
-    { label: 'Type de véhicule', value: voiture.typeVehicule?.nom },
-    { label: 'Origine', value: voiture.origineMarque?.nom },
+    { label: 'Type de véhicule', value: voiture.type_vehicule?.nom },
+    { label: 'Origine', value: voiture.origine_marque?.nom },
     { label: "Date d'acquisition", value: voiture.date_acquisition },
   ].filter((s) => s.value);
 

@@ -52,7 +52,12 @@ class VoitureController extends Controller
     {
         abort_if($voiture->statut !== 'disponible', 404);
 
-        $voiture->load(['images:id,id_voiture,chemin,vue,ordre', 'documents:id,id_voiture,numero_document,type_document,created_at']);
+        $voiture->load([
+            'images:id,id_voiture,chemin,vue,ordre',
+            'documents:id,id_voiture,numero_document,type_document,created_at',
+            'typeVehicule:id,nom',
+            'origineMarque:id,nom',
+        ]);
 
         return response()->json($voiture);
     }

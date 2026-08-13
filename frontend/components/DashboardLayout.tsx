@@ -3,7 +3,7 @@
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AUTH_CHANGED_EVENT } from '@/lib/auth-storage';
 import { apiClient, getNotifications, NotificationItem } from '@/lib/api';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation, setLocale, type Locale } from '@/lib/i18n';
 import { useNotificationBadges } from '@/lib/useNotificationBadges';
 import { useRole } from '@/lib/useRole';
 import Link from 'next/link';
@@ -19,6 +19,12 @@ interface DashboardLayoutProps {
   guestRedirect?: string;
   allowGuest?: boolean;
 }
+
+const LOCALES: { code: Locale; flag: string }[] = [
+  { code: 'fr', flag: '🇫🇷' },
+  { code: 'en', flag: '🇬🇧' },
+  { code: 'es', flag: '🇪🇸' },
+];
 
 // ── Icônes SVG ────────────────────────────────────────────────────────────────
 const IC = {
@@ -165,7 +171,7 @@ export default function DashboardLayout({
   const pathname    = usePathname();
   const notifBtnId  = useId();
   const userMenuId  = useId();
-  const { t }       = useTranslation();
+  const { t, locale } = useTranslation();
 
   const { role: currentUserRole, canAccessRoute } = useRole();
 
@@ -191,6 +197,19 @@ export default function DashboardLayout({
     obs.observe(html, { attributeFilter: ['class'] });
     return () => obs.disconnect();
   }, []);
+
+  function toggleTheme() {
+    const html = document.documentElement;
+    const next = html.classList.contains('dark') ? 'light' : 'dark';
+    html.classList.toggle('dark', next === 'dark');
+    try { document.cookie = `sp_theme=${next};path=/;max-age=31536000`; } catch {}
+  }
+
+  function cycleLocale() {
+    const idx  = LOCALES.findIndex((l) => l.code === locale);
+    const next = LOCALES[(idx + 1) % LOCALES.length].code;
+    setLocale(next);
+  }
 
   const C = isDark ? DARK : LIGHT;
 
@@ -656,6 +675,38 @@ export default function DashboardLayout({
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
+            </button>
+
+            {/* Thème */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              title={isDark ? t('settings.appearance.light') : t('settings.appearance.dark')}
+              aria-label={isDark ? t('settings.appearance.light') : t('settings.appearance.dark')}
+              style={{ color: C.textSecond, border: `0.5px solid ${C.borderLight}` }}
+              className="hidden h-8 w-8 items-center justify-center rounded transition hover:bg-[#f0f4f8] sm:flex"
+            >
+              {isDark ? (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+            </button>
+
+            {/* Langue */}
+            <button
+              type="button"
+              onClick={cycleLocale}
+              title={t('settings.appearance.language')}
+              style={{ color: C.textSecond, border: `0.5px solid ${C.borderLight}` }}
+              className="hidden h-8 items-center gap-1 rounded px-2 text-[11px] font-bold transition hover:bg-[#f0f4f8] sm:flex"
+            >
+              <span>{LOCALES.find((l) => l.code === locale)?.flag}</span>
+              <span>{locale.toUpperCase()}</span>
             </button>
 
             {/* Cloche notifications */}

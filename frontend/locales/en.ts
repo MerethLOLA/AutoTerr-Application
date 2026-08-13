@@ -133,6 +133,34 @@ const en = {
     cancel: 'Cancel',
     deleting: 'Deleting…',
   },
+  public: {
+    nav: {
+      home: 'Home',
+      sale: 'For Sale',
+      rental: 'Rental',
+      services: 'Services',
+      about: 'About',
+      contact: 'Contact',
+    },
+    auth: {
+      login: 'Login',
+      loginMobile: 'Sign in',
+      register: 'Sign up',
+      registerMobile: 'Create my account',
+    },
+    footer: {
+      terms: 'Terms',
+      privacy: 'Privacy',
+      help: 'Help',
+      copyright: 'AutoTerr Senegal',
+    },
+    theme: {
+      toLight: 'Light mode',
+      toDark: 'Dark mode',
+    },
+    langSwitch: 'Change language',
+    menu: 'Menu',
+  },
 };
 
 export default en;
