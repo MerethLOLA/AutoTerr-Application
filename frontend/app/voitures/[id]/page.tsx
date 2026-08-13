@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import ConfirmDialog from '@/components/ConfirmDialog';
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
 import Image from 'next/image';
@@ -34,11 +35,11 @@ export default function VoitureDetailPage() {
   const [selected, setSelected] = useState(0);
   const [paused, setPaused] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const thumbsRef = useRef<HTMLDivElement>(null);
 
   async function handleDelete() {
     if (!voiture) return;
-    if (!window.confirm(`Supprimer définitivement ${voiture.marque} ${voiture.modele} ? Cette action est irréversible.`)) return;
     setDeleting(true);
     try {
       await apiClient.delete(`/voitures/${voiture.id}`);
@@ -46,6 +47,7 @@ export default function VoitureDetailPage() {
     } catch (err: any) {
       alert(err?.message || 'Impossible de supprimer ce véhicule.');
       setDeleting(false);
+      setConfirmOpen(false);
     }
   }
 
@@ -331,12 +333,23 @@ export default function VoitureDetailPage() {
                 SAV
               </Link>
               {canWrite('voitures') && (
-                <button type="button" onClick={handleDelete} disabled={deleting}
+                <button type="button" onClick={() => setConfirmOpen(true)} disabled={deleting}
                   className="flex-1 rounded-xl border border-red-200 py-2.5 text-center text-sm font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-50">
                   {deleting ? 'Suppression…' : 'Supprimer'}
                 </button>
               )}
             </div>
+
+            <ConfirmDialog
+              isOpen={confirmOpen}
+              onClose={() => setConfirmOpen(false)}
+              onConfirm={handleDelete}
+              title="Supprimer ce véhicule"
+              message={`Supprimer définitivement ${voiture.marque} ${voiture.modele} ? Cette action est irréversible.`}
+              confirmLabel="Supprimer"
+              loading={deleting}
+              type="danger"
+            />
 
             {/* Caractéristiques */}
             <div className="rounded-2xl border border-slate-100 p-5">
