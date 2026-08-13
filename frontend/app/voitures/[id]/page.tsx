@@ -5,7 +5,7 @@ import { apiClient } from '@/lib/api';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useRole } from '@/lib/useRole';
 
 const STORAGE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '');
@@ -27,12 +27,27 @@ const STATUT: Record<string, { label: string; cls: string }> = {
 export default function VoitureDetailPage() {
   const { canWrite } = useRole();
   const { id } = useParams();
+  const router = useRouter();
   const _initV = id ? apiClient.getCached<any>(`/voitures/${id}`) : null;
   const [voiture, setVoiture] = useState<any>(_initV?.data ?? _initV ?? null);
   const [loading, setLoading] = useState(_initV === null);
   const [selected, setSelected] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const thumbsRef = useRef<HTMLDivElement>(null);
+
+  async function handleDelete() {
+    if (!voiture) return;
+    if (!window.confirm(`Supprimer définitivement ${voiture.marque} ${voiture.modele} ? Cette action est irréversible.`)) return;
+    setDeleting(true);
+    try {
+      await apiClient.delete(`/voitures/${voiture.id}`);
+      router.push('/voitures');
+    } catch (err: any) {
+      alert(err?.message || 'Impossible de supprimer ce véhicule.');
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -315,6 +330,12 @@ export default function VoitureDetailPage() {
                 className="flex-1 rounded-xl border border-slate-200 py-2.5 text-center text-sm font-bold text-slate-600 transition hover:bg-slate-50">
                 SAV
               </Link>
+              {canWrite('voitures') && (
+                <button type="button" onClick={handleDelete} disabled={deleting}
+                  className="flex-1 rounded-xl border border-red-200 py-2.5 text-center text-sm font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-50">
+                  {deleting ? 'Suppression…' : 'Supprimer'}
+                </button>
+              )}
             </div>
 
             {/* Caractéristiques */}
