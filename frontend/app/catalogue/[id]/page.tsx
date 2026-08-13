@@ -11,8 +11,9 @@ interface Voiture {
   id: number; marque: string; modele: string; annee?: number;
   prix?: number; prix_vente?: number;
   energie?: string; kilometrage?: number;
-  puissance?: number; couleur?: string; boite_vitesse?: string;
-  nombre_portes?: number; nombre_places?: number;
+  puissance?: number; cylindree?: string; couleur?: string; type_boite?: string;
+  nombre_vitesses?: number; transmission?: string; nombre_portes?: number; nombre_places?: number;
+  consommation?: number; emissions_co2?: number;
   statut?: string; type_usage?: string; image_principale?: string;
   images?: Image[];
 }
@@ -353,12 +354,17 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
   const specs = [
     voiture.energie                    && { label: 'Énergie',     value: voiture.energie },
     voiture.kilometrage !== undefined  && { label: 'Kilométrage', value: `${money(voiture.kilometrage)} km` },
-    voiture.boite_vitesse              && { label: 'Boîte',       value: voiture.boite_vitesse },
+    voiture.type_boite                 && { label: 'Boîte',       value: voiture.type_boite },
+    voiture.nombre_vitesses !== undefined && { label: 'Vitesses', value: String(voiture.nombre_vitesses) },
+    voiture.transmission               && { label: 'Transmission', value: voiture.transmission },
     voiture.nombre_places !== undefined && { label: 'Places',     value: String(voiture.nombre_places) },
     voiture.puissance                  && { label: 'Puissance',   value: `${voiture.puissance} ch` },
+    voiture.cylindree                  && { label: 'Cylindrée',   value: voiture.cylindree },
     voiture.couleur                    && { label: 'Couleur',     value: voiture.couleur },
     voiture.nombre_portes !== undefined && { label: 'Portes',     value: String(voiture.nombre_portes) },
     voiture.annee                      && { label: 'Année',       value: String(voiture.annee) },
+    voiture.consommation !== undefined && { label: 'Consommation', value: `${voiture.consommation} L/100 km` },
+    voiture.emissions_co2 !== undefined && { label: 'CO₂', value: `${voiture.emissions_co2} g/km` },
   ].filter(Boolean) as { label: string; value: string }[];
 
   const isLocation = voiture.type_usage === 'location' || voiture.type_usage === 'les_deux';

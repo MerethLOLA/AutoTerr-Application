@@ -26,12 +26,22 @@ const NAV_LINKS = [
     ),
   },
   {
-    label: 'Catalogue',
-    href: '/catalogue',
+    label: 'Vente',
+    href: '/catalogue/vente',
     icon: (
       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
           d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Location',
+    href: '/catalogue/location',
+    icon: (
+      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 15h.01M16 15h.01" />
       </svg>
     ),
   },
@@ -262,7 +272,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         </div>
         <div style={{ display: 'flex', gap: 16, fontSize: 12, color: txtSec, flexWrap: 'wrap', justifyContent: 'center' }}>
           <Link href="/" style={{ color: txtSec, textDecoration: 'none' }}>Accueil</Link>
-          <Link href="/catalogue" style={{ color: txtSec, textDecoration: 'none' }}>Catalogue</Link>
+          <Link href="/catalogue/vente" style={{ color: txtSec, textDecoration: 'none' }}>Vente</Link>
+          <Link href="/catalogue/location" style={{ color: txtSec, textDecoration: 'none' }}>Location</Link>
           <Link href="/apropos" style={{ color: txtSec, textDecoration: 'none' }}>À propos</Link>
           <span style={{ cursor: 'pointer', color: txtSec }}>CGU</span>
           <span style={{ cursor: 'pointer', color: txtSec }}>Confidentialité</span>

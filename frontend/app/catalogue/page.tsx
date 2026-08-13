@@ -5,6 +5,7 @@ import { apiClient } from '@/lib/api';
 import { useReveal } from '@/lib/useReveal';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface VoitureImage { id: number; chemin: string; ordre?: number; }
@@ -191,14 +192,20 @@ function VehicleCard({ v }: { v: Voiture }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function CataloguePage() {
-  const _initCat = apiClient.getCached<any>('/voitures/public', { page: 1, per_page: 12 });
+  const pathname = usePathname();
+  const fixedUsage: 'location' | 'vente' | '' = pathname.endsWith('/location')
+    ? 'location'
+    : pathname.endsWith('/vente')
+      ? 'vente'
+      : '';
+  const _initCat = apiClient.getCached<any>('/voitures/public', { page: 1, type_usage: fixedUsage || undefined, per_page: 12 });
   const [voitures, setVoitures] = useState<Voiture[]>(_initCat?.data ?? []);
   const [meta, setMeta]         = useState<Meta | null>(_initCat?.meta ?? null);
   const [loading, setLoading]   = useState(_initCat === null);
   const [page, setPage]         = useState(1);
   const [search, setSearch]     = useState('');
   const [energie, setEnergie]   = useState('');
-  const [typeUsage, setTypeUsage] = useState('');
+  const [typeUsage, setTypeUsage] = useState<string>(fixedUsage);
   const [sortVal, setSortVal]   = useState(SORT_OPTS[0]);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useReveal([voitures]);
@@ -213,7 +220,10 @@ export default function CataloguePage() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { load(1, '', '', ''); }, [load]);
+  useEffect(() => {
+    setTypeUsage(fixedUsage);
+    load(1, '', '', fixedUsage);
+  }, [fixedUsage, load]);
 
   function onSearch(v: string) {
     setSearch(v); setPage(1);
@@ -221,9 +231,18 @@ export default function CataloguePage() {
     searchTimer.current = setTimeout(() => load(1, v, energie, typeUsage), 400);
   }
   function onEnergie(v: string)    { setEnergie(v);    setPage(1); load(1, search, v, typeUsage); }
-  function onTypeUsage(v: string)  { setTypeUsage(v);  setPage(1); load(1, search, energie, v); }
+  function onTypeUsage(v: string)  {
+    const usage = fixedUsage || v;
+    setTypeUsage(usage); setPage(1); load(1, search, energie, usage);
+  }
   function goPage(p: number)       { setPage(p); load(p, search, energie, typeUsage); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-  function reset()                 { setSearch(''); setEnergie(''); setTypeUsage(''); setPage(1); load(1, '', '', ''); }
+  function reset()                 { setSearch(''); setEnergie(''); setTypeUsage(fixedUsage); setPage(1); load(1, '', '', fixedUsage); }
+
+  const catalogueTitle = fixedUsage === 'vente'
+    ? 'Véhicules à vendre'
+    : fixedUsage === 'location'
+      ? 'Véhicules à louer'
+      : 'Trouvez votre véhicule idéal';
 
   return (
     <PublicLayout>
@@ -231,7 +250,7 @@ export default function CataloguePage() {
       {/* ── Hero ── */}
       <div style={{ background: '#E6F1FB', padding: '28px 20px', textAlign: 'center' }}>
         <h1 className="reveal" style={{ fontSize: 22, fontWeight: 500, color: '#0C447C', marginBottom: 6 }}>
-          Trouvez votre véhicule idéal
+          {catalogueTitle}
         </h1>
         <p className="reveal d-100" style={{ fontSize: 13, color: '#185FA5', marginBottom: 16 }}>
           {meta ? `Plus de ${meta.total} véhicule${meta.total > 1 ? 's' : ''} disponible${meta.total > 1 ? 's' : ''} au Sénégal` : 'Parcourez notre flotte disponible'}
@@ -248,16 +267,18 @@ export default function CataloguePage() {
             onChange={(e) => onSearch(e.target.value)}
             style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, background: 'transparent', color: '#111827' }}
           />
-          <div style={{ width: '0.5px', height: 20, background: '#dfe3eb' }} />
-          <select
-            value={typeUsage}
-            onChange={(e) => onTypeUsage(e.target.value)}
-            style={{ border: 'none', outline: 'none', fontSize: 13, background: 'transparent', color: '#6b7280', cursor: 'pointer' }}
-          >
-            <option value="">Location & Vente</option>
-            <option value="location">Location</option>
-            <option value="vente">Vente</option>
-          </select>
+          {!fixedUsage && <>
+            <div style={{ width: '0.5px', height: 20, background: '#dfe3eb' }} />
+            <select
+              value={typeUsage}
+              onChange={(e) => onTypeUsage(e.target.value)}
+              style={{ border: 'none', outline: 'none', fontSize: 13, background: 'transparent', color: '#6b7280', cursor: 'pointer' }}
+            >
+              <option value="">Location & Vente</option>
+              <option value="location">Location</option>
+              <option value="vente">Vente</option>
+            </select>
+          </>}
           <div style={{ width: '0.5px', height: 20, background: '#dfe3eb' }} />
           <select
             value={energie}
@@ -309,13 +330,15 @@ export default function CataloguePage() {
             </label>
           ))}
 
-          <p style={{ fontSize: 12, fontWeight: 500, color: '#6b7280', margin: '14px 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Type</p>
-          {[{ v: '', l: 'Tous' }, { v: 'location', l: 'Location' }, { v: 'vente', l: 'Vente' }].map((o) => (
-            <label key={o.v} style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#111827', marginBottom: 5, cursor: 'pointer' }}>
-              <input type="radio" name="typeUsage" checked={typeUsage === o.v} onChange={() => onTypeUsage(o.v)} style={{ accentColor: '#185FA5' }} />
-              {o.l}
-            </label>
-          ))}
+          {!fixedUsage && <>
+            <p style={{ fontSize: 12, fontWeight: 500, color: '#6b7280', margin: '14px 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Type</p>
+            {[{ v: '', l: 'Tous' }, { v: 'location', l: 'Location' }, { v: 'vente', l: 'Vente' }].map((o) => (
+              <label key={o.v} style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#111827', marginBottom: 5, cursor: 'pointer' }}>
+                <input type="radio" name="typeUsage" checked={typeUsage === o.v} onChange={() => onTypeUsage(o.v)} style={{ accentColor: '#185FA5' }} />
+                {o.l}
+              </label>
+            ))}
+          </>}
 
           <p style={{ fontSize: 12, fontWeight: 500, color: '#6b7280', margin: '14px 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Kilométrage</p>
           {[{ l: 'Moins de 50 000 km', v: '50000' }, { l: '50 000 – 150 000', v: '150000' }, { l: 'Plus de 150 000', v: 'all' }].map((o) => (

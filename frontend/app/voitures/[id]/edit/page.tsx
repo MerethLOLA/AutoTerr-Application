@@ -19,10 +19,21 @@ interface FormOptions {
 }
 interface ExistingImage { id: number; chemin: string; vue?: string; }
 
-const STATUTS  = ['disponible', 'vendu', 'en_location', 'reserve', 'en_reparation'];
+const STATUTS = [
+  { value: 'disponible', label: 'Disponible' },
+  { value: 'vendu', label: 'Vendue' },
+  { value: 'en_location', label: 'Louée' },
+  { value: 'reserve', label: 'Réservée' },
+  { value: 'en_reparation', label: 'Maintenance' },
+];
 const ETATS    = ['neuf', 'occasion', 'accidente'];
 const ENERGIES = ['essence', 'diesel', 'hybride', 'electrique', 'gaz'];
 const BOITES   = ['manuelle', 'automatique', 'semi-automatique'];
+const TRANSMISSIONS = [
+  { value: 'traction', label: 'Traction' },
+  { value: 'propulsion', label: 'Propulsion' },
+  { value: '4x4', label: '4×4' },
+];
 const TYPE_USAGES = [
   { value: 'location', label: 'Location uniquement' },
   { value: 'vente',    label: 'Vente uniquement' },
@@ -66,6 +77,8 @@ export default function EditVoiturePage() {
     prix_vente: '', type_usage: 'les_deux',
     kilometrage: '', numero_chassis: '', date_acquisition: '',
     statut: 'disponible', etat: '', energie: '', type_boite: '',
+    puissance: '', cylindree: '', nombre_vitesses: '', transmission: '',
+    nombre_portes: '', nombre_places: '', consommation: '', emissions_co2: '',
     type_vehicule_id: '', origine_marque_id: '',
     description: '',
   });
@@ -93,6 +106,14 @@ export default function EditVoiturePage() {
         etat:              v.etat              ?? '',
         energie:           v.energie           ?? '',
         type_boite:        v.type_boite        ?? '',
+        puissance:          String(v.puissance ?? ''),
+        cylindree:          v.cylindree ?? '',
+        nombre_vitesses:    String(v.nombre_vitesses ?? ''),
+        transmission:       v.transmission ?? '',
+        nombre_portes:      String(v.nombre_portes ?? ''),
+        nombre_places:      String(v.nombre_places ?? ''),
+        consommation:       String(v.consommation ?? ''),
+        emissions_co2:      String(v.emissions_co2 ?? ''),
         type_vehicule_id:  String(v.type_vehicule_id  ?? ''),
         origine_marque_id: String(v.origine_marque_id ?? ''),
         description:       v.description       ?? '',
@@ -253,7 +274,7 @@ export default function EditVoiturePage() {
               <Field label="Statut *" error={errors.statut}>
                 <select className="field-control" value={form.statut} onChange={(e) => set('statut', e.target.value)} required>
                   {STATUTS.map((s) => (
-                    <option key={s} value={s}>{s.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())}</option>
+                    <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
                 </select>
               </Field>
@@ -282,9 +303,36 @@ export default function EditVoiturePage() {
                   {BOITES.map((b) => <option key={b} value={b}>{b.replace(/^\w/, (c) => c.toUpperCase())}</option>)}
                 </select>
               </Field>
+              <Field label="Puissance (ch)" error={errors.puissance}>
+                <input className="field-control" type="number" min="1" value={form.puissance} onChange={(e) => set('puissance', e.target.value)} placeholder="130" />
+              </Field>
+              <Field label="Cylindrée" error={errors.cylindree}>
+                <input className="field-control" value={form.cylindree} onChange={(e) => set('cylindree', e.target.value)} placeholder="1.6 L" />
+              </Field>
+              <Field label="Nombre de vitesses" error={errors.nombre_vitesses}>
+                <input className="field-control" type="number" min="1" max="12" value={form.nombre_vitesses} onChange={(e) => set('nombre_vitesses', e.target.value)} placeholder="6" />
+              </Field>
+              <Field label="Transmission" error={errors.transmission}>
+                <select className="field-control" value={form.transmission} onChange={(e) => set('transmission', e.target.value)}>
+                  <option value="">— Sélectionner —</option>
+                  {TRANSMISSIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </Field>
               <Field label="Kilométrage (km)" error={errors.kilometrage}>
                 <input className="field-control" type="number" min="0"
                   value={form.kilometrage} onChange={(e) => set('kilometrage', e.target.value)} />
+              </Field>
+              <Field label="Nombre de portes" error={errors.nombre_portes}>
+                <input className="field-control" type="number" min="1" max="10" value={form.nombre_portes} onChange={(e) => set('nombre_portes', e.target.value)} placeholder="5" />
+              </Field>
+              <Field label="Nombre de places" error={errors.nombre_places}>
+                <input className="field-control" type="number" min="1" max="100" value={form.nombre_places} onChange={(e) => set('nombre_places', e.target.value)} placeholder="5" />
+              </Field>
+              <Field label="Consommation (L/100 km)" error={errors.consommation}>
+                <input className="field-control" type="number" min="0" step="0.01" value={form.consommation} onChange={(e) => set('consommation', e.target.value)} placeholder="6.5" />
+              </Field>
+              <Field label="Émissions CO₂ (g/km)" error={errors.emissions_co2}>
+                <input className="field-control" type="number" min="0" value={form.emissions_co2} onChange={(e) => set('emissions_co2', e.target.value)} placeholder="120" />
               </Field>
               <Field label="Numéro de châssis" error={errors.numero_chassis}>
                 <input className="field-control" value={form.numero_chassis} onChange={(e) => set('numero_chassis', e.target.value)} />
