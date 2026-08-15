@@ -18,8 +18,13 @@ class EmployeController extends Controller
 
         if ($request->filled('role')) {
             $role = $request->string('role')->toString();
-            $query->where(function ($q) use ($role) {
-                $q->whereHas('user', fn ($uq) => $uq->where('role', $role))
+            // "assurance" et "conformite" n'existent pas comme role de compte : c'est le
+            // Responsable Commercial (manager) et l'admin qui supervisent ce perimetre.
+            $userRoles = in_array($role, ['assurance', 'conformite'], true)
+                ? [$role, 'manager', 'admin', 'super_admin']
+                : [$role];
+            $query->where(function ($q) use ($role, $userRoles) {
+                $q->whereHas('user', fn ($uq) => $uq->whereIn('role', $userRoles))
                   ->orWhereRaw('LOWER(poste) LIKE ?', ['%'.strtolower($role).'%']);
             });
         }
