@@ -55,7 +55,7 @@ class EntretienController extends Controller
 
     public function store(Request $request)
     {
-        $this->ensurePermission('view_voitures');
+        $this->ensureRole('atelier', 'admin', 'super_admin');
 
         $data = $request->validate([
             'id_voiture'          => 'required|exists:voitures,id',
@@ -65,7 +65,6 @@ class EntretienController extends Controller
             'date_realise'        => 'nullable|date',
             'kilometrage_prevu'   => 'nullable|integer|min:0',
             'kilometrage_realise' => ['nullable', 'integer', 'min:0', 'required_if:statut,effectue'],
-            'cout'                => 'nullable|numeric|min:0',
             'statut'              => 'nullable|string|max:50',
             'notes'               => 'nullable|string',
         ], [
@@ -90,7 +89,7 @@ class EntretienController extends Controller
 
     public function update(Request $request, Entretien $entretien)
     {
-        $this->ensurePermission('view_voitures');
+        $this->ensureRole('atelier', 'admin', 'super_admin');
 
         $data = $request->validate([
             'id_voiture'          => 'sometimes|exists:voitures,id',
@@ -100,7 +99,6 @@ class EntretienController extends Controller
             'date_realise'        => 'nullable|date',
             'kilometrage_prevu'   => 'nullable|integer|min:0',
             'kilometrage_realise' => ['nullable', 'integer', 'min:0', 'required_if:statut,effectue'],
-            'cout'                => 'nullable|numeric|min:0',
             'statut'              => 'nullable|string|max:50',
             'notes'               => 'nullable|string',
         ], [
@@ -122,7 +120,7 @@ class EntretienController extends Controller
 
     public function destroy(Entretien $entretien)
     {
-        $this->ensurePermission('view_voitures');
+        $this->ensureRole('atelier', 'admin', 'super_admin');
         $this->logAction('delete', 'entretien', $entretien, [], request());
         $entretien->delete();
 

@@ -162,7 +162,6 @@ class DocumentExportService
                 'Date realise' => optional($entretien->date_realise)->format('d/m/Y') ?? '-',
                 'Kilometrage prevu' => $entretien->kilometrage_prevu ? number_format($entretien->kilometrage_prevu, 0, ',', ' ').' km' : '-',
                 'Kilometrage realise' => $entretien->kilometrage_realise ? number_format($entretien->kilometrage_realise, 0, ',', ' ').' km' : '-',
-                'Cout' => $entretien->cout ? number_format($entretien->cout, 0, ',', ' ').' XOF' : '-',
                 'Statut' => $entretien->statut,
                 'Notes' => $entretien->notes ?? '-',
             ],

@@ -23,26 +23,6 @@ class ThemeAndCatalogueTest extends TestCase
         $this->withoutMiddleware(ValidateCsrfToken::class);
     }
 
-    public function test_authenticated_user_can_switch_theme(): void
-    {
-        $user = User::factory()->create(['theme' => 'light']);
-
-        $response = $this
-            ->actingAs($user)
-            ->post(route('theme.switch', ['theme' => 'dark']));
-
-        $response->assertOk()->assertJson(['ok' => true]);
-        $this->assertSame('dark', $user->fresh()->theme);
-    }
-
-    public function test_general_login_screen_shows_client_and_employee_entry_points(): void
-    {
-        $this->get(route('login'))
-            ->assertOk()
-            ->assertSee('Espace client')
-            ->assertSee('Espace employe');
-    }
-
     public function test_vehicle_creation_generates_chassis_when_not_provided(): void
     {
         $user = User::factory()->create(['role' => 'admin']);

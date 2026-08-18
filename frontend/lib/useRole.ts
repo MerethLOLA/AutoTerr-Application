@@ -53,7 +53,7 @@ const ROLE_WRITE_ACCESS: Record<string, string[] | null> = {
     'ventes', 'locations', 'facturations', 'paiements', 'documents',
     'clients', 'garanties',
   ],
-  sav:            ['sav', 'garanties', 'entretiens'],
+  sav:            ['sav', 'garanties'],
   atelier:        ['atelier', 'entretiens', 'stock'],
   accountant:     ['paiements', 'facturations'],
   client:         [],

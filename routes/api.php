@@ -49,6 +49,8 @@ Route::prefix('auth')->group(function () {
     Route::middleware('throttle:5,1')->post('/register', [AuthController::class, 'register']);
     Route::middleware('throttle:10,1')->post('/login', [AuthController::class, 'login']);
     Route::middleware('throttle:10,1')->post('/verify-2fa', [AuthController::class, 'verifyTwoFactor']);
+    Route::middleware('throttle:5,1')->post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::middleware('throttle:5,1')->post('/reset-password', [AuthController::class, 'resetPassword']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
@@ -107,6 +109,8 @@ Route::middleware(['auth:sanctum', "role:{$employeeRoles}"])->group(function () 
     Route::post('/locations/{location}/facture', [LocationController::class, 'generateFacture']);
     Route::get('/locations/{location}/facture', [LocationController::class, 'getFacture']);
     Route::post('/locations/{location}/paiements', [LocationController::class, 'addPaiement']);
+    Route::patch('/locations/{location}/return', [LocationController::class, 'markReturned'])->name('locations.return');
+    Route::patch('/reservations/{location}/confirm', [LocationController::class, 'confirmReservation'])->name('reservations.confirm');
 
     // Garanties
     Route::apiResource('garanties', GarantieController::class);
@@ -115,6 +119,8 @@ Route::middleware(['auth:sanctum', "role:{$employeeRoles}"])->group(function () 
     // SAV & Atelier
     Route::apiResource('ordres-travail', OrdreTravailController::class)
         ->parameters(['ordres-travail' => 'ordreTravail']);
+    Route::post('/ordres-travail/{ordreTravail}/consommer-piece', [OrdreTravailController::class, 'consommerPiece'])
+        ->name('ordres-travail.consommer-piece');
     Route::apiResource('entretiens', EntretienController::class);
     Route::get('/entretiens/{entretien}/export', [EntretienController::class, 'export']);
 

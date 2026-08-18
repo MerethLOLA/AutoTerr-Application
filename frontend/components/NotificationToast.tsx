@@ -83,8 +83,8 @@ export function NotificationToast() {
     <div
       style={{
         position: 'fixed',
-        bottom: 96,
-        right: 24,
+        bottom: 24,
+        left: 24,
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',

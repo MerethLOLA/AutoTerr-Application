@@ -51,7 +51,7 @@ class ReportingController extends Controller
         // répétés vers la base distante, qui faisaient largement dépasser le délai côté front).
         $salesByMonth = Vente::query()
             ->whereYear('date_vente', $year)
-            ->selectRaw('MONTH(date_vente) as mois, COUNT(*) as count, COALESCE(SUM(prix_final), 0) as amount')
+            ->selectRaw($this->moisExpression('date_vente').' as mois, COUNT(*) as count, COALESCE(SUM(prix_final), 0) as amount')
             ->groupBy('mois')
             ->get()
             ->keyBy('mois');
@@ -69,7 +69,7 @@ class ReportingController extends Controller
         $locationsByMonth = Facturation::query()
             ->whereNotNull('id_location')
             ->whereYear('date_facture', $year)
-            ->selectRaw('MONTH(date_facture) as mois, COUNT(*) as count, COALESCE(SUM(montant_ttc), 0) as amount')
+            ->selectRaw($this->moisExpression('date_facture').' as mois, COUNT(*) as count, COALESCE(SUM(montant_ttc), 0) as amount')
             ->groupBy('mois')
             ->get()
             ->keyBy('mois');
@@ -327,10 +327,6 @@ class ReportingController extends Controller
                 ->where('statut', 'planifie')
                 ->whereBetween('date_prevue', [now()->toDateString(), now()->addDays(30)->toDateString()])
                 ->count(),
-            'cout_entretien_mois' => (float) Entretien::query()
-                ->whereMonth('date_realise', now()->month)
-                ->whereYear('date_realise', now()->year)
-                ->sum('cout'),
             'cout_carburant_mois' => (float) Carburant::query()
                 ->whereMonth('date_plein', now()->month)
                 ->whereYear('date_plein', now()->year)
@@ -400,7 +396,6 @@ class ReportingController extends Controller
             ['Sinistres', 'Montant total dommages', (float) Sinistre::query()->sum('montant_dommages')],
             ['Entretiens', 'Total entretiens', Entretien::query()->count()],
             ['Entretiens', 'Entretiens planifies', Entretien::query()->where('statut', 'planifie')->count()],
-            ['Entretiens', 'Cout entretiens mois en cours', (float) Entretien::query()->whereMonth('date_realise', now()->month)->whereYear('date_realise', now()->year)->sum('cout')],
             ['Carburant', 'Total pleins', \App\Models\Carburant::query()->count()],
             ['Carburant', 'Cout carburant mois en cours', (float) \App\Models\Carburant::query()->whereMonth('date_plein', now()->month)->whereYear('date_plein', now()->year)->sum('montant_total')],
             ['Carburant', 'Volume total litres', (float) \App\Models\Carburant::query()->sum('quantite_litres')],
@@ -415,5 +410,18 @@ class ReportingController extends Controller
         }, 'reporting-autoterr.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
+    }
+
+    /**
+     * Retourne l'expression SQL d'extraction du mois compatible avec le pilote
+     * de base de donnees configure (notamment SQLite pour les tests).
+     */
+    private function moisExpression(string $column): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'sqlite' => "CAST(strftime('%m', {$column}) AS INTEGER)",
+            'pgsql' => "EXTRACT(MONTH FROM {$column})",
+            default => "MONTH({$column})",
+        };
     }
 }

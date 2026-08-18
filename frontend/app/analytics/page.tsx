@@ -193,7 +193,6 @@ export default function AnalyticsPage() {
                   { label: 'Assurances expirées',         value: conf?.assurances_expirees ?? 0, alert: (conf?.assurances_expirees ?? 0) > 0 },
                   { label: 'Sinistres ouverts',           value: conf?.sinistres_ouverts ?? 0 },
                   { label: 'Entretiens à venir',          value: conf?.entretiens_a_venir ?? 0 },
-                  { label: 'Coût entretiens (mois)',       value: `${money(conf?.cout_entretien_mois)} XOF` },
                   { label: 'Coût carburant (mois)',        value: `${money(conf?.cout_carburant_mois)} XOF` },
                 ].map(({ label, value, alert }) => (
                   <div key={label} className="flex items-center justify-between py-1 border-b border-[#dfe3eb] last:border-0 text-sm">

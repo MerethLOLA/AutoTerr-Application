@@ -146,7 +146,6 @@ export default function ReportingPage() {
               <div className="surface-panel p-5">
                 <h2 className="section-title mb-2">Entretiens</h2>
                 <StatRow label="Entretiens à venir (30j)" value={conf?.entretiens_a_venir ?? 0} />
-                <StatRow label="Coût entretiens (mois)" value={`${money(conf?.cout_entretien_mois)} XOF`} />
               </div>
             </div>
 

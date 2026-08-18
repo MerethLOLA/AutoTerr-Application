@@ -13,7 +13,7 @@ class FacturationController extends Controller
 {
     public function create()
     {
-        $this->ensurePermission('manage_ventes');
+        $this->ensurePermission('manage_facturation');
 
         return response()->json([
             'ventes' => Vente::query()->with(['client', 'voiture'])->orderByDesc('date_vente')->get(),
@@ -22,7 +22,7 @@ class FacturationController extends Controller
 
     public function index(Request $request)
     {
-        $this->ensurePermission('manage_ventes');
+        $this->ensurePermission('manage_facturation');
 
         $factures = Facturation::query()
             ->with(['vente.client', 'vente.voiture', 'location', 'paiements'])
@@ -35,7 +35,7 @@ class FacturationController extends Controller
 
     public function store(FacturationRequest $request)
     {
-        $this->ensurePermission('manage_ventes');
+        $this->ensurePermission('manage_facturation');
         $data = $this->normalizeFactureData($request->validated());
         $facture = Facturation::query()->create($data);
         $facture->syncStatut();
@@ -55,7 +55,7 @@ class FacturationController extends Controller
 
     public function show(Facturation $facturation)
     {
-        $this->ensurePermission('manage_ventes');
+        $this->ensurePermission('manage_facturation');
 
         $facturation->load(['vente.client', 'vente.voiture', 'paiements']);
 
@@ -64,7 +64,7 @@ class FacturationController extends Controller
 
     public function edit(Facturation $facturation)
     {
-        $this->ensurePermission('manage_ventes');
+        $this->ensurePermission('manage_facturation');
 
         return response()->json([
             'facturation' => $facturation,
@@ -74,7 +74,7 @@ class FacturationController extends Controller
 
     public function update(FacturationRequest $request, Facturation $facturation)
     {
-        $this->ensurePermission('manage_ventes');
+        $this->ensurePermission('manage_facturation');
         $data = $this->normalizeFactureData($request->validated(), $facturation);
         $this->refuserModifSiPayee($facturation, $data);
         $facturation->update($data);
@@ -95,7 +95,7 @@ class FacturationController extends Controller
 
     public function destroy(Facturation $facturation)
     {
-        $this->ensurePermission('manage_ventes');
+        $this->ensurePermission('manage_facturation');
         $this->logAction('delete', 'facturation', $facturation, [], request());
         $facturation->delete();
         $this->resetDashboardCache();
@@ -105,7 +105,7 @@ class FacturationController extends Controller
 
     public function export(Facturation $facturation, DocumentExportService $exportService)
     {
-        $this->ensurePermission('manage_ventes');
+        $this->ensurePermission('manage_facturation');
         $this->logAction('export', 'facturation', $facturation, [], request());
 
         return $exportService->facture($facturation);

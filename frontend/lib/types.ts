@@ -263,7 +263,6 @@ export interface ReportingPayload {
     assurances_expirees?: number;
     sinistres_ouverts?: number;
     entretiens_a_venir?: number;
-    cout_entretien_mois?: number;
     cout_carburant_mois?: number;
   };
   utilisateursInscrits?: number;

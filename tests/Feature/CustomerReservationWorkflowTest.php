@@ -38,14 +38,14 @@ class CustomerReservationWorkflowTest extends TestCase
             'statut' => 'disponible',
         ]);
 
-        $response = $this->actingAs($user)->post(route('customer.reservations.store'), [
+        $response = $this->actingAs($user)->postJson('/api/customer/reservations', [
             'id_voiture' => $voiture->id,
             'date_debut' => now()->addDay()->toDateString(),
             'date_fin' => now()->addDays(3)->toDateString(),
             'observations' => 'Je souhaite visiter le vehicule.',
         ]);
 
-        $response->assertRedirect(route('customer.portal'));
+        $response->assertCreated();
         $this->assertDatabaseHas('locations', [
             'id_voiture' => $voiture->id,
             'statut' => 'planifiee',
@@ -83,9 +83,9 @@ class CustomerReservationWorkflowTest extends TestCase
             'observations' => 'Reservation test',
         ]);
 
-        $response = $this->actingAs($employee)->patch(route('reservations.confirm', $reservation));
+        $response = $this->actingAs($employee)->patchJson(route('reservations.confirm', $reservation));
 
-        $response->assertRedirect(route('reservations.index'));
+        $response->assertOk();
         $this->assertDatabaseHas('locations', [
             'id' => $reservation->id,
             'statut' => 'en_cours',

@@ -128,9 +128,8 @@ function buildTimeline(data: HistoriqueVoiture): TimelineEvent[] {
     date: e.date_realise ?? e.date_prevue,
     type: 'entretien',
     label: e.type_entretien,
-    description: `Statut : ${e.statut}${e.cout ? ` | Coût : ${money(e.cout)} XOF` : ''}`,
+    description: `Statut : ${e.statut}`,
     statut: e.statut,
-    montant: e.cout,
   }));
 
   (data.sinistres ?? []).forEach((s) => events.push({
@@ -198,7 +197,6 @@ export default function VehicleHistoryPage({ params }: { params: { id: string } 
 
   /* Stats résumées */
   const totalCarburant = (voiture.carburants ?? []).reduce((s, c) => s + Number(c.montant_total ?? 0), 0);
-  const totalEntretien = (voiture.entretiens ?? []).reduce((s, e) => s + Number(e.cout ?? 0), 0);
   const totalSinistres = (voiture.sinistres ?? []).reduce((s, sr) => s + Number(sr.montant_dommages ?? 0), 0);
 
   return (
@@ -231,9 +229,9 @@ export default function VehicleHistoryPage({ params }: { params: { id: string } 
             <p className="mt-0.5 text-xs text-[#6b7280]">{(voiture.carburants ?? []).length} pleins</p>
           </div>
           <div className="surface-panel p-4">
-            <p className="text-xs text-[#6b7280]">Dépenses entretien</p>
-            <p className="mt-1 text-xl font-bold text-[#111827]">{money(totalEntretien)} <span className="text-sm font-normal">XOF</span></p>
-            <p className="mt-0.5 text-xs text-[#6b7280]">{(voiture.entretiens ?? []).length} entretiens</p>
+            <p className="text-xs text-[#6b7280]">Entretiens</p>
+            <p className="mt-1 text-xl font-bold text-[#111827]">{(voiture.entretiens ?? []).length}</p>
+            <p className="mt-0.5 text-xs text-[#6b7280]">{(voiture.entretiens ?? []).filter((e: any) => e.statut === 'effectue').length} effectués</p>
           </div>
           <div className="surface-panel p-4">
             <p className="text-xs text-[#6b7280]">Sinistres déclarés</p>

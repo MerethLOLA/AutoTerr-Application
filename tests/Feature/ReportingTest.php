@@ -102,19 +102,17 @@ class ReportingTest extends TestCase
             'statut' => 'actif',
         ]);
 
-        $response = $this->actingAs($user)->get(route('reporting.index'));
+        $response = $this->actingAs($user)->getJson('/api/reporting');
 
         $response->assertOk()
-            ->assertSee('Reporting d exploitation')
-            ->assertSee('Statistiques ventes detaillees')
-            ->assertSee('Etat du stock');
+            ->assertJsonStructure(['data' => ['financeStats', 'savStats', 'stockStats']]);
     }
 
     public function test_employee_can_export_reporting_csv(): void
     {
         $user = User::factory()->create(['role' => 'admin']);
 
-        $response = $this->actingAs($user)->get(route('reporting.export'));
+        $response = $this->actingAs($user)->get('/api/reporting/export');
 
         $response->assertOk();
         $response->assertHeader('content-type', 'text/csv; charset=UTF-8');

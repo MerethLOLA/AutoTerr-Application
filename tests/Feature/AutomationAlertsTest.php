@@ -131,9 +131,9 @@ class AutomationAlertsTest extends TestCase
             'declenchee_at' => now(),
         ]);
 
-        $response = $this->actingAs($user)->patch(route('notifications-internes.read', $notification));
+        $response = $this->actingAs($user)->patchJson("/api/notifications/{$notification->id}/read");
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertOk();
         $this->assertNotNull($notification->fresh()->lue_at);
     }
 }

@@ -43,7 +43,10 @@ class ApiSaleWorkflowTest extends TestCase
         $response = $this->postJson('/api/ventes', [
             'date_vente' => '2026-04-01',
             'id_client' => $client->id,
+            'piece_identite' => 'CNI',
+            'numero_piece' => 'CNI-0001',
             'id_voiture' => $voiture->id,
+            'prix_catalogue' => 9000000,
             'prix_final' => 9000000,
             'remise' => 1000000,
             'mode_paiement' => 'wave',
@@ -92,7 +95,10 @@ class ApiSaleWorkflowTest extends TestCase
         $response = $this->postJson('/api/ventes', [
             'date_vente' => '2026-04-01',
             'id_client' => $client->id,
+            'piece_identite' => 'CNI',
+            'numero_piece' => 'CNI-0002',
             'id_voiture' => $voiture->id,
+            'prix_catalogue' => 5000000,
             'prix_final' => 4800000,
             'statut' => 'finalisee',
             'id_employe' => $employe->id,
@@ -103,7 +109,7 @@ class ApiSaleWorkflowTest extends TestCase
         $this->assertDatabaseCount('facturations', 0);
     }
 
-    public function test_api_payment_can_partially_then_fully_pay_generated_invoice(): void
+    public function test_api_payment_settles_generated_invoice_in_full(): void
     {
         Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
 
@@ -120,7 +126,10 @@ class ApiSaleWorkflowTest extends TestCase
         $sale = $this->postJson('/api/ventes', [
             'date_vente' => now()->toDateString(),
             'id_client' => $client->id,
+            'piece_identite' => 'CNI',
+            'numero_piece' => 'CNI-0003',
             'id_voiture' => $voiture->id,
+            'prix_catalogue' => 12000000,
             'prix_final' => 12000000,
             'mode_paiement' => 'virement',
             'statut' => 'finalisee',
@@ -129,21 +138,18 @@ class ApiSaleWorkflowTest extends TestCase
 
         $facture = Facturation::query()->where('id_vente', $sale->json('id'))->firstOrFail();
 
+        // Un paiement partiel doit etre rejete : seul le solde exact est accepte.
         $this->postJson('/api/paiements', [
             'date' => now()->toDateString(),
             'mode_paiement' => 'wave',
             'montant' => 5000000,
             'id_facture' => $facture->id,
-        ])->assertCreated();
-
-        $facture->refresh();
-        $this->assertSame('partiellement_payee', $facture->statut);
-        $this->assertEquals(9160000, (float) Paiement::query()->latest('id')->first()->reste);
+        ])->assertUnprocessable();
 
         $this->postJson('/api/paiements', [
             'date' => now()->toDateString(),
             'mode_paiement' => 'orange_money',
-            'montant' => 9160000,
+            'montant' => 14160000,
             'id_facture' => $facture->id,
         ])->assertCreated();
 

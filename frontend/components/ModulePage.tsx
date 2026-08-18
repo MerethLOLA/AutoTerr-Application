@@ -221,6 +221,20 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // ── Préremplissage depuis un lien contextuel (ex: bouton "SAV" sur une fiche
+  // véhicule → /sav?voiture_id=123) : ouvre directement le formulaire de
+  // création avec le véhicule déjà sélectionné, au lieu de laisser l'utilisateur
+  // le rechercher à nouveau dans la liste déroulante.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !hasWriteAccess) return;
+    const voitureId = new URLSearchParams(window.location.search).get('voiture_id');
+    if (!voitureId) return;
+    if (!mod.formFields?.some((f) => f.name === 'id_voiture')) return;
+    setFormValues((cur) => ({ ...cur, id_voiture: voitureId }));
+    setShowForm(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mod, hasWriteAccess]);
+
   // ── Chargement des options pour les selects ───────────────────────────────
   const loadOptions = useCallback(async () => {
     const fields = mod.formFields?.filter((f) => f.type === 'select' && f.optionsEndpoint) ?? [];

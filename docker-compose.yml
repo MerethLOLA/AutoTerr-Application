@@ -41,6 +41,7 @@ services:
       MAIL_ENCRYPTION: ${MAIL_ENCRYPTION:-tls}
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@autoterr.com}
       MAIL_FROM_NAME: AutoTerr
+      RESEND_API_KEY: ${RESEND_API_KEY}
       GROQ_API_KEY: ${GROQ_API_KEY}
       GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
     volumes:
@@ -97,6 +98,7 @@ services:
       MAIL_ENCRYPTION: ${MAIL_ENCRYPTION:-tls}
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@autoterr.com}
       MAIL_FROM_NAME: AutoTerr
+      RESEND_API_KEY: ${RESEND_API_KEY}
     volumes:
       - ./storage/app/public:/var/www/html/storage/app/public
     depends_on:
@@ -138,6 +140,7 @@ services:
       MAIL_ENCRYPTION: ${MAIL_ENCRYPTION:-tls}
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@autoterr.com}
       MAIL_FROM_NAME: AutoTerr
+      RESEND_API_KEY: ${RESEND_API_KEY}
     volumes:
       - ./storage/app/public:/var/www/html/storage/app/public
     depends_on:

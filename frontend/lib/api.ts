@@ -185,6 +185,24 @@ class ApiClient {
     }
   }
 
+  async forgotPassword(email: string) {
+    try {
+      const response = await this.client.post(`${AUTH_PREFIX}/forgot-password`, { email });
+      return response.data?.data ?? response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async resetPassword(data: { token: string; email: string; password: string; password_confirmation: string }) {
+    try {
+      const response = await this.client.post(`${AUTH_PREFIX}/reset-password`, data);
+      return response.data?.data ?? response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   async logout() {
     try {
       await this.client.post(`${AUTH_PREFIX}/logout`);

@@ -14,3 +14,8 @@ Route::get('/', function () {
 
     return response()->json(['status' => 'ok', 'service' => 'AutoTerr API']);
 })->name('home');
+
+// Laravel's default auth middleware redirects unauthenticated non-JSON requests
+// to route('login'). Without this named route, that redirect itself throws
+// (RouteNotFoundException), turning every 401 into an unrelated 500.
+Route::get('/login', fn () => response()->json(['message' => 'Unauthenticated.'], 401))->name('login');

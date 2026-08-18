@@ -1,31 +1,36 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        // Rendre id_vente nullable dans facturations + ajouter id_location
-        DB::statement('ALTER TABLE facturations MODIFY COLUMN id_vente BIGINT UNSIGNED NULL');
-        DB::statement('ALTER TABLE facturations ADD COLUMN id_location BIGINT UNSIGNED NULL AFTER id_vente');
-        DB::statement('ALTER TABLE facturations ADD CONSTRAINT fk_fact_location FOREIGN KEY (id_location) REFERENCES locations(id) ON DELETE SET NULL');
+        Schema::table('facturations', function (Blueprint $table) {
+            $table->unsignedBigInteger('id_vente')->nullable()->change();
+            $table->foreignId('id_location')->nullable()->after('id_vente')
+                ->constrained('locations')->nullOnDelete();
+        });
 
-        // Rendre id_vente nullable dans paiements + ajouter id_location
-        DB::statement('ALTER TABLE paiements MODIFY COLUMN id_vente BIGINT UNSIGNED NULL');
-        DB::statement('ALTER TABLE paiements ADD COLUMN id_location BIGINT UNSIGNED NULL AFTER id_vente');
-        DB::statement('ALTER TABLE paiements ADD CONSTRAINT fk_paie_location FOREIGN KEY (id_location) REFERENCES locations(id) ON DELETE SET NULL');
+        Schema::table('paiements', function (Blueprint $table) {
+            $table->unsignedBigInteger('id_vente')->nullable()->change();
+            $table->foreignId('id_location')->nullable()->after('id_vente')
+                ->constrained('locations')->nullOnDelete();
+        });
     }
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE paiements DROP FOREIGN KEY fk_paie_location');
-        DB::statement('ALTER TABLE paiements DROP COLUMN id_location');
-        DB::statement('ALTER TABLE paiements MODIFY COLUMN id_vente BIGINT UNSIGNED NOT NULL');
+        Schema::table('paiements', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('id_location');
+            $table->unsignedBigInteger('id_vente')->nullable(false)->change();
+        });
 
-        DB::statement('ALTER TABLE facturations DROP FOREIGN KEY fk_fact_location');
-        DB::statement('ALTER TABLE facturations DROP COLUMN id_location');
-        DB::statement('ALTER TABLE facturations MODIFY COLUMN id_vente BIGINT UNSIGNED NOT NULL');
+        Schema::table('facturations', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('id_location');
+            $table->unsignedBigInteger('id_vente')->nullable(false)->change();
+        });
     }
 };

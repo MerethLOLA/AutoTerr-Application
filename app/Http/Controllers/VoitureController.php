@@ -276,7 +276,7 @@ class VoitureController extends Controller
             'ordresTravail:id,id_voiture,reference_ot,description,statut,created_at',
             'assurances:id,id_voiture,compagnie,type_assurance,date_debut,date_fin,statut',
             'controlesTechniques:id,id_voiture,type_controle,date_controle,date_expiration,resultat',
-            'entretiens:id,id_voiture,type_entretien,date_prevue,date_realise,statut,cout',
+            'entretiens:id,id_voiture,type_entretien,date_prevue,date_realise,statut',
             'sinistres:id,id_voiture,type_sinistre,date_sinistre,statut,montant_dommages',
             'carburants:id,id_voiture,date_plein,kilometrage_au_plein,montant_total,type_carburant',
         ]);

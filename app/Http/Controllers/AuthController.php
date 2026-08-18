@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Notifications\ResetPasswordNotification;
 use App\Notifications\TwoFactorCodeNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 
 class AuthController extends Controller
 {
@@ -155,6 +157,69 @@ class AuthController extends Controller
 
         return $this->apiItem($this->issueSession($user), 200, [
             'message' => 'Connexion reussie',
+        ]);
+    }
+
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        // Réservé aux comptes employés (le client a son propre parcours) : on
+        // cherche le compte mais on répond toujours le même message générique,
+        // que le compte existe ou non, pour ne pas permettre l'énumération d'emails.
+        $user = User::query()
+            ->where('email', $data['email'])
+            ->where('role', '!=', 'client')
+            ->first();
+
+        if ($user) {
+            $token = Password::broker()->createToken($user);
+            $resetUrl = rtrim(env('FRONTEND_URL', 'http://localhost:3000'), '/')
+                .'/login/employee/reset-password?token='.$token.'&email='.urlencode($user->email);
+
+            try {
+                $user->notify(new ResetPasswordNotification($resetUrl));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return $this->apiItem([], 200, [
+            'message' => 'Si un compte employé existe avec cette adresse, un e-mail de réinitialisation vient d\'être envoyé.',
+        ]);
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password_confirmation' => ['required', 'string'],
+        ]);
+
+        $status = Password::broker()->reset(
+            $data,
+            function (User $user, string $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'password_hash' => Hash::make($password),
+                ])->save();
+
+                $user->tokens()->delete();
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            return response()->json([
+                'message' => 'Ce lien de réinitialisation est invalide ou a expiré.',
+            ], 422);
+        }
+
+        return $this->apiItem([], 200, [
+            'message' => 'Mot de passe réinitialisé avec succès.',
         ]);
     }
 

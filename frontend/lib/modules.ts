@@ -747,13 +747,13 @@ export const modules: Record<string, ModuleDefinition> = {
     kind: 'crud',
     status: 'api-ready',
     primaryAction: 'Planifier un entretien',
-    fields: ['Véhicule', 'Type', 'Date prévue', 'Statut', 'Coût'],
+    fields: ['Véhicule', 'Type', 'Date prévue', 'Statut', 'Technicien'],
     columns: [
       { label: 'Véhicule', key: 'voiture.marque' },
       { label: 'Type', key: 'type_entretien' },
       { label: 'Date prévue', key: 'date_prevue', type: 'date' as const },
       { label: 'Statut', key: 'statut', type: 'badge' as const },
-      { label: 'Coût (XOF)', key: 'cout', type: 'money' as const },
+      { label: 'Technicien', key: 'technicien.nom' },
     ],
     formFields: [
       { label: 'Véhicule', name: 'id_voiture', type: 'select', required: true, optionsEndpoint: '/voitures', optionFormatter: (option) => [option?.marque, option?.modele].filter(Boolean).join(' ') || `Véhicule #${option?.id}` },
@@ -774,7 +774,6 @@ export const modules: Record<string, ModuleDefinition> = {
       { label: 'Date réalisé', name: 'date_realise', type: 'date' },
       { label: 'Km prévu', name: 'kilometrage_prevu', type: 'number' },
       { label: 'Km réalisé', name: 'kilometrage_realise', type: 'number' },
-      { label: 'Coût (XOF)', name: 'cout', type: 'number' },
       { label: 'Statut', name: 'statut', type: 'select', staticOptions: [
         { value: 'planifie', label: 'Planifié' },
         { value: 'en_cours', label: 'En cours' },

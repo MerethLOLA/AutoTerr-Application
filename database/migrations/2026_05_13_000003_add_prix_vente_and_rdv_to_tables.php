@@ -18,7 +18,13 @@ return new class extends Migration
         });
 
         // Étendre l'enum type pour inclure 'achat'
-        DB::statement("ALTER TABLE demandes MODIFY COLUMN type ENUM('information','reprise','essai','achat') NOT NULL");
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            Schema::table('demandes', function (Blueprint $table) {
+                $table->enum('type', ['information', 'reprise', 'essai', 'achat'])->change();
+            });
+        } else {
+            DB::statement("ALTER TABLE demandes MODIFY COLUMN type ENUM('information','reprise','essai','achat') NOT NULL");
+        }
     }
 
     public function down(): void
@@ -29,6 +35,13 @@ return new class extends Migration
         Schema::table('demandes', function (Blueprint $table) {
             $table->dropColumn(['rendez_vous_date', 'rendez_vous_heure']);
         });
-        DB::statement("ALTER TABLE demandes MODIFY COLUMN type ENUM('information','reprise','essai') NOT NULL");
+
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            Schema::table('demandes', function (Blueprint $table) {
+                $table->enum('type', ['information', 'reprise', 'essai'])->change();
+            });
+        } else {
+            DB::statement("ALTER TABLE demandes MODIFY COLUMN type ENUM('information','reprise','essai') NOT NULL");
+        }
     }
 };

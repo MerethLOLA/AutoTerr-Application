@@ -85,6 +85,9 @@ class Facturation extends Model
 
     public function syncStatut(): void
     {
+        // Un paiement doit toujours solder la facture en entier (voir
+        // PaiementController::store) : le statut n'a donc que deux issues
+        // possibles apres reglement, jamais de "partiellement_payee".
         $reste = max((float) $this->reste_a_payer, 0);
 
         $statut = 'impayee';
@@ -93,8 +96,6 @@ class Facturation extends Model
             $statut = 'payee';
         } elseif ($this->date_echeance && $this->date_echeance->isPast()) {
             $statut = 'en_retard';
-        } elseif ($this->montant_paye > 0) {
-            $statut = 'partiellement_payee';
         }
 
         if ($this->statut !== $statut) {

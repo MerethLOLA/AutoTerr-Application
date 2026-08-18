@@ -20,7 +20,6 @@ class Entretien extends Model
         'date_realise',
         'kilometrage_prevu',
         'kilometrage_realise',
-        'cout',
         'statut',
         'notes',
     ];
@@ -30,7 +29,6 @@ class Entretien extends Model
         return [
             'date_prevue'         => 'date',
             'date_realise'        => 'date',
-            'cout'                => 'decimal:2',
             'kilometrage_prevu'   => 'integer',
             'kilometrage_realise' => 'integer',
         ];

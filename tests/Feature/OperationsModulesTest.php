@@ -93,12 +93,12 @@ class OperationsModulesTest extends TestCase
             'statut' => 'actif',
         ]);
 
-        $response = $this->actingAs($user)->post(route('ordres-travail.consommer-piece', $ordre), [
+        $response = $this->actingAs($user)->postJson(route('ordres-travail.consommer-piece', $ordre), [
             'id_piece_stock' => $piece->id,
             'quantite' => 3,
         ]);
 
-        $response->assertRedirect(route('ordres-travail.show', $ordre));
+        $response->assertCreated();
         $this->assertDatabaseHas('pieces_stock', [
             'id' => $piece->id,
             'quantite_stock' => 7,
@@ -141,9 +141,9 @@ class OperationsModulesTest extends TestCase
             'caution' => 100000,
         ]);
 
-        $response = $this->actingAs($user)->patch(route('locations.return', $location));
+        $response = $this->actingAs($user)->patchJson(route('locations.return', $location));
 
-        $response->assertRedirect(route('locations.show', $location));
+        $response->assertOk();
         $this->assertDatabaseHas('locations', [
             'id' => $location->id,
             'statut' => 'terminee',

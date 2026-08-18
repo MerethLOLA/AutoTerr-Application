@@ -191,9 +191,14 @@ export default function LoginEmployee() {
           </div>
 
           <div style={{ marginBottom: 6 }}>
-            <label style={{ display: 'block', fontSize: 12, color: '#6b7280', fontWeight: 500, marginBottom: 6 }}>
-              Mot de passe
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, color: '#6b7280', fontWeight: 500 }}>
+                Mot de passe
+              </label>
+              <Link href="/login/employee/forgot-password" style={{ fontSize: 11, color: '#185FA5', textDecoration: 'none' }}>
+                Mot de passe oublié ?
+              </Link>
+            </div>
             <div style={{ position: 'relative' }}>
               <svg width={14} height={14} fill="none" stroke="#9ca3af" viewBox="0 0 24 24"
                 style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
