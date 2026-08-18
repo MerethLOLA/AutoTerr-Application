@@ -67,7 +67,7 @@ export default function AproposPage() {
             Le partenaire de confiance<br />pour votre mobilité
           </h1>
           <p className="reveal d-100 mx-auto max-w-2xl text-base leading-7 text-white/75">
-            Depuis 2016, AutoTerr accompagne particuliers et entreprises au Sénégal dans la location et l'achat de véhicules de qualité — avec rigueur, transparence et passion du service.
+            Depuis 2026, AutoTerr accompagne particuliers et entreprises au Sénégal dans la location et l'achat de véhicules de qualité, avec rigueur, transparence et passion du service.
           </p>
         </div>
       </section>
@@ -93,13 +93,13 @@ export default function AproposPage() {
             <div className="reveal-left">
               <h2 className="text-3xl font-black text-[#111827]">Nés à Dakar, construits pour le Sénégal</h2>
               <p className="mt-4 text-sm leading-7 text-[#4b5563]">
-                AutoTerr est né en 2016 de la conviction que la gestion d'un parc automobile méritait une solution moderne, locale et fiable. Fondée à Dakar par une équipe passionnée, notre entreprise s'est rapidement imposée comme un acteur de référence dans la location et la vente de véhicules au Sénégal.
+                AutoTerr est né en 2026 de la conviction que la gestion d'un parc automobile méritait une solution moderne, locale et fiable. Fondée à Dakar par une équipe passionnée, notre entreprise s'est rapidement imposée comme un acteur de référence dans la location et la vente de véhicules au Sénégal.
               </p>
               <p className="mt-3 text-sm leading-7 text-[#4b5563]">
-                Aujourd'hui, notre plateforme digitale permet à des centaines de clients de louer, acheter et gérer leurs véhicules en toute simplicité — depuis leur smartphone ou ordinateur, à tout moment.
+                Aujourd'hui, notre plateforme digitale permet à des centaines de clients de louer, acheter et gérer leurs véhicules en toute simplicité depuis leur smartphone ou ordinateur, à tout moment.
               </p>
               <p className="mt-3 text-sm leading-7 text-[#4b5563]">
-                Nous couvrons Dakar et ses environs, avec des projets d'expansion vers Thiès, Saint-Louis et Ziguinchor dans les prochaines années.
+                Nous couvrons Dakar et ses environs, avec des projets d'expansion vers Thiès.
               </p>
               <div className="mt-6 flex gap-4">
                 <Link href="/catalogue"

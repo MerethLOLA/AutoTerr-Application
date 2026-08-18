@@ -64,7 +64,7 @@ export default function ReportingPage() {
         <div className="page-header">
           <div>
             <h1 className="page-title mt-0.5">Reporting</h1>
-            <p className="page-subtitle">Analyse des performances — ventes, finances, SAV et locations.</p>
+            <p className="page-subtitle">Analyse des performances ventes, finances, SAV et locations.</p>
           </div>
           <div className="flex shrink-0 gap-2">
             <button
@@ -154,7 +154,7 @@ export default function ReportingPage() {
 
               <section className="surface-panel">
                 <div className="border-b border-[#dfe3eb] px-5 py-4">
-                  <h2 className="section-title">Ventes mensuelles — {payload.year}</h2>
+                  <h2 className="section-title">Ventes mensuelles {payload.year}</h2>
                   <p className="mt-0.5 text-xs text-[#6b7280]">Nombre de ventes et montant par mois.</p>
                 </div>
                 <div className="overflow-x-auto">
@@ -199,7 +199,7 @@ export default function ReportingPage() {
 
               <section className="surface-panel">
                 <div className="border-b border-[#dfe3eb] px-5 py-4">
-                  <h2 className="section-title">Locations mensuelles — {payload.year}</h2>
+                  <h2 className="section-title">Locations mensuelles {payload.year}</h2>
                   <p className="mt-0.5 text-xs text-[#6b7280]">Nombre de locations facturées et montant TTC par mois.</p>
                 </div>
                 <div className="overflow-x-auto">

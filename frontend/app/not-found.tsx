@@ -11,7 +11,7 @@ export default function NotFound() {
         </div>
         <h1 className="text-2xl font-bold text-slate-900">Page non trouvée</h1>
         <p className="mt-3 text-sm text-slate-600">
-          La page recherchée n’existe pas ou a été déplacée. Vous pouvez revenir à l’accueil ou au tableau de bord.
+          La page recherchée n’existe pas. Vous pouvez revenir à l’accueil ou au tableau de bord.
         </p>
         <Link href="/dashboard" className="auth-button mt-6">
           Retour au tableau de bord
