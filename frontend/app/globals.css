@@ -9,8 +9,18 @@
 
   --color-accent:              #185FA5;
   --color-accent-light:        #E6F1FB;
+  --color-accent-hover:        #d0e6f8;
+  --color-accent-ring:         rgba(24, 95, 165, 0.2);
+
+  /* Accent secondaire (corail) — réservé aux mises en avant ponctuelles :
+     CTA fort, badge "vedette". Le bleu reste la couleur dominante. */
+  --color-secondary:           #E4463F;
+  --color-secondary-light:     #FBEAEA;
+  --color-secondary-hover:     #cf3c36;
+
   --color-background-primary:  #ffffff;
   --color-background-secondary:#f5f8fa;
+  --color-background-hover:    #f0f4f8;
   --color-text-primary:        #111827;
   --color-text-secondary:      #6b7280;
   --color-border-tertiary:     #e8ecf0;
@@ -27,8 +37,11 @@
 .dark {
   --color-accent:              #4A9FE0;
   --color-accent-light:        #0D2540;
+  --color-accent-hover:        #122D4D;
+  --color-accent-ring:         rgba(74, 159, 224, 0.25);
   --color-background-primary:  #071626;
   --color-background-secondary:#0C1F33;
+  --color-background-hover:    #112540;
   --color-text-primary:        #DEE9F5;
   --color-text-secondary:      #7BA4C8;
   --color-border-tertiary:     #1A3450;
@@ -475,6 +488,7 @@
   .badge-pending  { background: var(--color-warning-bg); color: var(--color-warning-text); }
   .badge-danger   { background: var(--color-danger-bg);  color: var(--color-danger-text);  }
   .badge-info     { background: var(--color-accent-light); color: var(--color-accent); }
+  .badge-neutral  { background: var(--color-border-tertiary); color: var(--color-text-secondary); }
   .status-badge   { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
 }
 

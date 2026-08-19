@@ -20,7 +20,7 @@ interface Voiture {
   images?: Image[]; likes_count?: number;
 }
 
-const NAVY = '#185FA5';
+const NAVY = 'var(--color-accent)';
 const HEURES = ['08:00','09:00','10:00','11:00','12:00','14:00','15:00','16:00','17:00','18:00'];
 
 function money(v?: number) {
@@ -41,8 +41,8 @@ const ALL_TABS: { key: Tab; label: string }[] = [
   { key: 'reprise',     label: 'Reprise' },
 ];
 
-const inputCls = 'w-full rounded-lg border border-[#dfe3eb] bg-[#f5f8fa] px-3 py-2.5 text-sm text-[#374151] placeholder:text-[#9ca3af] focus:border-[#1d6fb8] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1d6fb8]/20';
-const labelCls = 'mb-1.5 block text-xs font-bold text-[#374151]';
+const inputCls = 'w-full rounded-lg border border-[var(--color-border-secondary)] bg-[var(--color-background-secondary)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] focus:border-[var(--color-accent)] focus:bg-[var(--color-background-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-ring)]';
+const labelCls = 'mb-1.5 block text-xs font-bold text-[var(--color-text-primary)]';
 
 function Feedback({ msg, ok }: { msg: string; ok: boolean }) {
   return (
@@ -55,7 +55,7 @@ function Feedback({ msg, ok }: { msg: string; ok: boolean }) {
 function ReserverTab({ voiture }: { voiture: Voiture }) {
   return (
     <div className="space-y-3 pt-2">
-      <p className="text-sm text-[#6b7280]">
+      <p className="text-sm text-[var(--color-text-secondary)]">
         Connectez-vous ou créez un compte pour réserver ce véhicule depuis votre espace client.
       </p>
       <Link href="/inscription"
@@ -64,11 +64,11 @@ function ReserverTab({ voiture }: { voiture: Voiture }) {
         Créer mon compte et réserver
       </Link>
       <Link href="/login/client"
-        className="flex w-full items-center justify-center rounded-xl border border-[#dfe3eb] py-3.5 text-sm font-bold text-[#374151] transition hover:border-[#185FA5] hover:text-[#185FA5]">
+        className="flex w-full items-center justify-center rounded-xl border border-[var(--color-border-secondary)] py-3.5 text-sm font-bold text-[var(--color-text-primary)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]">
         J&apos;ai déjà un compte — Se connecter
       </Link>
       {voiture.prix && (
-        <p className="text-center text-xs text-[#6b7280]">
+        <p className="text-center text-xs text-[var(--color-text-secondary)]">
           Tarif : <strong>{money(voiture.prix)} XOF / jour</strong> · Confirmation sous 24h
         </p>
       )}
@@ -158,7 +158,7 @@ function RendezVousForm({ voiture }: { voiture: Voiture }) {
       </div>
 
       {voiture.prix_vente && (
-        <p className="rounded-lg border border-[#ede8f4] bg-[#f9f7fc] px-4 py-2.5 text-sm text-[#374151]">
+        <p className="rounded-lg border border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] px-4 py-2.5 text-sm text-[var(--color-text-primary)]">
           Prix de vente : <strong>{money(voiture.prix_vente)} XOF</strong>
         </p>
       )}
@@ -245,8 +245,8 @@ function DemandeForm({ type, voitureId }: { type: 'information' | 'reprise'; voi
       </div>
 
       {isReprise && (
-        <div className="rounded-lg border border-[#ede8f4] bg-[#f9f7fc] p-3">
-          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#6b7280]">Votre véhicule à reprendre</p>
+        <div className="rounded-lg border border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] p-3">
+          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[var(--color-text-secondary)]">Votre véhicule à reprendre</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className={labelCls}>Marque *</label>
@@ -346,9 +346,9 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
       <PublicLayout>
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <div className="grid gap-8 lg:grid-cols-[1fr_420px]">
-            <div className="h-96 animate-pulse rounded-xl bg-[#eff6ff]" />
+            <div className="h-96 animate-pulse rounded-xl bg-[var(--color-accent-light)]" />
             <div className="space-y-4">
-              {[1,2,3].map((i) => <div key={i} className="h-8 animate-pulse rounded bg-[#eff6ff]" />)}
+              {[1,2,3].map((i) => <div key={i} className="h-8 animate-pulse rounded bg-[var(--color-accent-light)]" />)}
             </div>
           </div>
         </div>
@@ -360,8 +360,8 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
     return (
       <PublicLayout>
         <div className="py-32 text-center">
-          <p className="text-xl font-black text-[#111827]">Véhicule introuvable</p>
-          <Link href="/catalogue" className="mt-4 inline-block text-sm font-semibold text-[#1d6fb8] hover:underline">
+          <p className="text-xl font-black text-[var(--color-text-primary)]">Véhicule introuvable</p>
+          <Link href="/catalogue" className="mt-4 inline-block text-sm font-semibold text-[var(--color-accent)] hover:underline">
             ← Retour au catalogue
           </Link>
         </div>
@@ -423,12 +423,12 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
 
         {/* Breadcrumb */}
-        <nav className="mb-6 flex items-center gap-2 text-sm text-[#6b7280]">
-          <Link href="/" className="hover:text-[#185FA5]">Accueil</Link>
+        <nav className="mb-6 flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+          <Link href="/" className="hover:text-[var(--color-accent)]">Accueil</Link>
           <span>/</span>
-          <Link href="/catalogue" className="hover:text-[#185FA5]">Catalogue</Link>
+          <Link href="/catalogue" className="hover:text-[var(--color-accent)]">Catalogue</Link>
           <span>/</span>
-          <span className="font-semibold text-[#111827]">{voiture.marque} {voiture.modele}</span>
+          <span className="font-semibold text-[var(--color-text-primary)]">{voiture.marque} {voiture.modele}</span>
         </nav>
 
         <div className="grid items-start gap-8 lg:grid-cols-[1fr_420px]">
@@ -436,7 +436,7 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
           {/* ── Galerie ── */}
           <div className="space-y-3">
             <div
-              className="group relative overflow-hidden rounded-2xl bg-[#eff6ff] shadow-sm"
+              className="group relative overflow-hidden rounded-2xl bg-[var(--color-accent-light)] shadow-sm"
               style={{ aspectRatio: '4/3' }}
               onMouseEnter={() => setPaused(true)}
               onMouseLeave={() => setPaused(false)}
@@ -449,7 +449,7 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
                 ))
               ) : (
                 <div className="flex h-full items-center justify-center">
-                  <svg className="h-20 w-20 text-[#93c5fd]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-20 w-20 text-[var(--color-text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
                       d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5" />
                   </svg>
@@ -500,7 +500,7 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
               <div ref={thumbsRef} className="flex gap-2 overflow-x-auto pb-1">
                 {allImages.map((src, i) => (
                   <button key={src} type="button" onClick={() => goTo(i)}
-                    className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 transition ${i === selected ? 'border-[#185FA5]' : 'border-transparent hover:border-[#93c5fd]'}`}>
+                    className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 transition ${i === selected ? 'border-[var(--color-accent)]' : 'border-transparent hover:border-[var(--color-text-secondary)]'}`}>
                     <Image src={src} alt="" fill className="object-cover" />
                   </button>
                 ))}
@@ -509,8 +509,8 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
 
             {/* Specs */}
             {specsCount > 0 && (
-              <div className="rounded-xl border border-[#ede8f4] bg-[#f9f7fc] p-5">
-                <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[#6b7280]">Caractéristiques</p>
+              <div className="rounded-xl border border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] p-5">
+                <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[var(--color-text-secondary)]">Caractéristiques</p>
                 <div className="space-y-5">
                   {specGroups.map((group) => (
                     <div key={group.title}>
@@ -522,9 +522,9 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
                       </div>
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {group.items.map((s) => (
-                          <div key={s.label} className="rounded-lg border border-[#ede8f4] bg-white px-3 py-2">
-                            <p className="text-[11px] text-[#6b7280]">{s.label}</p>
-                            <p className="mt-0.5 text-sm font-bold text-[#111827]">{s.value}</p>
+                          <div key={s.label} className="rounded-lg border border-[var(--color-border-tertiary)] bg-[var(--color-background-primary)] px-3 py-2">
+                            <p className="text-[11px] text-[var(--color-text-secondary)]">{s.label}</p>
+                            <p className="mt-0.5 text-sm font-bold text-[var(--color-text-primary)]">{s.value}</p>
                           </div>
                         ))}
                       </div>
@@ -540,14 +540,14 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
             {/* Titre + prix */}
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-xs font-bold uppercase tracking-widest text-[#1d6fb8]">{voiture.marque}</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-accent)]">{voiture.marque}</p>
                 {voiture.type_usage === 'location' && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700">Location</span>}
                 {voiture.type_usage === 'vente'    && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">Vente</span>}
-                {voiture.type_usage === 'les_deux' && <span className="rounded-full bg-[#eff6ff] px-2 py-0.5 text-xs font-bold text-[#185FA5]">Location · Vente</span>}
+                {voiture.type_usage === 'les_deux' && <span className="rounded-full bg-[var(--color-accent-light)] px-2 py-0.5 text-xs font-bold text-[var(--color-accent)]">Location · Vente</span>}
               </div>
-              <h1 className="mt-0.5 text-3xl font-black text-[#111827]">
+              <h1 className="mt-0.5 text-3xl font-black text-[var(--color-text-primary)]">
                 {voiture.modele}{' '}
-                {voiture.annee && <span className="text-xl font-normal text-[#6b7280]">{voiture.annee}</span>}
+                {voiture.annee && <span className="text-xl font-normal text-[var(--color-text-secondary)]">{voiture.annee}</span>}
               </h1>
 
               {/* Prix : location + vente séparés */}
@@ -555,28 +555,28 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
                 {isLocation && voiture.prix && (
                   <p className="text-2xl font-black" style={{ color: NAVY }}>
                     {money(voiture.prix)}{' '}
-                    <span className="text-base font-normal text-[#6b7280]">XOF / jour</span>
+                    <span className="text-base font-normal text-[var(--color-text-secondary)]">XOF / jour</span>
                   </p>
                 )}
                 {isVente && voiture.prix_vente && (
                   <p className={isLocation ? 'text-xl font-black text-emerald-700' : 'text-2xl font-black'}
                     style={!isLocation ? { color: NAVY } : {}}>
                     {money(voiture.prix_vente)}{' '}
-                    <span className="text-base font-normal text-[#6b7280]">XOF</span>
-                    {isLocation && <span className="ml-1 text-sm font-normal text-[#6b7280]">(à l&apos;achat)</span>}
+                    <span className="text-base font-normal text-[var(--color-text-secondary)]">XOF</span>
+                    {isLocation && <span className="ml-1 text-sm font-normal text-[var(--color-text-secondary)]">(à l&apos;achat)</span>}
                   </p>
                 )}
               </div>
             </div>
 
             {/* Tabs */}
-            <div className="rounded-xl border border-[#ede8f4] bg-white p-5">
+            <div className="rounded-xl border border-[var(--color-border-tertiary)] bg-[var(--color-background-primary)] p-5">
               {visibleTabs.length > 1 && (
-                <div className="flex gap-1 rounded-lg border border-[#ede8f4] bg-[#f9f7fc] p-1 mb-4">
+                <div className="flex gap-1 rounded-lg border border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] p-1 mb-4">
                   {visibleTabs.map((t) => (
                     <button key={t.key} onClick={() => setActiveTab(t.key)}
                       className={`flex-1 rounded px-2 py-2 text-xs font-bold transition ${
-                        activeTab === t.key ? 'bg-white text-[#111827] shadow-sm' : 'text-[#6b7280] hover:text-[#111827]'
+                        activeTab === t.key ? 'bg-[var(--color-background-primary)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                       }`}>
                       {t.label}
                     </button>

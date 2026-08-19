@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import ConfirmDialog from '@/components/ConfirmDialog';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -18,11 +18,11 @@ function money(v?: number | string | null) {
 }
 
 const STATUT: Record<string, { label: string; cls: string }> = {
-  disponible:    { label: 'Disponible',    cls: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-  vendu:         { label: 'Vendu',         cls: 'bg-red-100 text-red-700 border-red-200' },
-  en_location:   { label: 'En location',   cls: 'bg-blue-100 text-blue-700 border-blue-200' },
-  reserve:       { label: 'Réservé',       cls: 'bg-amber-100 text-amber-700 border-amber-200' },
-  en_reparation: { label: 'En réparation', cls: 'bg-purple-100 text-purple-700 border-purple-200' },
+  disponible:    { label: 'Disponible',    cls: 'badge-active' },
+  vendu:         { label: 'Vendu',         cls: 'badge-info' },
+  en_location:   { label: 'En location',   cls: 'badge-pending' },
+  reserve:       { label: 'Réservé',       cls: 'badge-pending' },
+  en_reparation: { label: 'En réparation', cls: 'badge-neutral' },
 };
 
 export default function VoitureDetailPage() {
@@ -88,13 +88,13 @@ export default function VoitureDetailPage() {
     return (
       <DashboardLayout>
         <div className="animate-pulse space-y-6">
-          <div className="h-10 w-64 rounded-2xl bg-slate-200" />
+          <div className="h-10 w-64 rounded-2xl" style={{ background: 'var(--color-border-tertiary)' }} />
           <div className="grid gap-6 lg:grid-cols-2">
-            <div className="aspect-video rounded-2xl bg-slate-200" />
+            <div className="aspect-video rounded-2xl" style={{ background: 'var(--color-border-tertiary)' }} />
             <div className="space-y-4">
-              <div className="h-8 w-48 rounded bg-slate-200" />
-              <div className="h-24 rounded-2xl bg-slate-200" />
-              <div className="h-40 rounded-2xl bg-slate-200" />
+              <div className="h-8 w-48 rounded" style={{ background: 'var(--color-border-tertiary)' }} />
+              <div className="h-24 rounded-2xl" style={{ background: 'var(--color-border-tertiary)' }} />
+              <div className="h-40 rounded-2xl" style={{ background: 'var(--color-border-tertiary)' }} />
             </div>
           </div>
         </div>
@@ -106,8 +106,8 @@ export default function VoitureDetailPage() {
     return (
       <DashboardLayout>
         <div className="surface-panel py-20 text-center">
-          <p className="font-semibold text-slate-600">Véhicule introuvable.</p>
-          <Link href="/voitures" className="mt-4 inline-block text-sm font-bold text-[#111827] hover:underline">
+          <p className="font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Véhicule introuvable.</p>
+          <Link href="/voitures" className="mt-4 inline-block text-sm font-bold hover:underline" style={{ color: 'var(--color-text-primary)' }}>
             ← Retour à la liste
           </Link>
         </div>
@@ -115,7 +115,7 @@ export default function VoitureDetailPage() {
     );
   }
 
-  const st = STATUT[voiture.statut] ?? { label: voiture.statut, cls: 'bg-slate-100 text-slate-600 border-slate-200' };
+  const st = STATUT[voiture.statut] ?? { label: voiture.statut, cls: 'badge-neutral' };
   const dispo = voiture.statut === 'disponible';
 
   const specs = [
@@ -135,10 +135,10 @@ export default function VoitureDetailPage() {
       <div className="space-y-6">
 
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-slate-500">
-          <Link href="/voitures" className="font-semibold hover:text-[#111827]">Véhicules</Link>
+        <nav className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+          <Link href="/voitures" className="font-semibold hover:underline" style={{ color: 'var(--color-text-secondary)' }}>Véhicules</Link>
           <span>/</span>
-          <span className="font-bold text-slate-800">{voiture.marque} {voiture.modele}</span>
+          <span className="font-bold" style={{ color: 'var(--color-text-primary)' }}>{voiture.marque} {voiture.modele}</span>
         </nav>
 
         <div className="grid gap-8 lg:grid-cols-2">
@@ -146,7 +146,8 @@ export default function VoitureDetailPage() {
           {/* ── Galerie carousel ── */}
           <div className="space-y-3">
             <div
-              className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 select-none"
+              className="relative aspect-[4/3] overflow-hidden rounded-2xl border select-none"
+              style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-secondary)' }}
               onMouseEnter={() => setPaused(true)}
               onMouseLeave={() => setPaused(false)}
             >
@@ -166,7 +167,7 @@ export default function VoitureDetailPage() {
                   />
                 ) : null)
               ) : (
-                <div className="flex h-full flex-col items-center justify-center gap-2 text-slate-300">
+                <div className="flex h-full flex-col items-center justify-center gap-2" style={{ color: 'var(--color-text-secondary)' }}>
                   <svg className="h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2}
                       d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5M5 11H3a1 1 0 00-1 1v1a1 1 0 001 1h2m14-2h2a1 1 0 011 1v1a1 1 0 01-1 1h-2" />
@@ -176,7 +177,7 @@ export default function VoitureDetailPage() {
               )}
 
               {/* Statut badge */}
-              <span className={`absolute left-3 top-3 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${st.cls}`}>
+              <span className={`status-badge absolute left-3 top-3 z-10 ${st.cls} font-bold uppercase tracking-wide`}>
                 {st.label}
               </span>
 
@@ -235,9 +236,12 @@ export default function VoitureDetailPage() {
                     key={img.id ?? i}
                     type="button"
                     onClick={() => goTo(i)}
-                    className={`shrink-0 overflow-hidden rounded-xl border-2 transition-all ${
-                      selected === i ? 'border-slate-700 shadow-md scale-105' : 'border-slate-100 hover:border-slate-300'
-                    }`}
+                    className="shrink-0 overflow-hidden rounded-xl border-2 transition-all"
+                    style={
+                      selected === i
+                        ? { borderColor: 'var(--color-accent)', transform: 'scale(1.05)', boxShadow: '0 2px 8px rgba(0,0,0,.12)' }
+                        : { borderColor: 'var(--color-border-tertiary)' }
+                    }
                   >
                     {imgUrl(img.chemin) && <Image src={imgUrl(img.chemin)!} alt={`vue ${i + 1}`} width={80} height={64} className="object-cover" />}
                   </button>
@@ -251,7 +255,7 @@ export default function VoitureDetailPage() {
 
             {/* Titre */}
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: 'var(--color-text-secondary)' }}>
                 {voiture.annee}{voiture.energie ? ` · ${voiture.energie}` : ''}
               </p>
               <h1 className="page-title mt-1">
@@ -260,27 +264,27 @@ export default function VoitureDetailPage() {
             </div>
 
             {/* Prix */}
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+            <div className="rounded-2xl border p-5" style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-secondary)' }}>
               {voiture.type_usage !== 'vente' && voiture.prix != null && (
                 <div className="mb-3">
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Tarif location</p>
-                  <p className="mt-1 text-3xl font-black text-slate-900">
+                  <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>Tarif location</p>
+                  <p className="mt-1 text-3xl font-black" style={{ color: 'var(--color-text-primary)' }}>
                     {money(voiture.prix)}
-                    <span className="ml-2 text-base font-bold text-slate-400">XOF/jour</span>
+                    <span className="ml-2 text-base font-bold" style={{ color: 'var(--color-text-secondary)' }}>XOF/jour</span>
                   </p>
                 </div>
               )}
               {voiture.type_usage !== 'location' && (
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Prix de vente</p>
-                  <p className="mt-1 text-3xl font-black text-slate-900">
+                  <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--color-text-secondary)' }}>Prix de vente</p>
+                  <p className="mt-1 text-3xl font-black" style={{ color: 'var(--color-text-primary)' }}>
                     {voiture.prix_vente != null ? money(voiture.prix_vente) : '—'}
-                    <span className="ml-2 text-base font-bold text-slate-400">XOF</span>
+                    <span className="ml-2 text-base font-bold" style={{ color: 'var(--color-text-secondary)' }}>XOF</span>
                   </p>
                 </div>
               )}
               {voiture.garantie && (
-                <p className="mt-2 text-xs font-semibold text-emerald-600">
+                <p className="mt-2 text-xs font-semibold" style={{ color: 'var(--color-success-text)' }}>
                   ✓ Garantie {voiture.garantie.type_garantie} jusqu&apos;au {voiture.garantie.date_fin}
                 </p>
               )}
@@ -290,7 +294,11 @@ export default function VoitureDetailPage() {
             {dispo ? (
               <div className="space-y-2">
                 <Link href={`/ventes?voiture_id=${voiture.id}`}
-                  className="flex items-center justify-center gap-2 rounded-2xl border border-[#374151] bg-white px-6 py-4 text-sm font-black text-[#111827] shadow-sm transition hover:bg-[#f5f8fa] active:scale-95">
+                  className="flex items-center justify-center gap-2 rounded-2xl border px-6 py-4 text-sm font-black shadow-sm transition active:scale-95"
+                  style={{ borderColor: 'var(--color-border-secondary)', background: 'var(--color-background-primary)', color: 'var(--color-text-primary)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-background-hover)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-background-primary)'; }}
+                >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -298,7 +306,11 @@ export default function VoitureDetailPage() {
                   Créer une vente pour ce véhicule
                 </Link>
                 <Link href={`/locations?voiture_id=${voiture.id}`}
-                  className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-[#111827] transition hover:bg-slate-50">
+                  className="flex items-center justify-center gap-2 rounded-2xl border px-6 py-3 text-sm font-bold transition"
+                  style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-primary)', color: 'var(--color-text-primary)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-background-hover)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-background-primary)'; }}
+                >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
@@ -307,7 +319,7 @@ export default function VoitureDetailPage() {
                 </Link>
               </div>
             ) : (
-              <div className={`rounded-2xl border p-4 text-center text-sm font-semibold ${st.cls}`}>
+              <div className={`status-badge block rounded-2xl border-0 p-4 text-center text-sm font-semibold ${st.cls}`}>
                 Ce véhicule n&apos;est pas disponible à la vente ({st.label.toLowerCase()}).
               </div>
             )}
@@ -316,25 +328,45 @@ export default function VoitureDetailPage() {
             <div className="flex flex-wrap gap-2">
               {canWrite('voitures') && (
                 <Link href={`/voitures/${voiture.id}/edit`}
-                  className="flex-1 rounded-xl border border-slate-200 py-2.5 text-center text-sm font-bold text-slate-600 transition hover:bg-slate-50">
+                  className="flex-1 rounded-xl border py-2.5 text-center text-sm font-bold transition"
+                  style={{ borderColor: 'var(--color-border-tertiary)', color: 'var(--color-text-secondary)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-background-hover)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                >
                   Modifier
                 </Link>
               )}
               <Link href={`/voitures/${voiture.id}/historique`}
-                className="flex-1 rounded-xl border border-[#185FA5] bg-[#185FA5]/5 py-2.5 text-center text-sm font-bold text-[#185FA5] transition hover:bg-[#185FA5]/10">
+                className="flex-1 rounded-xl border py-2.5 text-center text-sm font-bold transition"
+                style={{ borderColor: 'var(--color-accent)', background: 'var(--color-accent-light)', color: 'var(--color-accent)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-accent-hover)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-accent-light)'; }}
+              >
                 Historique
               </Link>
               <Link href={`/garanties?voiture_id=${voiture.id}`}
-                className="flex-1 rounded-xl border border-slate-200 py-2.5 text-center text-sm font-bold text-slate-600 transition hover:bg-slate-50">
+                className="flex-1 rounded-xl border py-2.5 text-center text-sm font-bold transition"
+                style={{ borderColor: 'var(--color-border-tertiary)', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-background-hover)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              >
                 Garantie
               </Link>
               <Link href={`/sav?voiture_id=${voiture.id}`}
-                className="flex-1 rounded-xl border border-slate-200 py-2.5 text-center text-sm font-bold text-slate-600 transition hover:bg-slate-50">
+                className="flex-1 rounded-xl border py-2.5 text-center text-sm font-bold transition"
+                style={{ borderColor: 'var(--color-border-tertiary)', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-background-hover)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              >
                 SAV
               </Link>
               {canWrite('voitures') && (
                 <button type="button" onClick={() => setConfirmOpen(true)} disabled={deleting}
-                  className="flex-1 rounded-xl border border-red-200 py-2.5 text-center text-sm font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-50">
+                  className="flex-1 rounded-xl border py-2.5 text-center text-sm font-bold transition disabled:opacity-50"
+                  style={{ borderColor: 'var(--color-danger-bg)', color: 'var(--color-danger-text)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-danger-bg)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                >
                   {deleting ? 'Suppression…' : 'Supprimer'}
                 </button>
               )}
@@ -352,13 +384,13 @@ export default function VoitureDetailPage() {
             />
 
             {/* Caractéristiques */}
-            <div className="rounded-2xl border border-slate-100 p-5">
-              <h2 className="mb-4 text-sm font-black uppercase tracking-wide text-slate-400">Caractéristiques</h2>
+            <div className="rounded-2xl border p-5" style={{ borderColor: 'var(--color-border-tertiary)' }}>
+              <h2 className="mb-4 text-sm font-black uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Caractéristiques</h2>
               <dl className="space-y-2.5">
                 {specs.map(({ label, value }) => (
                   <div key={label} className="flex items-baseline justify-between gap-4 text-sm">
-                    <dt className="shrink-0 font-medium text-slate-400">{label}</dt>
-                    <dd className="text-right font-semibold text-slate-800">{String(value)}</dd>
+                    <dt className="shrink-0 font-medium" style={{ color: 'var(--color-text-secondary)' }}>{label}</dt>
+                    <dd className="text-right font-semibold" style={{ color: 'var(--color-text-primary)' }}>{String(value)}</dd>
                   </div>
                 ))}
               </dl>
@@ -366,9 +398,9 @@ export default function VoitureDetailPage() {
 
             {/* Description */}
             {voiture.description && (
-              <div className="rounded-2xl border border-slate-100 p-5">
-                <h2 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-400">Description</h2>
-                <p className="text-sm leading-relaxed text-slate-600">{voiture.description}</p>
+              <div className="rounded-2xl border p-5" style={{ borderColor: 'var(--color-border-tertiary)' }}>
+                <h2 className="mb-3 text-sm font-black uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>Description</h2>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{voiture.description}</p>
               </div>
             )}
           </div>
@@ -378,11 +410,11 @@ export default function VoitureDetailPage() {
         {(voiture.ventes?.length ?? 0) > 0 && (
           <div className="surface-panel p-6">
             <h2 className="section-title mb-4">Historique des ventes</h2>
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y" style={{ borderColor: 'var(--color-border-tertiary)' }}>
               {voiture.ventes.map((v: any) => (
                 <div key={v.id} className="flex items-center justify-between py-3 text-sm">
-                  <span className="font-semibold text-slate-700">{v.reference_vente}</span>
-                  <span className="font-black text-[#111827]">{money(v.prix_final)} XOF</span>
+                  <span className="font-semibold" style={{ color: 'var(--color-text-secondary)' }}>{v.reference_vente}</span>
+                  <span className="font-black" style={{ color: 'var(--color-text-primary)' }}>{money(v.prix_final)} XOF</span>
                 </div>
               ))}
             </div>

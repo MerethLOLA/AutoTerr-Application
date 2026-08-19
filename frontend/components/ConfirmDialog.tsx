@@ -27,9 +27,9 @@ export default function ConfirmDialog({
 
   const typeStyles = {
     danger: {
-      button: 'bg-red-600 hover:bg-red-700 text-white',
-      bgColor: 'bg-red-100 dark:bg-red-900/30',
-      textColor: 'text-red-600 dark:text-red-400',
+      buttonBg: 'var(--color-danger-text)',
+      iconBg: 'var(--color-danger-bg)',
+      iconColor: 'var(--color-danger-text)',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -37,9 +37,9 @@ export default function ConfirmDialog({
       )
     },
     warning: {
-      button: 'bg-yellow-600 hover:bg-yellow-700 text-white',
-      bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
-      textColor: 'text-yellow-600 dark:text-yellow-400',
+      buttonBg: 'var(--color-warning-text)',
+      iconBg: 'var(--color-warning-bg)',
+      iconColor: 'var(--color-warning-text)',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -47,9 +47,9 @@ export default function ConfirmDialog({
       )
     },
     info: {
-      button: 'bg-blue-600 hover:bg-blue-700 text-white',
-      bgColor: 'bg-blue-100 dark:bg-blue-900/30',
-      textColor: 'text-blue-600 dark:text-blue-400',
+      buttonBg: 'var(--color-accent)',
+      iconBg: 'var(--color-accent-light)',
+      iconColor: 'var(--color-accent)',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -58,44 +58,51 @@ export default function ConfirmDialog({
     }
   };
 
+  const s = typeStyles[type];
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         {/* Overlay */}
         <div
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
           onClick={onClose}
         />
 
         {/* Modal */}
-        <div className="inline-block align-bottom bg-white dark:bg-slate-900 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div
+          className="inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+          style={{ background: 'var(--color-background-primary)' }}
+        >
           <div className="px-6 py-4">
             <div className="flex items-center gap-3 mb-4">
-              <div className={`${typeStyles[type].bgColor} rounded-lg p-2 flex items-center justify-center`}>
-                <div className={typeStyles[type].textColor}>
-                  {typeStyles[type].icon}
+              <div className="rounded-lg p-2 flex items-center justify-center" style={{ background: s.iconBg }}>
+                <div style={{ color: s.iconColor }}>
+                  {s.icon}
                 </div>
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+              <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                 {title}
               </h3>
             </div>
 
-            <p className="text-slate-600 dark:text-slate-400 mb-6">
+            <p className="mb-6" style={{ color: 'var(--color-text-secondary)' }}>
               {message}
             </p>
 
             <div className="flex items-center justify-end gap-3">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+                style={{ color: 'var(--color-text-primary)', background: 'var(--color-background-secondary)' }}
                 disabled={loading}
               >
                 {cancelLabel}
               </button>
               <button
                 onClick={onConfirm}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${typeStyles[type].button}`}
+                className="px-4 py-2 text-sm font-medium rounded-lg text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: s.buttonBg }}
                 disabled={loading}
               >
                 {loading ? 'Traitement...' : confirmLabel}

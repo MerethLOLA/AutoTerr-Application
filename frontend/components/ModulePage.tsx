@@ -21,40 +21,40 @@ function getValue(item: any, key: string) {
   return key.split('.').reduce((value, segment) => value?.[segment], item);
 }
 
-const BADGE_MAP: Record<string, { bg: string; text: string; label: string }> = {
-  disponible:   { bg: '#dcfce7', text: '#166534', label: 'Disponible' },
-  vendue:       { bg: '#ede9fe', text: '#5b21b6', label: 'Vendue' },
-  reservee:     { bg: '#fef9c3', text: '#854d0e', label: 'Réservée' },
-  en_location:  { bg: '#ffedd5', text: '#9a3412', label: 'En location' },
-  hors_service: { bg: '#fee2e2', text: '#991b1b', label: 'Hors service' },
-  en_cours:     { bg: '#dbeafe', text: '#1e40af', label: 'En cours' },
-  en_retard:    { bg: '#fee2e2', text: '#991b1b', label: 'En retard' },
-  planifie:     { bg: '#fef9c3', text: '#854d0e', label: 'Planifié' },
-  planifiee:    { bg: '#fef9c3', text: '#854d0e', label: 'Planifiée' },
-  terminee:     { bg: '#dcfce7', text: '#166534', label: 'Terminée' },
-  realise:      { bg: '#dcfce7', text: '#166534', label: 'Réalisé' },
-  resolu:       { bg: '#dcfce7', text: '#166534', label: 'Résolu' },
-  payee:        { bg: '#dcfce7', text: '#166534', label: 'Payée' },
-  active:       { bg: '#dcfce7', text: '#166534', label: 'Active' },
-  clos:         { bg: '#f1f5f9', text: '#475569', label: 'Clos' },
-  annule:       { bg: '#fee2e2', text: '#991b1b', label: 'Annulé' },
-  annulee:      { bg: '#fee2e2', text: '#991b1b', label: 'Annulée' },
-  rejete:       { bg: '#fee2e2', text: '#991b1b', label: 'Rejeté' },
-  expiree:      { bg: '#fee2e2', text: '#991b1b', label: 'Expirée' },
-  ouvert:       { bg: '#ffedd5', text: '#9a3412', label: 'Ouvert' },
-  impayee:      { bg: '#fee2e2', text: '#991b1b', label: 'Impayée' },
-  partielle:    { bg: '#fef9c3', text: '#854d0e', label: 'Partielle' },
-  haute:        { bg: '#fee2e2', text: '#991b1b', label: 'Haute' },
-  urgente:      { bg: '#fecdd3', text: '#9f1239', label: 'Urgente' },
-  moyenne:      { bg: '#fef9c3', text: '#854d0e', label: 'Moyenne' },
-  normale:      { bg: '#dbeafe', text: '#1e40af', label: 'Normale' },
-  basse:        { bg: '#dcfce7', text: '#166534', label: 'Basse' },
-  favorable:    { bg: '#dcfce7', text: '#166534', label: 'Favorable' },
-  defavorable:  { bg: '#fee2e2', text: '#991b1b', label: 'Défavorable' },
-  actif:        { bg: '#dcfce7', text: '#166534', label: 'Actif' },
-  inactif:      { bg: '#fee2e2', text: '#991b1b', label: 'Inactif' },
-  conge:        { bg: '#fef9c3', text: '#854d0e', label: 'En congé' },
-  effectue:     { bg: '#dcfce7', text: '#166534', label: 'Effectué' },
+const BADGE_MAP: Record<string, { cls: string; label: string }> = {
+  disponible:   { cls: 'badge-active',  label: 'Disponible' },
+  vendue:       { cls: 'badge-info',    label: 'Vendue' },
+  reservee:     { cls: 'badge-pending', label: 'Réservée' },
+  en_location:  { cls: 'badge-pending', label: 'En location' },
+  hors_service: { cls: 'badge-danger',  label: 'Hors service' },
+  en_cours:     { cls: 'badge-info',    label: 'En cours' },
+  en_retard:    { cls: 'badge-danger',  label: 'En retard' },
+  planifie:     { cls: 'badge-pending', label: 'Planifié' },
+  planifiee:    { cls: 'badge-pending', label: 'Planifiée' },
+  terminee:     { cls: 'badge-active',  label: 'Terminée' },
+  realise:      { cls: 'badge-active',  label: 'Réalisé' },
+  resolu:       { cls: 'badge-active',  label: 'Résolu' },
+  payee:        { cls: 'badge-active',  label: 'Payée' },
+  active:       { cls: 'badge-active',  label: 'Active' },
+  clos:         { cls: 'badge-neutral', label: 'Clos' },
+  annule:       { cls: 'badge-danger',  label: 'Annulé' },
+  annulee:      { cls: 'badge-danger',  label: 'Annulée' },
+  rejete:       { cls: 'badge-danger',  label: 'Rejeté' },
+  expiree:      { cls: 'badge-danger',  label: 'Expirée' },
+  ouvert:       { cls: 'badge-pending', label: 'Ouvert' },
+  impayee:      { cls: 'badge-danger',  label: 'Impayée' },
+  partielle:    { cls: 'badge-pending', label: 'Partielle' },
+  haute:        { cls: 'badge-danger',  label: 'Haute' },
+  urgente:      { cls: 'badge-danger',  label: 'Urgente' },
+  moyenne:      { cls: 'badge-pending', label: 'Moyenne' },
+  normale:      { cls: 'badge-info',    label: 'Normale' },
+  basse:        { cls: 'badge-active',  label: 'Basse' },
+  favorable:    { cls: 'badge-active',  label: 'Favorable' },
+  defavorable:  { cls: 'badge-danger',  label: 'Défavorable' },
+  actif:        { cls: 'badge-active',  label: 'Actif' },
+  inactif:      { cls: 'badge-danger',  label: 'Inactif' },
+  conge:        { cls: 'badge-pending', label: 'En congé' },
+  effectue:     { cls: 'badge-active',  label: 'Effectué' },
 };
 
 function formatValue(value: any): string {
@@ -66,7 +66,7 @@ function formatValue(value: any): string {
 
 function renderCell(value: any, type?: ModuleColumn['type']) {
   if (value === null || value === undefined || value === '') {
-    return <span className="text-slate-300">—</span>;
+    return <span className="text-[var(--color-text-secondary)]">—</span>;
   }
 
   if (type === 'date') {
@@ -98,10 +98,7 @@ function renderCell(value: any, type?: ModuleColumn['type']) {
     const key = String(value).toLowerCase();
     const entry = BADGE_MAP[key];
     return (
-      <span
-        style={{ backgroundColor: entry?.bg ?? '#f1f5f9', color: entry?.text ?? '#475569' }}
-        className="inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide"
-      >
+      <span className={`status-badge ${entry?.cls ?? 'badge-neutral'} font-bold uppercase tracking-wide`}>
         {entry?.label ?? String(value)}
       </span>
     );
@@ -430,18 +427,18 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
 
         {/* Section principale */}
         <section className="surface-panel">
-          <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/60 px-5 py-4 md:flex-row md:items-center md:justify-between rounded-t-xl">
+          <div className="flex flex-col gap-3 border-b border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] px-5 py-4 md:flex-row md:items-center md:justify-between rounded-t-xl">
             <div>
               <h2 className="section-title">{mod.title}</h2>
               {totalItems > 0 && (
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
                   {totalItems} enregistrement{totalItems > 1 ? 's' : ''}
                 </p>
               )}
             </div>
             {hasWriteAccess && (
               <button
-                className="btn-primary disabled:cursor-not-allowed disabled:bg-slate-300 shrink-0"
+                className="btn-primary shrink-0"
                 disabled={!mod.formFields}
                 onClick={beginCreate}
                 type="button"
@@ -455,13 +452,13 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
 
             {/* Formulaire création / édition */}
             {showForm && mod.formFields && hasWriteAccess && (
-              <form className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-5" onSubmit={handleCreate}>
+              <form className="mb-5 rounded-xl border border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] p-5" onSubmit={handleCreate}>
                 <div className="mb-4 flex items-center justify-between gap-4">
-                  <h3 className="text-sm font-bold text-[#111827]">
+                  <h3 className="text-sm font-bold text-[var(--color-text-primary)]">
                     {isEditing ? "Modifier l'élément" : 'Nouvel élément'}
                   </h3>
                   {isEditing && (
-                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-600">
+                    <span className="status-badge badge-neutral font-bold uppercase tracking-wide">
                       Édition
                     </span>
                   )}
@@ -470,7 +467,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                 <div className="grid gap-4 md:grid-cols-2">
                   {visibleFormFields.map((field) => (
                     <Fragment key={field.name}>
-                    <label className="text-sm font-semibold text-[#111827]">
+                    <label className="text-sm font-semibold text-[var(--color-text-primary)]">
                       <span className="flex items-center justify-between gap-2">
                         {field.label}
                         {field.quickCreate && (
@@ -483,8 +480,8 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                             }}
                             className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
                               quickCreateField === field.name
-                                ? 'border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                : 'border-[#185FA5]/30 bg-[#185FA5]/[0.06] text-[#185FA5] hover:bg-[#185FA5]/[0.12]'
+                                ? 'border-[var(--color-border-secondary)] bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)] hover:bg-[var(--color-background-hover)]'
+                                : 'border-[var(--color-accent-ring)] bg-[var(--color-accent-light)] text-[var(--color-accent)] hover:bg-[var(--color-accent-hover)]'
                             }`}
                           >
                             {quickCreateField === field.name ? (
@@ -573,7 +570,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                             onChange={(e) => setFileValues((cur) => ({ ...cur, [field.name]: e.target.files }))}
                           />
                           {(fileValues[field.name]?.length ?? 0) > 0 && (
-                            <p className="mt-2 text-sm text-slate-500">
+                            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
                               {Array.from(fileValues[field.name] as FileList).map((f) => f.name).join(', ')}
                             </p>
                           )}
@@ -598,13 +595,13 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                           ? `${new Intl.NumberFormat('fr-FR').format(Number(raw))} XOF`
                           : String(raw);
                         return (
-                          <p className="mt-1.5 text-xs font-semibold text-slate-500">
-                            {field.helperFrom!.label} : <span className="text-[#185FA5]">{displayed}</span>
+                          <p className="mt-1.5 text-xs font-semibold text-[var(--color-text-secondary)]">
+                            {field.helperFrom!.label} : <span className="text-[var(--color-accent)]">{displayed}</span>
                           </p>
                         );
                       })()}
                       {field.lockOnceSet && lockedFields[field.name] && (
-                        <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-slate-400">
+                        <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-[var(--color-text-secondary)]">
                           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                           </svg>
@@ -613,18 +610,18 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                       )}
                     </label>
                     {quickCreateField === field.name && field.quickCreate && (
-                      <div className="md:col-span-2 space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#185FA5]/10 text-[#185FA5]">
+                      <div className="md:col-span-2 space-y-4 rounded-xl border border-[var(--color-border-tertiary)] bg-[var(--color-background-primary)] p-4 shadow-sm">
+                        <div className="flex items-center gap-2.5 border-b border-[var(--color-border-tertiary)] pb-3">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-light)] text-[var(--color-accent)]">
                             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                             </svg>
                           </div>
-                          <p className="text-sm font-bold text-[#111827]">Nouveau {field.label.toLowerCase()}</p>
+                          <p className="text-sm font-bold text-[var(--color-text-primary)]">Nouveau {field.label.toLowerCase()}</p>
                         </div>
                         <div className="grid gap-3 sm:grid-cols-2">
                           {field.quickCreate.fields.map((qf) => (
-                            <label key={qf.name} className="text-xs font-semibold text-slate-600">
+                            <label key={qf.name} className="text-xs font-semibold text-[var(--color-text-secondary)]">
                               {qf.label}
                               {qf.type === 'select' ? (
                                 <select
@@ -648,7 +645,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                             </label>
                           ))}
                         </div>
-                        {quickCreateError && <p className="text-xs font-semibold text-red-600">{quickCreateError}</p>}
+                        {quickCreateError && <p className="text-xs font-semibold text-[var(--color-danger-text)]">{quickCreateError}</p>}
                         <div className="flex justify-end gap-2">
                           <button type="button" className="btn-secondary text-xs" onClick={() => { setQuickCreateField(null); setQuickCreateValues({}); }}>
                             Annuler
@@ -668,9 +665,9 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                   ))}
                 </div>
 
-                {formError && <p className="mt-4 text-sm text-red-600">{formError}</p>}
+                {formError && <p className="mt-4 text-sm text-[var(--color-danger-text)]">{formError}</p>}
                 {formErrorDetails && (
-                  <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  <div className="mt-3 rounded-xl border border-[var(--color-danger-bg)] bg-[var(--color-danger-bg)] p-4 text-sm text-[var(--color-danger-text)]">
                     {Object.entries(formErrorDetails).map(([field, messages]) => (
                       <p key={field}><strong>{field}:</strong> {messages.join(' ')}</p>
                     ))}
@@ -688,16 +685,16 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
               </form>
             )}
 
-            {loading && <p className="text-sm text-slate-500">Chargement des données…</p>}
-            {error   && <p className="text-sm text-red-600">{error}</p>}
+            {loading && <p className="text-sm text-[var(--color-text-secondary)]">Chargement des données…</p>}
+            {error   && <p className="text-sm text-[var(--color-danger-text)]">{error}</p>}
 
             {/* Vue analytique */}
             {!loading && !error && mod.status === 'api-ready' && mod.kind === 'analytics' && (
               <div className="grid gap-4 md:grid-cols-3">
                 {metricCards(payload?.data ?? payload).map((metric) => (
                   <div key={metric.label} className="surface-muted p-5">
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#111827]">{metric.label}</p>
-                    <p className="mt-2 text-2xl font-black text-[#111827]">{formatValue(metric.value)}</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--color-text-primary)]">{metric.label}</p>
+                    <p className="mt-2 text-2xl font-black text-[var(--color-text-primary)]">{formatValue(metric.value)}</p>
                   </div>
                 ))}
               </div>
@@ -709,7 +706,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                 {/* Recherche */}
                 <div className="mb-4 flex items-center gap-3">
                   <div className="relative max-w-sm flex-1">
-                    <svg className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                     <input
@@ -736,7 +733,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                     <tbody>
                       {items.length === 0 ? (
                         <tr>
-                          <td className="px-5 py-10 text-sm text-slate-400" colSpan={columns.length + 1}>
+                          <td className="px-5 py-10 text-sm text-[var(--color-text-secondary)]" colSpan={columns.length + 1}>
                             Aucune donnée pour le moment.
                           </td>
                         </tr>
@@ -744,17 +741,17 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                         items.map((item, index) => (
                           <tr key={item.id || index} className="table-row">
                             {columns.map((col, ci) => (
-                              <td key={col.key} className={`table-cell ${ci === 0 ? 'pl-5 font-medium text-slate-800' : ''}`}>
+                              <td key={col.key} className={`table-cell ${ci === 0 ? 'pl-5 font-medium text-[var(--color-text-primary)]' : ''}`}>
                                 {col.type === 'image' || col.key === 'image_principale' || col.key.includes('chemin') ? (
                                   getValue(item, col.key) ? (
                                     <Image
                                       src={`${(process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '')}/storage/${getValue(item, col.key)}`}
                                       alt="photo"
                                       width={56} height={40}
-                                      className="h-10 w-14 rounded-lg object-cover border border-slate-200"
+                                      className="h-10 w-14 rounded-lg object-cover border border-[var(--color-border-tertiary)]"
                                     />
                                   ) : (
-                                    <div className="flex h-10 w-14 items-center justify-center rounded-lg bg-slate-100 text-[10px] text-slate-400">—</div>
+                                    <div className="flex h-10 w-14 items-center justify-center rounded-lg bg-[var(--color-background-secondary)] text-[10px] text-[var(--color-text-secondary)]">—</div>
                                   )
                                 ) : (
                                   renderCell(getValue(item, col.key), col.type)
@@ -766,7 +763,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                                 {mod.detailRoute && (
                                   <Link
                                     href={`/${mod.detailRoute}/${item.id}`}
-                                    className="text-xs font-semibold text-[#111827] hover:text-slate-900 transition-colors"
+                                    className="text-xs font-semibold text-[var(--color-text-primary)] transition-colors"
                                   >
                                     Voir
                                   </Link>
@@ -777,7 +774,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                                     title="Imprimer / Télécharger PDF"
                                     disabled={downloadingId === item.id}
                                     onClick={() => handleExport(item)}
-                                    className="inline-flex items-center gap-1 rounded border border-[#dfe3eb] bg-white px-2 py-1 text-xs font-semibold text-[#111827] transition hover:border-[#185FA5] hover:bg-[#185FA5] hover:text-white disabled:opacity-40"
+                                    className="inline-flex items-center gap-1 rounded border border-[var(--color-border-secondary)] bg-[var(--color-background-primary)] px-2 py-1 text-xs font-semibold text-[var(--color-text-primary)] transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white disabled:opacity-40"
                                   >
                                     {downloadingId === item.id ? (
                                       '…'
@@ -794,7 +791,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                                 {hasWriteAccess && mod.formFields && (
                                   <button
                                     type="button"
-                                    className="text-xs font-semibold text-slate-500 hover:text-[#111827] transition-colors"
+                                    className="text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                                     onClick={() => beginEdit(item)}
                                   >
                                     Modifier
@@ -803,7 +800,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                                 {hasWriteAccess && (
                                   <button
                                     type="button"
-                                    className="text-xs font-semibold text-red-500 hover:text-red-700 transition-colors"
+                                    className="text-xs font-semibold text-[var(--color-danger-text)] hover:opacity-75 transition-colors"
                                     onClick={() => handleDelete(item.id)}
                                   >
                                     Supprimer
@@ -820,11 +817,11 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
+                  <div className="flex items-center justify-between border-t border-[var(--color-border-tertiary)] px-5 py-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">Lignes par page :</span>
+                      <span className="text-xs text-[var(--color-text-secondary)]">Lignes par page :</span>
                       <select
-                        className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700 outline-none focus:border-[#374151]"
+                        className="rounded-md border border-[var(--color-border-secondary)] px-2 py-1 text-xs text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)]"
                         value={perPage}
                         onChange={(e) => setPerPage(Number(e.target.value))}
                       >
@@ -837,16 +834,16 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
+                        className="rounded-lg border border-[var(--color-border-tertiary)] px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] transition hover:bg-[var(--color-background-hover)] disabled:opacity-40"
                         disabled={currentPage === 1}
                         onClick={() => setCurrentPage((p) => p - 1)}
                       >
                         ← Précédent
                       </button>
-                      <span className="text-xs text-slate-500">Page {currentPage} / {totalPages}</span>
+                      <span className="text-xs text-[var(--color-text-secondary)]">Page {currentPage} / {totalPages}</span>
                       <button
                         type="button"
-                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
+                        className="rounded-lg border border-[var(--color-border-tertiary)] px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] transition hover:bg-[var(--color-background-hover)] disabled:opacity-40"
                         disabled={currentPage === totalPages}
                         onClick={() => setCurrentPage((p) => p + 1)}
                       >
@@ -860,7 +857,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
 
             {/* Module non connecté */}
             {!loading && !error && mod.status !== 'api-ready' && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+              <div className="rounded-lg border border-[var(--color-warning-bg)] bg-[var(--color-warning-bg)] p-4 text-sm text-[var(--color-warning-text)]">
                 Ce module n&apos;a pas encore d&apos;endpoint API connecté.
               </div>
             )}

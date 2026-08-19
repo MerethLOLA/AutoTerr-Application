@@ -21,9 +21,9 @@ interface DashboardLayoutProps {
 }
 
 const LOCALES: { code: Locale; flag: string }[] = [
-  { code: 'fr', flag: '🇫🇷' },
-  { code: 'en', flag: '🇬🇧' },
-  { code: 'es', flag: '🇪🇸' },
+  { code: 'fr', flag: '/drapeau-fr.jpg' },
+  { code: 'en', flag: '/drapeau-en.jpg' },
+  { code: 'es', flag: '/drapeau-es.jpg' },
 ];
 
 // ── Icônes SVG ────────────────────────────────────────────────────────────────
@@ -70,9 +70,22 @@ const clientMenuItems = [
   { lk: 'nav.items.mySpace', href: '/espace-client', icon: IC.person },
 ];
 
-const navGroups = [
+// ── Couleurs de groupe (sidebar) ────────────────────────────────────────────
+// Chaque groupe a sa propre teinte (icône + surbrillance de l'élément actif)
+// pour une navigation plus colorée et plus facile à scanner visuellement,
+// y compris en mode réduit où seules les icônes restent visibles.
+const GROUP_COLORS = {
+  accent:    { base: 'var(--color-accent)',       light: 'var(--color-accent-light)' },
+  success:   { base: 'var(--color-success-text)', light: 'var(--color-success-bg)' },
+  warning:   { base: 'var(--color-warning-text)', light: 'var(--color-warning-bg)' },
+  secondary: { base: 'var(--color-secondary)',    light: 'var(--color-secondary-light)' },
+} as const;
+type GroupColorKey = keyof typeof GROUP_COLORS;
+
+const navGroups: Array<{ lk: string; color: GroupColorKey; items: any[] }> = [
   {
     lk: 'nav.groups.fleet',
+    color: 'accent',
     items: [
       { lk: 'nav.items.vehicles',  href: '/voitures',    badgeKey: null as string | null, icon: IC.car },
       { lk: 'nav.items.parts',     href: '/stock',        badgeKey: 'alertes_stock',       icon: IC.box, standby: true },
@@ -81,6 +94,7 @@ const navGroups = [
   },
   {
     lk: 'nav.groups.commercial',
+    color: 'success',
     items: [
       { lk: 'nav.items.clients',   href: '/clients',           badgeKey: null,                  icon: IC.users },
       { lk: 'nav.items.sales',     href: '/ventes/historique', badgeKey: null,                  icon: IC.cart },
@@ -93,6 +107,7 @@ const navGroups = [
   },
   {
     lk: 'nav.groups.afterSales',
+    color: 'warning',
     items: [
       { lk: 'nav.items.support',     href: '/sav',        badgeKey: 'tickets_ouverts', icon: IC.support },
       { lk: 'nav.items.workshop',    href: '/atelier',    badgeKey: 'ordres_ouverts',  icon: IC.sliders, standby: true },
@@ -103,6 +118,7 @@ const navGroups = [
   },
   {
     lk: 'nav.groups.compliance',
+    color: 'secondary',
     items: [
       { lk: 'nav.items.insurance',   href: '/assurances',           badgeKey: null, icon: IC.shield },
       { lk: 'nav.items.techChecks',  href: '/controles-techniques', badgeKey: null, icon: IC.clip },
@@ -113,6 +129,7 @@ const navGroups = [
   },
   {
     lk: 'nav.groups.management',
+    color: 'accent',
     items: [
       { lk: 'nav.items.employees',  href: '/employes',     badgeKey: null, icon: IC.person,   adminOnly: false },
       { lk: 'nav.items.users',      href: '/utilisateurs', badgeKey: null, icon: IC.users,    adminOnly: true  },
@@ -132,31 +149,23 @@ const quickActions = [
 export const employeeRoles = ['admin', 'super_admin', 'manager', 'commercial', 'sav', 'atelier', 'accountant'];
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
-const LIGHT = {
-  sidebarBg:    '#f5f8fa',
-  sidebarBdr:   '#e8ecf0',
-  topbarBg:     '#ffffff',
-  accent:       '#185FA5',
-  accentLight:  '#E6F1FB',
-  accentHover:  '#d0e6f8',
-  textPrimary:  '#111827',
-  textSecond:   '#6b7280',
-  bgSecondary:  '#f5f8fa',
-  bgHover:      '#f0f4f8',
-  borderLight:  '#e8ecf0',
-};
-const DARK = {
-  sidebarBg:    '#0C1F33',
-  sidebarBdr:   '#1A3450',
-  topbarBg:     '#071626',
-  accent:       '#4A9FE0',
-  accentLight:  '#0D2540',
-  accentHover:  '#122D4D',
-  textPrimary:  '#DEE9F5',
-  textSecond:   '#7BA4C8',
-  bgSecondary:  '#0C1F33',
-  bgHover:      '#112540',
-  borderLight:  '#1A3450',
+// Résolus via les variables CSS de globals.css (voir bloc `.dark`) : le thème
+// est déjà appliqué au <html> avant le premier rendu (script dans layout.tsx),
+// donc ces valeurs s'adaptent automatiquement au mode sombre sans état JS.
+const C = {
+  sidebarBg:    'var(--color-background-secondary)',
+  sidebarBdr:   'var(--color-border-tertiary)',
+  topbarBg:     'var(--color-background-primary)',
+  accent:       'var(--color-accent)',
+  accentLight:  'var(--color-accent-light)',
+  accentHover:  'var(--color-accent-hover)',
+  accentRing:   'var(--color-accent-ring)',
+  textPrimary:  'var(--color-text-primary)',
+  textSecond:   'var(--color-text-secondary)',
+  bgSecondary:  'var(--color-background-secondary)',
+  bgPrimary:    'var(--color-background-primary)',
+  bgHover:      'var(--color-background-hover)',
+  borderLight:  'var(--color-border-tertiary)',
 };
 
 // ── Composant ─────────────────────────────────────────────────────────────────
@@ -210,8 +219,6 @@ export default function DashboardLayout({
     const next = LOCALES[(idx + 1) % LOCALES.length].code;
     setLocale(next);
   }
-
-  const C = isDark ? DARK : LIGHT;
 
   const { counts, loading: notifLoading } = useNotificationBadges();
 
@@ -346,7 +353,7 @@ export default function DashboardLayout({
           onClick={() => setSidebarCollapsed((v) => !v)}
           title={collapsed ? t('nav.sidebar.open') : t('nav.sidebar.collapse')}
           style={{ color: C.textSecond }}
-          className="flex h-6 w-6 items-center justify-center rounded transition hover:bg-[#f0f4f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5]/20"
+          className="flex h-6 w-6 items-center justify-center rounded transition hover:bg-[var(--color-background-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-ring)]"
         >
           <NavIcon d={collapsed ? IC.chevronR : IC.chevronL} size={13} />
         </button>
@@ -365,9 +372,9 @@ export default function DashboardLayout({
                     aria-current={active ? 'page' : undefined}
                     title={collapsed ? t(item.lk) : undefined}
                     style={active ? { color: C.accent, background: C.accentLight, borderLeftColor: C.accent } : { color: C.textSecond }}
-                    className={`flex items-center rounded-r py-2 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5]/20
+                    className={`flex items-center rounded-r py-2 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-ring)]
                       ${collapsed ? 'justify-center px-2' : 'gap-2.5 px-3'}
-                      ${active ? 'border-l-2' : 'border-l-2 border-transparent hover:bg-[#f0f4f8] hover:text-[#111827]'}`}
+                      ${active ? 'border-l-2' : 'border-l-2 border-transparent hover:bg-[var(--color-background-hover)] hover:text-[var(--color-text-primary)]'}`}
                   >
                     <NavIcon d={item.icon} />
                     {!collapsed && t(item.lk)}
@@ -385,26 +392,27 @@ export default function DashboardLayout({
             href="/dashboard"
             aria-current={activeItem === '/dashboard' ? 'page' : undefined}
             title={collapsed ? t('nav.dashboard') : undefined}
-            style={
-              activeItem === '/dashboard'
-                ? { color: C.accent, background: C.accentLight, borderLeftColor: C.accent }
-                : { color: C.textSecond }
-            }
-            className={`mb-1 flex items-center rounded-r py-2 text-[13px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5]/20
-              ${collapsed ? 'justify-center px-2' : 'gap-2.5 px-3'}
-              ${activeItem === '/dashboard' ? 'border-l-2' : 'border-l-2 border-transparent hover:bg-[#f0f4f8] hover:text-[#111827]'}`}
+            style={activeItem === '/dashboard' ? { color: C.accent, background: C.accentLight } : { color: C.textSecond }}
+            className={`mb-2 flex items-center rounded-lg py-2 text-[13px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-ring)]
+              ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'}
+              ${activeItem === '/dashboard' ? '' : 'hover:bg-[var(--color-background-hover)] hover:text-[var(--color-text-primary)]'}`}
           >
-            <NavIcon d={IC.home} />
+            <span
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition"
+              style={activeItem === '/dashboard' ? { background: C.accent, color: '#fff' } : { background: C.accentLight, color: C.accent }}
+            >
+              <NavIcon d={IC.home} size={15} />
+            </span>
             {!collapsed && t('nav.dashboard')}
           </Link>
 
           {/* Actions rapides */}
           {!collapsed && filteredQuickActions.length > 0 && (
-            <section aria-label={t('nav.quickActions.title')} className="mb-3 mt-1">
-              <p className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-[0.15em]" style={{ color: C.textSecond }}>
+            <section aria-label={t('nav.quickActions.title')} className="mb-4 mt-1">
+              <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.15em]" style={{ color: C.textSecond }}>
                 {t('nav.quickActions.title')}
               </p>
-              <div className="grid grid-cols-2 gap-1">
+              <div className="grid grid-cols-2 gap-1.5">
                 {filteredQuickActions.map((action) => (
                   <Link
                     key={action.href + action.lk}
@@ -414,7 +422,7 @@ export default function DashboardLayout({
                         ? { background: C.accentLight, color: C.accent }
                         : { background: C.bgSecondary, color: C.textSecond }
                     }
-                    className="rounded px-2 py-1.5 text-center text-[11px] font-semibold leading-tight transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5]/20 active:scale-95"
+                    className="rounded-lg px-2 py-2 text-center text-[11px] font-semibold leading-tight transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-ring)] active:scale-95"
                   >
                     {t(action.lk)}
                   </Link>
@@ -427,20 +435,22 @@ export default function DashboardLayout({
 
           {/* Navigation groupée */}
           <div className="flex-1 overflow-y-auto">
-            {filteredNavGroups.map((group, gi) => (
+            {filteredNavGroups.map((group, gi) => {
+              const groupColor = GROUP_COLORS[group.color];
+              return (
               <section key={group.lk} aria-label={t(group.lk)}>
                 {!collapsed && (
                   <p
-                    className={`${gi > 0 ? 'mt-3' : 'mt-1'} mb-0.5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em]`}
+                    className={`${gi > 0 ? 'mt-5' : 'mt-2'} mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em]`}
                     style={{ color: C.textSecond }}
                   >
                     {t(group.lk)}
                   </p>
                 )}
                 {collapsed && gi > 0 && (
-                  <div className="mx-2 my-1.5 border-t" style={{ borderColor: C.borderLight }} />
+                  <div className="mx-2 my-2.5 border-t" style={{ borderColor: C.borderLight }} />
                 )}
-                <ul className="space-y-px" role="list">
+                <ul className="space-y-1" role="list">
                   {group.items.map((item) => {
                     const active = activeItem === item.href;
                     const badge = item.badgeKey
@@ -452,21 +462,22 @@ export default function DashboardLayout({
                           href={item.href}
                           aria-current={active ? 'page' : undefined}
                           title={collapsed ? t(item.lk) : undefined}
-                          style={
-                            active
-                              ? { color: C.accent, background: C.accentLight, borderLeftColor: C.accent }
-                              : { color: C.textSecond }
-                          }
-                          className={`relative flex items-center rounded-r py-[7px] text-[13px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5]/20
-                            ${collapsed ? 'justify-center px-2' : 'gap-2.5 px-3'}
-                            ${active ? 'border-l-2 font-medium' : 'border-l-2 border-transparent font-normal hover:bg-[#f0f4f8] hover:text-[#111827]'}`}
+                          style={active ? { color: groupColor.base, background: groupColor.light } : { color: C.textSecond }}
+                          className={`relative flex items-center rounded-lg py-2 text-[13px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-ring)]
+                            ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'}
+                            ${active ? 'font-medium' : 'font-normal hover:bg-[var(--color-background-hover)] hover:text-[var(--color-text-primary)]'}`}
                         >
-                          <NavIcon d={item.icon} />
+                          <span
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition"
+                            style={active ? { background: groupColor.base, color: '#fff' } : { background: groupColor.light, color: groupColor.base }}
+                          >
+                            <NavIcon d={item.icon} size={15} />
+                          </span>
                           {!collapsed && <span className="flex-1">{t(item.lk)}</span>}
                           {badge > 0 && !collapsed && (
                             <span
                               aria-label={`${badge} élément${badge > 1 ? 's' : ''}`}
-                              style={{ background: C.accent, color: '#fff' }}
+                              style={{ background: groupColor.base, color: '#fff' }}
                               className="flex min-w-[18px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none"
                             >
                               {badge}
@@ -475,7 +486,7 @@ export default function DashboardLayout({
                           {badge > 0 && collapsed && (
                             <span
                               aria-hidden="true"
-                              style={{ background: C.accent }}
+                              style={{ background: groupColor.base }}
                               className="absolute right-1 top-1 h-2 w-2 rounded-full"
                             />
                           )}
@@ -485,7 +496,8 @@ export default function DashboardLayout({
                   })}
                 </ul>
               </section>
-            ))}
+              );
+            })}
           </div>
         </nav>
       )}
@@ -501,14 +513,14 @@ export default function DashboardLayout({
             id={userMenuId}
             role="menu"
             aria-label="Menu utilisateur"
-            className="absolute bottom-full left-2 right-2 mb-2 overflow-hidden rounded border bg-white shadow-lg"
+            className="absolute bottom-full left-2 right-2 mb-2 overflow-hidden rounded border bg-[var(--color-background-primary)] shadow-lg"
             style={{ borderColor: C.borderLight }}
           >
             <Link
               href="/settings"
               role="menuitem"
               style={{ color: C.textPrimary }}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium transition hover:bg-[#f5f8fa] focus-visible:outline-none"
+              className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium transition hover:bg-[var(--color-background-secondary)] focus-visible:outline-none"
               onClick={() => setUserMenuOpen(false)}
             >
               <NavIcon d={IC.sliders} size={14} />
@@ -518,7 +530,7 @@ export default function DashboardLayout({
               type="button"
               role="menuitem"
               onClick={logout}
-              className="flex w-full items-center gap-2.5 border-t px-4 py-2.5 text-left text-[13px] font-medium text-red-600 transition hover:bg-red-50 focus-visible:outline-none"
+              className="flex w-full items-center gap-2.5 border-t px-4 py-2.5 text-left text-[13px] font-medium text-[var(--color-danger-text)] transition hover:bg-[var(--color-danger-bg)] focus-visible:outline-none"
               style={{ borderColor: C.borderLight }}
             >
               <NavIcon d={IC.logout} size={14} />
@@ -535,7 +547,7 @@ export default function DashboardLayout({
           aria-haspopup="menu"
           title={collapsed ? currentUserName : undefined}
           onClick={() => { setUserMenuOpen((v) => !v); setNotifMenuOpen(false); }}
-          className={`flex w-full items-center rounded py-1.5 text-left transition hover:bg-[#f0f4f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5]/20
+          className={`flex w-full items-center rounded py-1.5 text-left transition hover:bg-[var(--color-background-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-ring)]
             ${collapsed ? 'justify-center px-1' : 'gap-2.5 px-2'}`}
         >
           {currentPhotoUrl ? (
@@ -599,7 +611,7 @@ export default function DashboardLayout({
               aria-controls="sidebar-nav"
               onClick={() => setSidebarOpen((v) => !v)}
               style={{ color: C.textSecond }}
-              className="flex h-8 w-8 items-center justify-center rounded transition hover:bg-[#f0f4f8] focus-visible:outline-none lg:hidden"
+              className="flex h-8 w-8 items-center justify-center rounded transition hover:bg-[var(--color-background-hover)] focus-visible:outline-none lg:hidden"
             >
               {sidebarOpen ? (
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -614,7 +626,7 @@ export default function DashboardLayout({
 
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5]/30"
+              className="flex items-center gap-2 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-ring)]"
             >
               <div style={{ position: 'relative', width: '130px', height: '48px', overflow: 'hidden', flexShrink: 0 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -670,7 +682,7 @@ export default function DashboardLayout({
               aria-expanded={searchOpen}
               onClick={() => setSearchOpen((v) => !v)}
               style={{ color: C.textSecond }}
-              className="flex h-8 w-8 items-center justify-center rounded transition hover:bg-[#f0f4f8] lg:hidden"
+              className="flex h-8 w-8 items-center justify-center rounded transition hover:bg-[var(--color-background-hover)] lg:hidden"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -684,7 +696,7 @@ export default function DashboardLayout({
               title={isDark ? t('settings.appearance.light') : t('settings.appearance.dark')}
               aria-label={isDark ? t('settings.appearance.light') : t('settings.appearance.dark')}
               style={{ color: C.textSecond, border: `0.5px solid ${C.borderLight}` }}
-              className="hidden h-8 w-8 items-center justify-center rounded transition hover:bg-[#f0f4f8] sm:flex"
+              className="hidden h-8 w-8 items-center justify-center rounded transition hover:bg-[var(--color-background-hover)] sm:flex"
             >
               {isDark ? (
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -703,9 +715,10 @@ export default function DashboardLayout({
               onClick={cycleLocale}
               title={t('settings.appearance.language')}
               style={{ color: C.textSecond, border: `0.5px solid ${C.borderLight}` }}
-              className="hidden h-8 items-center gap-1 rounded px-2 text-[11px] font-bold transition hover:bg-[#f0f4f8] sm:flex"
+              className="hidden h-8 items-center gap-1 rounded px-2 text-[11px] font-bold transition hover:bg-[var(--color-background-hover)] sm:flex"
             >
-              <span>{LOCALES.find((l) => l.code === locale)?.flag}</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={LOCALES.find((l) => l.code === locale)?.flag} alt="" className="h-3.5 w-5 rounded-[2px] object-cover" />
               <span>{locale.toUpperCase()}</span>
             </button>
 
@@ -718,9 +731,8 @@ export default function DashboardLayout({
                 aria-expanded={notifMenuOpen}
                 aria-haspopup="true"
                 onClick={() => { setNotifMenuOpen((v) => !v); setUserMenuOpen(false); }}
-                style={{ color: C.textSecond }}
-                className="relative flex h-8 w-8 items-center justify-center rounded border transition hover:bg-[#f0f4f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5]/20"
-                css-border={`0.5px solid ${C.borderLight}`}
+                style={{ color: C.textSecond, borderColor: C.borderLight }}
+                className="relative flex h-8 w-8 items-center justify-center rounded border transition hover:bg-[var(--color-background-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-ring)]"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={IC.bell} />
@@ -728,7 +740,7 @@ export default function DashboardLayout({
                 {(notifLoading || totalNotifs > 0) && (
                   <span
                     aria-hidden="true"
-                    style={{ background: '#E24B4A', border: `1.5px solid ${C.topbarBg}` }}
+                    style={{ background: 'var(--color-secondary)', border: `1.5px solid ${C.topbarBg}` }}
                     className="absolute -right-0.5 -top-0.5 flex min-h-[14px] min-w-[14px] items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none text-white"
                   >
                     {notifLoading ? '·' : totalNotifs}
@@ -740,7 +752,7 @@ export default function DashboardLayout({
                 <div
                   role="dialog"
                   aria-label="Panneau de notifications"
-                  className="absolute right-0 mt-2 w-[min(360px,90vw)] overflow-hidden rounded border bg-white shadow-lg"
+                  className="absolute right-0 mt-2 w-[min(360px,90vw)] overflow-hidden rounded border bg-[var(--color-background-primary)] shadow-lg"
                   style={{ borderColor: C.borderLight }}
                 >
                   <div className="border-b px-4 py-3" style={{ borderColor: C.borderLight }}>
@@ -749,19 +761,19 @@ export default function DashboardLayout({
                   </div>
                   <div className="max-h-[380px] overflow-y-auto" role="list">
                     {[
-                      { label: 'Réservations en attente', value: counts.reservations ?? 0,       href: '/locations',    color: '#854F0B', bg: '#FAEEDA' },
-                      { label: 'Factures impayées',        value: counts.factures_impayees ?? 0, href: '/facturations', color: '#A32D2D', bg: '#FCEBEB' },
-                      { label: 'Tickets SAV ouverts',      value: counts.tickets_ouverts ?? 0,   href: '/sav',          color: '#854F0B', bg: '#FAEEDA' },
-                      { label: 'Ordres atelier ouverts',   value: counts.ordres_ouverts ?? 0,    href: '/atelier',      color: '#854F0B', bg: '#FAEEDA' },
-                      { label: 'Alertes de stock',         value: counts.alertes_stock ?? 0,     href: '/stock',        color: '#A32D2D', bg: '#FCEBEB' },
-                      { label: 'Demandes en attente',      value: counts.demandes_en_attente ?? 0, href: '/demandes',   color: '#854F0B', bg: '#FAEEDA' },
+                      { label: 'Réservations en attente', value: counts.reservations ?? 0,       href: '/locations',    color: 'var(--color-warning-text)', bg: 'var(--color-warning-bg)' },
+                      { label: 'Factures impayées',        value: counts.factures_impayees ?? 0, href: '/facturations', color: 'var(--color-danger-text)',  bg: 'var(--color-danger-bg)'  },
+                      { label: 'Tickets SAV ouverts',      value: counts.tickets_ouverts ?? 0,   href: '/sav',          color: 'var(--color-warning-text)', bg: 'var(--color-warning-bg)' },
+                      { label: 'Ordres atelier ouverts',   value: counts.ordres_ouverts ?? 0,    href: '/atelier',      color: 'var(--color-warning-text)', bg: 'var(--color-warning-bg)' },
+                      { label: 'Alertes de stock',         value: counts.alertes_stock ?? 0,     href: '/stock',        color: 'var(--color-danger-text)',  bg: 'var(--color-danger-bg)'  },
+                      { label: 'Demandes en attente',      value: counts.demandes_en_attente ?? 0, href: '/demandes',   color: 'var(--color-warning-text)', bg: 'var(--color-warning-bg)' },
                     ].filter((a) => a.value > 0).map((a) => (
                       <Link
                         key={a.href}
                         href={a.href}
                         role="listitem"
                         onClick={() => setNotifMenuOpen(false)}
-                        className="flex items-center justify-between border-b px-4 py-2.5 text-left transition last:border-b-0 hover:bg-[#f5f8fa]"
+                        className="flex items-center justify-between border-b px-4 py-2.5 text-left transition last:border-b-0 hover:bg-[var(--color-background-secondary)]"
                         style={{ borderColor: C.borderLight, background: a.bg }}
                       >
                         <p className="text-[12px] font-medium" style={{ color: C.textPrimary }}>{a.label}</p>
@@ -780,8 +792,8 @@ export default function DashboardLayout({
                         type="button"
                         role="listitem"
                         onClick={() => handleNotifClick(item)}
-                        className="block w-full border-b px-4 py-2.5 text-left transition last:border-b-0 hover:bg-[#f5f8fa] focus-visible:outline-none"
-                        style={{ borderColor: C.borderLight, background: item.read_at ? '#fff' : C.bgSecondary }}
+                        className="block w-full border-b px-4 py-2.5 text-left transition last:border-b-0 hover:bg-[var(--color-background-secondary)] focus-visible:outline-none"
+                        style={{ borderColor: C.borderLight, background: item.read_at ? C.bgPrimary : C.bgSecondary }}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>

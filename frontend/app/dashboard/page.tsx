@@ -5,22 +5,26 @@ import { apiClient } from '@/lib/api';
 import type { ReportingPayload } from '@/lib/types';
 import { useNotificationBadges } from '@/lib/useNotificationBadges';
 import { useRole } from '@/lib/useRole';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-const BLUE  = '#185FA5';
-const LIGHT = '#E6F1FB';
-const BG    = '#f5f8fa';
+const STORAGE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '');
+function imgUrl(p?: string | null) {
+  return p ? `${STORAGE_URL}/storage/${p}` : null;
+}
 
 function num(v?: number | null) {
   return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(v || 0));
 }
+
 function money(v?: number | null) {
-  return num(v) + ' XOF';
+  return `${num(v)} FCFA`;
 }
+
 function timeAgo(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 60)   return `Il y a ${diff}s`;
+  if (diff < 60) return `Il y a ${diff}s`;
   if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`;
   if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)} h`;
   return `Il y a ${Math.floor(diff / 86400)} j`;
@@ -30,75 +34,187 @@ function timeAgo(iso: string): string {
 
 function KpiSkeleton() {
   return (
-    <div style={{ background: BG, borderRadius: 6, padding: '12px 14px' }} className="animate-pulse">
-      <div className="flex items-start justify-between mb-2">
-        <div className="h-3 w-24 rounded bg-slate-200" />
-        <div className="h-7 w-7 rounded bg-slate-200" />
+    <div className="animate-pulse rounded-xl border p-5" style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-primary)' }}>
+      <div className="mb-3 flex items-center justify-between">
+        <div className="h-3 w-24 rounded" style={{ background: 'var(--color-border-tertiary)' }} />
+        <div className="h-9 w-9 rounded-lg" style={{ background: 'var(--color-background-secondary)' }} />
       </div>
-      <div className="h-7 w-20 rounded bg-slate-200 mb-1" />
-      <div className="h-3 w-16 rounded bg-slate-100" />
+      <div className="mb-2 h-7 w-20 rounded" style={{ background: 'var(--color-border-tertiary)' }} />
+      <div className="h-3 w-16 rounded" style={{ background: 'var(--color-background-secondary)' }} />
     </div>
   );
 }
 
 // ── KPI Card ──────────────────────────────────────────────────────────────────
 
-function KpiCard({ label, value, delta, deltaPositive = true, icon, href }: {
-  label: string; value: string | number; delta?: string;
-  deltaPositive?: boolean; icon: React.ReactNode; href?: string;
+function KpiCard({
+  label,
+  value,
+  delta,
+  deltaPositive = true,
+  icon,
+  iconBg,
+  iconColor,
+  href,
+  accent,
+}: {
+  label: string;
+  value: string | number;
+  delta?: string;
+  deltaPositive?: boolean;
+  icon: React.ReactNode;
+  iconBg: string;
+  iconColor: string;
+  href?: string;
+  accent?: boolean;
 }) {
   const inner = (
-    <div style={{ background: BG, borderRadius: 6, padding: '12px 14px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6 }}>
-        <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4 }}>{label}</p>
-        <div style={{ width: 28, height: 28, borderRadius: 6, background: LIGHT, color: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+    <div
+      className="group relative overflow-hidden rounded-xl border p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-primary)' }}
+    >
+      {accent && <div className="absolute inset-x-0 top-0 h-1" style={{ background: 'var(--color-secondary)' }} />}
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
+          <h3 className="mt-2 text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-primary)' }}>{value}</h3>
+        </div>
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: iconBg, color: iconColor }}>
           {icon}
         </div>
       </div>
-      <p style={{ fontSize: 22, fontWeight: 500, color: '#111827', marginBottom: 2, lineHeight: 1.1 }}>{value}</p>
       {delta && (
-        <p style={{ fontSize: 11, color: deltaPositive ? '#3B6D11' : '#A32D2D' }}>{delta}</p>
+        <div className="mt-3 flex items-center gap-1.5">
+          <span
+            className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+            style={
+              deltaPositive
+                ? { background: 'var(--color-success-bg)', color: 'var(--color-success-text)' }
+                : { background: 'var(--color-warning-bg)', color: 'var(--color-warning-text)' }
+            }
+          >
+            {delta}
+          </span>
+        </div>
       )}
     </div>
   );
   return href ? <Link href={href} className="block">{inner}</Link> : <>{inner}</>;
 }
 
-// ── Statut badge ──────────────────────────────────────────────────────────────
+// ── Statut badge (véhicule) ─────────────────────────────────────────────────
+
+const STATUT_MAP: Record<string, { label: string; cls: string }> = {
+  disponible:  { label: 'Disponible',   cls: 'badge-active' },
+  reservee:    { label: 'Réservée',     cls: 'badge-pending' },
+  vendue:      { label: 'Vendue',       cls: 'badge-info' },
+  en_location: { label: 'En location',  cls: 'badge-pending' },
+  entretien:   { label: 'En entretien', cls: 'badge-neutral' },
+};
 
 function StatusBadge({ statut }: { statut: string }) {
-  const map: Record<string, { label: string; bg: string; color: string }> = {
-    disponible:  { label: 'Active',     bg: '#EAF3DE', color: '#3B6D11' },
-    reservee:    { label: 'En attente', bg: '#FAEEDA', color: '#854F0B' },
-    vendue:      { label: 'Vendue',     bg: '#FCEBEB', color: '#A32D2D' },
-    en_location: { label: 'En location', bg: '#E6F1FB', color: BLUE    },
-    entretien:   { label: 'Entretien',  bg: '#F3F0FB', color: '#5B21B6' },
-  };
-  const s = map[statut] ?? { label: 'Expirée', bg: '#f3f4f6', color: '#6b7280' };
-  return (
-    <span style={{ fontSize: 10, fontWeight: 600, background: s.bg, color: s.color, borderRadius: 4, padding: '2px 7px', whiteSpace: 'nowrap' }}>
-      {s.label}
-    </span>
-  );
+  const s = STATUT_MAP[statut] ?? { label: statut, cls: 'badge-neutral' };
+  return <span className={`status-badge ${s.cls} font-bold uppercase tracking-wide`}>{s.label}</span>;
 }
 
 // ── Barres horizontales ────────────────────────────────────────────────────────
 
-function HorizBars({ data, color = BLUE }: { data: Array<{ label: string; pct: number }>; color?: string }) {
+function HorizBars({ data }: { data: Array<{ label: string; pct: number }> }) {
   const max = Math.max(...data.map((d) => d.pct), 1);
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-3">
       {data.map((d) => (
         <div key={d.label}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-            <span style={{ fontSize: 12, color: '#374151' }}>{d.label}</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#111827' }}>{d.pct}%</span>
+          <div className="mb-1 flex justify-between text-xs font-medium">
+            <span style={{ color: 'var(--color-text-secondary)' }}>{d.label}</span>
+            <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{d.pct}%</span>
           </div>
-          <div style={{ height: 6, background: '#e8ecf0', borderRadius: 4, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${(d.pct / max) * 100}%`, background: color, borderRadius: 4, transition: 'width .4s' }} />
+          <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: 'var(--color-background-secondary)' }}>
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${(d.pct / max) * 100}%`, background: 'var(--color-accent)' }}
+            />
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ── Graphique ventes mensuelles ─────────────────────────────────────────────
+
+const SALES_CHART_BAR_MAX = 128; // px — hauteur max d'une barre
+
+function SalesBarChart({ data }: { data: Array<{ label: string; count: number; amount: number }> }) {
+  const max = Math.max(...data.map((d) => Number(d.amount)), 1);
+  const currentIdx = data.length - 1;
+  return (
+    <div className="flex items-end gap-1.5 sm:gap-2.5" style={{ height: SALES_CHART_BAR_MAX + 28 }}>
+      {data.map((d, i) => {
+        const barHeight = Math.max((Number(d.amount) / max) * SALES_CHART_BAR_MAX, 3);
+        const isCurrent = i === currentIdx;
+        return (
+          <div key={`${d.label}-${i}`} className="group relative flex flex-1 flex-col items-center justify-end gap-2">
+            <div
+              className="pointer-events-none absolute bottom-full z-10 mb-2 hidden w-36 rounded-lg border p-2 text-center shadow-lg group-hover:block"
+              style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-primary)' }}
+            >
+              <p className="text-xs font-bold" style={{ color: 'var(--color-text-primary)' }}>{d.label}</p>
+              <p className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>{d.count} vente{d.count !== 1 ? 's' : ''}</p>
+              <p className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{money(d.amount)}</p>
+            </div>
+            <div
+              className="w-full rounded-t-md transition-all duration-500"
+              style={{ height: barHeight, background: isCurrent ? 'var(--color-secondary)' : 'var(--color-accent)', opacity: isCurrent ? 1 : 0.7 }}
+            />
+            <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{d.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Répartition des locations (donut CSS) ───────────────────────────────────
+
+function StatusDonut({ segments, centerLabel }: { segments: Array<{ label: string; value: number; color: string }>; centerLabel: string }) {
+  const total = segments.reduce((s, x) => s + x.value, 0);
+  let acc = 0;
+  const stops = segments
+    .map((s) => {
+      const start = total > 0 ? (acc / total) * 100 : 0;
+      acc += s.value;
+      const end = total > 0 ? (acc / total) * 100 : 0;
+      return `${s.color} ${start}% ${end}%`;
+    })
+    .join(', ');
+
+  return (
+    <div className="flex flex-col items-center gap-5">
+      <div
+        className="relative h-36 w-36 shrink-0 rounded-full"
+        style={{ background: total > 0 ? `conic-gradient(${stops})` : 'var(--color-border-tertiary)' }}
+      >
+        <div className="absolute inset-[18%] flex items-center justify-center rounded-full" style={{ background: 'var(--color-background-primary)' }}>
+          <div className="text-center">
+            <p className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{total}</p>
+            <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{centerLabel}</p>
+          </div>
+        </div>
+      </div>
+      <div className="w-full space-y-2.5">
+        {segments.map((s) => (
+          <div key={s.label} className="flex items-center justify-between text-xs">
+            <span className="flex items-center gap-2">
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: s.color }} />
+              <span style={{ color: 'var(--color-text-secondary)' }}>{s.label}</span>
+            </span>
+            <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+              {s.value}{total > 0 ? ` · ${Math.round((s.value / total) * 100)}%` : ''}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -107,14 +223,16 @@ function HorizBars({ data, color = BLUE }: { data: Array<{ label: string; pct: n
 
 function ActivityDot({ type }: { type: string }) {
   const colors: Record<string, { bg: string; color: string }> = {
-    vente:    { bg: '#EAF3DE', color: '#3B6D11' },
-    location: { bg: LIGHT,     color: BLUE       },
-    demande:  { bg: '#FAEEDA', color: '#854F0B'  },
-    user:     { bg: '#F3F0FB', color: '#5B21B6'  },
+    vente:    { bg: 'var(--color-success-bg)', color: 'var(--color-success-text)' },
+    location: { bg: 'var(--color-accent-light)', color: 'var(--color-accent)' },
+    demande:  { bg: 'var(--color-warning-bg)', color: 'var(--color-warning-text)' },
+    user:     { bg: 'var(--color-secondary-light)', color: 'var(--color-secondary)' },
   };
-  const c = colors[type] ?? { bg: '#f3f4f6', color: '#6b7280' };
+  const c = colors[type] ?? { bg: 'var(--color-background-secondary)', color: 'var(--color-text-secondary)' };
   return (
-    <div style={{ width: 28, height: 28, borderRadius: 6, background: c.bg, flexShrink: 0 }} />
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full" style={{ background: c.bg, color: c.color }}>
+      <span className="h-2 w-2 rounded-full bg-current" />
+    </div>
   );
 }
 
@@ -123,31 +241,43 @@ function ActivityDot({ type }: { type: string }) {
 function Avatar({ name }: { name: string }) {
   const initials = name.trim().split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   return (
-    <div style={{ width: 32, height: 32, borderRadius: '50%', background: LIGHT, color: BLUE, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+    <div
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+      style={{ background: 'var(--color-accent-light)', color: 'var(--color-accent)' }}
+    >
       {initials || '?'}
+    </div>
+  );
+}
+
+// ── Vignette véhicule ──────────────────────────────────────────────────────
+
+function VehicleThumb({ src, alt }: { src: string | null; alt: string }) {
+  if (!src) {
+    return (
+      <div className="flex h-11 w-16 shrink-0 items-center justify-center rounded-lg" style={{ background: 'var(--color-background-secondary)' }}>
+        <IconCar className="h-5 w-5" style={{ color: 'var(--color-text-secondary)' }} />
+      </div>
+    );
+  }
+  return (
+    <div className="relative h-11 w-16 shrink-0 overflow-hidden rounded-lg border" style={{ borderColor: 'var(--color-border-tertiary)' }}>
+      <Image src={src} alt={alt} fill className="object-cover" sizes="64px" />
     </div>
   );
 }
 
 // ── Page principale ───────────────────────────────────────────────────────────
 
-const REGIONS_STATIC = [
-  { label: 'Dakar',       pct: 58 },
-  { label: 'Thiès',       pct: 21 },
-  { label: 'Saint-Louis', pct: 13 },
-];
-
 export default function DashboardPage() {
   const { role, canAccessRoute } = useRole();
-  // Le reporting expose des données financières (salaires, commissions...) —
-  // seuls les rôles ayant accès à la page /reporting doivent déclencher cet appel.
   const canSeeReporting = canAccessRoute('/reporting');
   const { counts: badgeCounts } = useNotificationBadges();
 
   const _init = apiClient.getCached<any>('/reporting');
   const [payload, setPayload] = useState<ReportingPayload | null>(_init?.data ?? _init);
   const [loading, setLoading] = useState(_init === null);
-  const [error,   setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!role) return;
@@ -159,37 +289,57 @@ export default function DashboardPage() {
     return () => { mounted = false; };
   }, [role, canSeeReporting]);
 
-  const ventesTotal  = payload?.salesMonthly?.reduce((s, m) => s + Number(m.count), 0) ?? 0;
+  const ventesTotal = payload?.salesMonthly?.reduce((s, m) => s + Number(m.count), 0) ?? 0;
   const currentMonth = new Date().getMonth();
-  const prevMonth    = currentMonth > 0 ? currentMonth - 1 : 11;
-  const ventesCurr   = payload?.salesMonthly?.[currentMonth]?.count ?? 0;
-  const ventesPrev   = payload?.salesMonthly?.[prevMonth]?.count   ?? 0;
-  const ventesDelta  = ventesPrev > 0 ? Math.round(((ventesCurr - ventesPrev) / ventesPrev) * 100) : 5;
+  const prevMonth = currentMonth > 0 ? currentMonth - 1 : 11;
+  const ventesCurr = payload?.salesMonthly?.[currentMonth]?.count ?? 0;
+  const ventesPrev = payload?.salesMonthly?.[prevMonth]?.count ?? 0;
+  const ventesDelta = ventesPrev > 0 ? Math.round(((ventesCurr - ventesPrev) / ventesPrev) * 100) : null;
 
   const dernieres = payload?.dernieresVoitures ?? [];
-  const marques   = payload?.ventesParMarque   ?? [];
-  const vendeurs  = payload?.topVendeurs       ?? [];
-  const activites = payload?.activiteRecente   ?? [];
-  const salaires  = payload?.salairesCommerciaux ?? [];
+  const marques = payload?.ventesParMarque ?? [];
+  const vendeurs = payload?.topVendeurs ?? [];
+  const activites = payload?.activiteRecente ?? [];
+  const salaires = payload?.salairesCommerciaux ?? [];
+  const salesMonthly = payload?.salesMonthly?.filter((m) => m.count > 0 || m.amount > 0) ?? [];
+  const locStats = payload?.locationStats;
+  const locSegments = locStats
+    ? [
+        { label: 'En cours',   value: locStats.en_cours ?? 0,     color: 'var(--color-success-text)' },
+        { label: 'Réservées',  value: locStats.reservations ?? 0, color: 'var(--color-warning-text)' },
+        { label: 'En retard',  value: locStats.retards ?? 0,      color: 'var(--color-danger-text)' },
+      ]
+    : [];
+  const hasLocSegments = locSegments.some((s) => s.value > 0);
 
   return (
     <DashboardLayout>
-      <div className="space-y-5">
+      <div className="space-y-6">
 
         {/* ── En-tête ─────────────────────────────────────────── */}
-        <div className="page-header">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="page-title mt-1">Vue d&apos;ensemble</h1>
-            <p className="page-subtitle">Indicateurs clés et activité récente.</p>
+            <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-primary)' }}>Vue d'ensemble</h1>
+            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Indicateurs clés et activité récente du parc automobile.</p>
           </div>
-          <div className="flex shrink-0 gap-2">
-            <Link href="/voitures/new" className="btn-primary gap-2">
+          <div className="flex flex-wrap gap-2.5">
+            <Link
+              href="/voitures/new"
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all active:scale-95"
+              style={{ background: 'var(--color-secondary)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-secondary-hover)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-secondary)'; }}
+            >
               <IconCar className="h-4 w-4" />
               Ajouter un véhicule
             </Link>
             {canSeeReporting && (
-              <Link href="/reporting" className="btn-secondary gap-2">
-                <IconChart className="h-4 w-4" />
+              <Link
+                href="/reporting"
+                className="inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-xs font-semibold shadow-sm transition-all active:scale-95"
+                style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-primary)', color: 'var(--color-text-primary)' }}
+              >
+                <IconChart className="h-4 w-4" style={{ color: 'var(--color-text-secondary)' }} />
                 Rapport complet
               </Link>
             )}
@@ -198,15 +348,16 @@ export default function DashboardPage() {
 
         {/* ── Vue restreinte (rôles sans accès au reporting) ─────── */}
         {!canSeeReporting && (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: 'Tickets SAV ouverts',        value: badgeCounts.tickets_ouverts,  icon: <IconClock className="h-4 w-4" />, href: '/sav' },
-              { label: 'Ordres de travail ouverts',  value: badgeCounts.ordres_ouverts,   icon: <IconChart className="h-4 w-4" />, href: '/atelier' },
-              { label: 'Réservations',                value: badgeCounts.reservations,     icon: <IconUsers className="h-4 w-4" />, href: '/locations' },
+              { label: 'Tickets SAV ouverts', value: badgeCounts.tickets_ouverts, icon: <IconClock className="h-5 w-5" />, href: '/sav' },
+              { label: 'Ordres de travail ouverts', value: badgeCounts.ordres_ouverts, icon: <IconChart className="h-5 w-5" />, href: '/atelier' },
+              { label: 'Réservations', value: badgeCounts.reservations, icon: <IconUsers className="h-5 w-5" />, href: '/locations' },
             ]
               .filter((k) => canAccessRoute(k.href))
               .map((k) => (
-                <KpiCard key={k.href} label={k.label} value={num(k.value)} icon={k.icon} href={k.href} />
+                <KpiCard key={k.href} label={k.label} value={num(k.value)} icon={k.icon}
+                  iconBg="var(--color-accent-light)" iconColor="var(--color-accent)" href={k.href} />
               ))}
           </div>
         )}
@@ -218,81 +369,126 @@ export default function DashboardPage() {
           </div>
         )}
         {canSeeReporting && error && (
-          <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+          <div className="rounded-lg border p-4 text-sm font-medium" style={{ borderColor: 'var(--color-danger-bg)', background: 'var(--color-danger-bg)', color: 'var(--color-danger-text)' }}>{error}</div>
         )}
 
         {canSeeReporting && !loading && !error && (
           <>
             {/* ── 4 KPIs ──────────────────────────────────────── */}
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <KpiCard
-                label="Annonces actives"
+                label="Véhicules disponibles"
                 value={num(payload?.voituresDisponibles)}
-                delta="+12% ce mois"
-                icon={<IconCar className="h-4 w-4" />}
+                icon={<IconCar className="h-5 w-5" />}
+                iconBg="var(--color-accent-light)" iconColor="var(--color-accent)"
                 href="/voitures"
               />
               <KpiCard
                 label="Utilisateurs inscrits"
                 value={num(payload?.utilisateursInscrits)}
-                delta="+8% ce mois"
-                icon={<IconUsers className="h-4 w-4" />}
+                icon={<IconUsers className="h-5 w-5" />}
+                iconBg="var(--color-success-bg)" iconColor="var(--color-success-text)"
                 href="/clients"
               />
               <KpiCard
                 label="Ventes réalisées"
                 value={num(ventesTotal)}
-                delta={`${ventesDelta >= 0 ? '+' : ''}${ventesDelta}% ce mois`}
-                icon={<IconChart className="h-4 w-4" />}
+                delta={ventesDelta === null ? undefined : `${ventesDelta >= 0 ? '+' : ''}${ventesDelta}% ce mois`}
+                deltaPositive={ventesDelta === null ? true : ventesDelta >= 0}
+                icon={<IconChart className="h-5 w-5" />}
+                iconBg="var(--color-secondary-light)" iconColor="var(--color-secondary)"
                 href="/ventes/historique"
+                accent
               />
               <KpiCard
                 label="En attente validation"
                 value={num(payload?.enAttenteValidation)}
-                delta={`+${payload?.locationStats?.reservations ?? 0} aujourd'hui`}
+                delta={`${payload?.locationStats?.reservations ?? 0} réservation${(payload?.locationStats?.reservations ?? 0) > 1 ? 's' : ''} en attente`}
                 deltaPositive={false}
-                icon={<IconClock className="h-4 w-4" />}
+                icon={<IconClock className="h-5 w-5" />}
+                iconBg="var(--color-warning-bg)" iconColor="var(--color-warning-text)"
                 href="/demandes"
               />
             </div>
 
-            {/* ── Dernières annonces + Ventes par marque/région ── */}
-            <div className="grid gap-4" style={{ gridTemplateColumns: '1fr 280px' }}>
+            {/* ── Ventes mensuelles + Répartition locations ────── */}
+            {(salesMonthly.length > 0 || hasLocSegments) && (
+              <div className="grid gap-6 lg:grid-cols-3">
+                {salesMonthly.length > 0 && (
+                  <div className="rounded-xl border p-6 shadow-sm lg:col-span-2" style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-primary)' }}>
+                    <div className="mb-4 flex items-center justify-between">
+                      <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Ventes mensuelles</h2>
+                      <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{payload?.year}</span>
+                    </div>
+                    <SalesBarChart data={salesMonthly} />
+                  </div>
+                )}
+                {hasLocSegments && (
+                  <div className="rounded-xl border p-6 shadow-sm" style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-primary)' }}>
+                    <h2 className="mb-4 text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>État des locations</h2>
+                    <StatusDonut segments={locSegments} centerLabel="locations" />
+                  </div>
+                )}
+              </div>
+            )}
 
-              {/* Tableau annonces */}
-              <div className="card">
-                <div style={{ padding: '12px 16px', borderBottom: '0.5px solid #e8ecf0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <h2 className="section-title">Dernières annonces</h2>
-                  <Link href="/voitures" style={{ fontSize: 12, color: BLUE }}>Voir tout →</Link>
+            {/* ── Dernières annonces + Ventes par marque ───────── */}
+            <div className="grid gap-6 lg:grid-cols-3">
+
+              {/* Tableau annonces (2 Cols) */}
+              <div className="overflow-hidden rounded-xl border shadow-sm lg:col-span-2" style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-primary)' }}>
+                <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: 'var(--color-border-tertiary)' }}>
+                  <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Dernières annonces</h2>
+                  <Link href="/voitures" className="text-xs font-semibold transition-colors" style={{ color: 'var(--color-accent)' }}>
+                    Voir tout →
+                  </Link>
                 </div>
                 <div className="overflow-x-auto">
                   {dernieres.length === 0 ? (
-                    <p style={{ padding: '20px 16px', fontSize: 13, color: '#9ca3af', textAlign: 'center' }}>Aucun véhicule enregistré</p>
+                    <p className="py-8 text-center text-xs" style={{ color: 'var(--color-text-secondary)' }}>Aucun véhicule enregistré</p>
                   ) : (
-                    <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+                    <table className="w-full text-left text-xs">
                       <thead>
-                        <tr style={{ borderBottom: '0.5px solid #e8ecf0' }}>
-                          {['Véhicule', 'Vendeur', 'Prix', 'Statut', 'Actions'].map((h) => (
-                            <th key={h} style={{ padding: '7px 12px', textAlign: 'left', fontSize: 11, color: '#9ca3af', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
-                          ))}
+                        <tr className="border-b uppercase" style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-secondary)', color: 'var(--color-text-secondary)' }}>
+                          <th className="px-6 py-3 font-semibold">Photo</th>
+                          <th className="px-6 py-3 font-semibold">Véhicule</th>
+                          <th className="px-6 py-3 font-semibold">Vendeur</th>
+                          <th className="px-6 py-3 font-semibold">Prix</th>
+                          <th className="px-6 py-3 font-semibold">Statut</th>
+                          <th className="px-6 py-3 font-semibold">Actions</th>
                         </tr>
                       </thead>
-                      <tbody>
-                        {dernieres.map((v) => (
-                          <tr key={v.id} style={{ borderBottom: '0.5px solid #f9fafb' }} className="hover:bg-[#fafafa]">
-                            <td style={{ padding: '9px 12px' }}>
-                              <p style={{ fontWeight: 500, color: '#111827', fontSize: 12 }}>{v.marque} {v.modele} {v.annee ?? ''}</p>
-                              {v.energie && <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 1 }}>{v.energie}</p>}
+                      <tbody className="divide-y" style={{ borderColor: 'var(--color-border-tertiary)' }}>
+                        {dernieres.map((v, vi) => (
+                          <tr key={v.id} className="transition-colors" style={{ borderColor: 'var(--color-border-tertiary)' }}>
+                            <td className="px-6 py-3">
+                              <VehicleThumb src={imgUrl(v.image_principale)} alt={`${v.marque} ${v.modele}`} />
                             </td>
-                            <td style={{ padding: '9px 12px', color: '#374151', fontSize: 12 }}>{v.vendeur || '—'}</td>
-                            <td style={{ padding: '9px 12px', color: BLUE, fontWeight: 500, fontSize: 12, whiteSpace: 'nowrap' }}>
-                              {num(v.prix_vente ?? v.prix ?? 0)}
+                            <td className="px-6 py-3.5">
+                              <p className="flex items-center gap-2 font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                                {v.marque} {v.modele} <span className="font-normal" style={{ color: 'var(--color-text-secondary)' }}>{v.annee ?? ''}</span>
+                                {vi === 0 && (
+                                  <span
+                                    className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+                                    style={{ background: 'var(--color-secondary)' }}
+                                  >
+                                    Nouveau
+                                  </span>
+                                )}
+                              </p>
+                              {v.energie && <p className="mt-0.5 text-[11px] capitalize" style={{ color: 'var(--color-text-secondary)' }}>{v.energie}</p>}
                             </td>
-                            <td style={{ padding: '9px 12px' }}>
+                            <td className="px-6 py-3.5" style={{ color: 'var(--color-text-secondary)' }}>{v.vendeur || '—'}</td>
+                            <td className="px-6 py-3.5 whitespace-nowrap font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                              {money(v.prix_vente ?? v.prix ?? 0)}
+                            </td>
+                            <td className="px-6 py-3.5">
                               <StatusBadge statut={v.statut} />
                             </td>
-                            <td style={{ padding: '9px 12px' }}>
-                              <Link href={`/voitures/${v.id}`} style={{ fontSize: 11, color: BLUE }}>Voir →</Link>
+                            <td className="px-6 py-3.5">
+                              <Link href={`/voitures/${v.id}`} className="font-medium hover:underline" style={{ color: 'var(--color-accent)' }}>
+                                Voir →
+                              </Link>
                             </td>
                           </tr>
                         ))}
@@ -302,50 +498,44 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Ventes par marque + région */}
-              <div className="card" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-                <div>
-                  <h2 className="section-title" style={{ marginBottom: 12 }}>Ventes par marque</h2>
-                  {marques.length === 0 ? (
-                    <p style={{ fontSize: 12, color: '#9ca3af' }}>Aucune vente</p>
-                  ) : (
-                    <HorizBars data={marques.map((m) => ({ label: m.marque, pct: m.pct }))} color={BLUE} />
-                  )}
-                </div>
-                <div style={{ borderTop: '0.5px solid #e8ecf0', paddingTop: 16 }}>
-                  <h2 className="section-title" style={{ marginBottom: 12 }}>Ventes par région</h2>
-                  <HorizBars data={REGIONS_STATIC} color="#3B6D11" />
-                </div>
+              {/* Ventes par marque (1 Col) */}
+              <div className="rounded-xl border p-6 shadow-sm" style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-primary)' }}>
+                <h2 className="mb-4 text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Ventes par marque</h2>
+                {marques.length === 0 ? (
+                  <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Aucune vente enregistrée</p>
+                ) : (
+                  <HorizBars data={marques.map((m) => ({ label: m.marque, pct: m.pct }))} />
+                )}
               </div>
             </div>
 
             {/* ── Top vendeurs + Activité récente ──────────────── */}
-            <div className="grid gap-4" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            <div className="grid gap-6 md:grid-cols-2">
 
               {/* Top vendeurs */}
-              <div className="card" style={{ padding: '12px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <h2 className="section-title">Top vendeurs</h2>
-                  <Link href="/employes" style={{ fontSize: 12, color: BLUE }}>Voir tout →</Link>
+              <div className="rounded-xl border p-6 shadow-sm" style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-primary)' }}>
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Top vendeurs</h2>
+                  <Link href="/employes" className="text-xs font-semibold" style={{ color: 'var(--color-accent)' }}>
+                    Voir tout →
+                  </Link>
                 </div>
                 {vendeurs.length === 0 ? (
-                  <p style={{ fontSize: 13, color: '#9ca3af', textAlign: 'center', paddingTop: 10 }}>Aucune donnée</p>
+                  <p className="py-4 text-center text-xs" style={{ color: 'var(--color-text-secondary)' }}>Aucune donnée</p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {vendeurs.map((v, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div key={i} className="flex items-center gap-3">
                         <Avatar name={`${v.prenom} ${v.nom}`} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 500, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {v.prenom} {v.nom}
-                          </p>
-                          <p style={{ fontSize: 11, color: '#9ca3af' }}>
-                            {v.poste || 'Commercial'}{' · '}{money(Number(v.total))}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{v.prenom} {v.nom}</p>
+                          <p className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+                            {v.poste || 'Commercial'} · <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{money(Number(v.total))}</span>
                           </p>
                         </div>
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <p style={{ fontSize: 12, fontWeight: 600, color: BLUE }}>{v.count} vente{v.count !== 1 ? 's' : ''}</p>
-                        </div>
+                        <span className="rounded-md px-2 py-1 text-xs font-bold" style={{ background: 'var(--color-accent-light)', color: 'var(--color-accent)' }}>
+                          {v.count} vente{v.count !== 1 ? 's' : ''}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -353,22 +543,18 @@ export default function DashboardPage() {
               </div>
 
               {/* Activité récente */}
-              <div className="card" style={{ padding: '12px 16px' }}>
-                <h2 className="section-title" style={{ marginBottom: 14 }}>Activité récente</h2>
+              <div className="rounded-xl border p-6 shadow-sm" style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-primary)' }}>
+                <h2 className="mb-4 text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Activité récente</h2>
                 {activites.length === 0 ? (
-                  <p style={{ fontSize: 13, color: '#9ca3af', textAlign: 'center', paddingTop: 10 }}>Aucune activité récente</p>
+                  <p className="py-4 text-center text-xs" style={{ color: 'var(--color-text-secondary)' }}>Aucune activité récente</p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {activites.map((a, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                      <div key={i} className="flex items-center gap-3">
                         <ActivityDot type={a.type} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 12, fontWeight: 500, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {a.label}
-                          </p>
-                          <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 1 }}>
-                            {timeAgo(a.at)}
-                          </p>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>{a.label}</p>
+                          <p className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>{timeAgo(a.at)}</p>
                         </div>
                       </div>
                     ))}
@@ -379,32 +565,36 @@ export default function DashboardPage() {
 
             {/* ── Salaires commerciaux (fixe + commission) ─────── */}
             {salaires.length > 0 && (
-              <div className="card" style={{ padding: '12px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <h2 className="section-title">Salaires commerciaux · {payload?.salairesPeriode ?? new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</h2>
-                  <Link href="/employes" style={{ fontSize: 12, color: BLUE }}>Voir tout →</Link>
+              <div className="overflow-hidden rounded-xl border p-6 shadow-sm" style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-primary)' }}>
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                    Salaires commerciaux · <span className="font-normal" style={{ color: 'var(--color-text-secondary)' }}>{payload?.salairesPeriode ?? new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</span>
+                  </h2>
+                  <Link href="/employes" className="text-xs font-semibold" style={{ color: 'var(--color-accent)' }}>
+                    Voir tout →
+                  </Link>
                 </div>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
                     <thead>
-                      <tr style={{ textAlign: 'left', color: '#9ca3af', fontWeight: 500 }}>
-                        <th style={{ padding: '6px 8px' }}>Employé</th>
-                        <th style={{ padding: '6px 8px' }}>Salaire fixe</th>
-                        <th style={{ padding: '6px 8px' }}>Ventes + locations</th>
-                        <th style={{ padding: '6px 8px' }}>Taux</th>
-                        <th style={{ padding: '6px 8px' }}>Commission</th>
-                        <th style={{ padding: '6px 8px' }}>Total à verser</th>
+                      <tr className="border-b uppercase" style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-secondary)', color: 'var(--color-text-secondary)' }}>
+                        <th className="px-4 py-2.5 font-semibold">Employé</th>
+                        <th className="px-4 py-2.5 font-semibold">Fixe</th>
+                        <th className="px-4 py-2.5 font-semibold">Ventes & Loc.</th>
+                        <th className="px-4 py-2.5 font-semibold">Taux</th>
+                        <th className="px-4 py-2.5 font-semibold">Commission</th>
+                        <th className="px-4 py-2.5 font-semibold">Total à verser</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y" style={{ borderColor: 'var(--color-border-tertiary)' }}>
                       {salaires.map((s) => (
-                        <tr key={s.id} style={{ borderTop: '1px solid #f0f2f5' }}>
-                          <td style={{ padding: '8px', fontWeight: 500, color: '#111827' }}>{s.nom}</td>
-                          <td style={{ padding: '8px', color: '#374151' }}>{money(s.salaire_fixe)}</td>
-                          <td style={{ padding: '8px', color: '#374151' }}>{money(s.total_ventes_mois + s.total_locations_mois)}</td>
-                          <td style={{ padding: '8px', color: '#374151' }}>{s.taux_commission}%</td>
-                          <td style={{ padding: '8px', color: BLUE, fontWeight: 500 }}>{money(s.commission_mois)}</td>
-                          <td style={{ padding: '8px', fontWeight: 600, color: '#111827' }}>{money(s.salaire_total_mois)}</td>
+                        <tr key={s.id}>
+                          <td className="px-4 py-3 font-semibold" style={{ color: 'var(--color-text-primary)' }}>{s.nom}</td>
+                          <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>{money(s.salaire_fixe)}</td>
+                          <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>{money(s.total_ventes_mois + s.total_locations_mois)}</td>
+                          <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>{s.taux_commission}%</td>
+                          <td className="px-4 py-3 font-medium" style={{ color: 'var(--color-accent)' }}>{money(s.commission_mois)}</td>
+                          <td className="px-4 py-3 font-bold" style={{ color: 'var(--color-text-primary)' }}>{money(s.salaire_total_mois)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -422,9 +612,9 @@ export default function DashboardPage() {
 
 // ── Icônes ────────────────────────────────────────────────────────────────────
 
-function IconCar({ className }: { className?: string }) {
+function IconCar({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className={className} style={style} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5M5 11H3a1 1 0 00-1 1v1a1 1 0 001 1h2m14-2h2a1 1 0 011 1v1a1 1 0 01-1 1h-2" />
     </svg>
@@ -438,9 +628,9 @@ function IconUsers({ className }: { className?: string }) {
     </svg>
   );
 }
-function IconChart({ className }: { className?: string }) {
+function IconChart({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className={className} style={style} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
     </svg>

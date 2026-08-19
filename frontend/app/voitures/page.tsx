@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
@@ -32,11 +32,11 @@ interface Voiture {
 }
 
 const STATUT: Record<string, { label: string; cls: string }> = {
-  disponible:    { label: 'Disponible',    cls: 'bg-emerald-100 text-emerald-700' },
-  vendu:         { label: 'Vendu',         cls: 'bg-red-100 text-red-700' },
-  en_location:   { label: 'En location',   cls: 'bg-blue-100 text-blue-700' },
-  reserve:       { label: 'Réservé',       cls: 'bg-amber-100 text-amber-700' },
-  en_reparation: { label: 'En réparation', cls: 'bg-purple-100 text-purple-700' },
+  disponible:    { label: 'Disponible',    cls: 'badge-active' },
+  vendu:         { label: 'Vendu',         cls: 'badge-info' },
+  en_location:   { label: 'En location',   cls: 'badge-pending' },
+  reserve:       { label: 'Réservé',       cls: 'badge-pending' },
+  en_reparation: { label: 'En réparation', cls: 'badge-neutral' },
 };
 
 function buildPhotos(v: Voiture): string[] {
@@ -52,13 +52,13 @@ function buildPhotos(v: Voiture): string[] {
 
 function CardSkeleton() {
   return (
-    <div className="animate-pulse rounded-2xl border border-slate-200 bg-white">
-      <div className="aspect-[4/3] rounded-t-2xl bg-slate-200" />
+    <div className="animate-pulse rounded-2xl border" style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-primary)' }}>
+      <div className="aspect-[4/3] rounded-t-2xl" style={{ background: 'var(--color-background-secondary)' }} />
       <div className="space-y-2 p-4">
-        <div className="h-3 w-1/3 rounded bg-slate-200" />
-        <div className="h-5 w-2/3 rounded bg-slate-200" />
-        <div className="h-3 w-1/2 rounded bg-slate-100" />
-        <div className="h-7 w-full rounded-xl bg-slate-200 mt-3" />
+        <div className="h-3 w-1/3 rounded" style={{ background: 'var(--color-border-tertiary)' }} />
+        <div className="h-5 w-2/3 rounded" style={{ background: 'var(--color-border-tertiary)' }} />
+        <div className="h-3 w-1/2 rounded" style={{ background: 'var(--color-background-secondary)' }} />
+        <div className="mt-3 h-7 w-full rounded-xl" style={{ background: 'var(--color-border-tertiary)' }} />
       </div>
     </div>
   );
@@ -83,19 +83,20 @@ function VoitureCard({ v }: { v: Voiture }) {
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
-  const st   = STATUT[v.statut] ?? { label: v.statut, cls: 'bg-slate-100 text-slate-600' };
+  const st   = STATUT[v.statut] ?? { label: v.statut, cls: 'badge-neutral' };
   const dispo = v.statut === 'disponible';
 
   return (
     <Link href={`/voitures/${v.id}`}
-      className="group flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl"
+      className="group flex flex-col rounded-2xl border shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl"
+      style={{ borderColor: 'var(--color-border-tertiary)', background: 'var(--color-background-primary)' }}
       onMouseEnter={() => { setHovered(true); startSlide(); }}
       onMouseLeave={() => { setHovered(false); stopSlide(); }}>
 
       {/* ── Zone photo ── */}
-      <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl bg-slate-100">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl" style={{ background: 'var(--color-background-secondary)' }}>
         {photos.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-slate-300">
+          <div className="flex h-full items-center justify-center" style={{ color: 'var(--color-text-secondary)' }}>
             <svg className="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2}
                 d="M12 18h.01M8 18h.01M16 18h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11m-14 0h14m-14 0v5a1 1 0 001 1h12a1 1 0 001-1v-5M5 11H3a1 1 0 00-1 1v1a1 1 0 001 1h2m14-2h2a1 1 0 011 1v1a1 1 0 01-1 1h-2" />
@@ -134,7 +135,7 @@ function VoitureCard({ v }: { v: Voiture }) {
         )}
 
         {/* Badge statut */}
-        <span className={`absolute right-2 top-2 z-10 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide shadow ${st.cls}`}>
+        <span className={`status-badge absolute right-2 top-2 z-10 shadow ${st.cls} font-bold uppercase tracking-wide`}>
           {st.label}
         </span>
 
@@ -142,33 +143,36 @@ function VoitureCard({ v }: { v: Voiture }) {
 
       {/* ── Infos ── */}
       <div className="flex flex-1 flex-col p-4">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+        <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>
           {[v.annee, v.energie].filter(Boolean).join(' · ')}
         </p>
-        <h3 className={`mt-1 text-base font-black transition-colors ${dispo ? 'text-[#111827]' : 'text-slate-600'}`}>
+        <h3 className="mt-1 text-base font-black transition-colors" style={{ color: dispo ? 'var(--color-text-primary)' : 'var(--color-text-secondary)' }}>
           {v.marque} {v.modele}
         </h3>
-        <p className="mt-0.5 text-xs text-slate-400">
+        <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
           {v.kilometrage != null ? `${money(v.kilometrage)} km` : 'Kilométrage N/D'}
         </p>
-        <p className="mt-auto pt-3 text-xl font-black text-slate-900">
+        <p className="mt-auto pt-3 text-xl font-black" style={{ color: 'var(--color-text-primary)' }}>
           {v.type_usage === 'vente'
-            ? <>{v.prix_vente ? money(v.prix_vente) : '—'} <span className="text-xs font-bold text-slate-400">XOF</span></>
+            ? <>{v.prix_vente ? money(v.prix_vente) : '—'} <span className="text-xs font-bold" style={{ color: 'var(--color-text-secondary)' }}>XOF</span></>
             : v.type_usage === 'location'
-              ? <>{v.prix ? money(v.prix) : '—'} <span className="text-xs font-bold text-slate-400">XOF/j</span></>
+              ? <>{v.prix ? money(v.prix) : '—'} <span className="text-xs font-bold" style={{ color: 'var(--color-text-secondary)' }}>XOF/j</span></>
               : <>
-                  {v.prix ? <span className="text-sm">{money(v.prix)} <span className="text-xs font-bold text-slate-400">XOF/j</span></span> : null}
-                  {v.prix && v.prix_vente ? <span className="text-slate-300 mx-1">·</span> : null}
-                  {v.prix_vente ? <span className="text-sm">{money(v.prix_vente)} <span className="text-xs font-bold text-slate-400">XOF</span></span> : null}
-                  {!v.prix && !v.prix_vente ? <span className="text-base">— <span className="text-xs font-bold text-slate-400">XOF</span></span> : null}
+                  {v.prix ? <span className="text-sm">{money(v.prix)} <span className="text-xs font-bold" style={{ color: 'var(--color-text-secondary)' }}>XOF/j</span></span> : null}
+                  {v.prix && v.prix_vente ? <span className="mx-1" style={{ color: 'var(--color-text-secondary)' }}>·</span> : null}
+                  {v.prix_vente ? <span className="text-sm">{money(v.prix_vente)} <span className="text-xs font-bold" style={{ color: 'var(--color-text-secondary)' }}>XOF</span></span> : null}
+                  {!v.prix && !v.prix_vente ? <span className="text-base">— <span className="text-xs font-bold" style={{ color: 'var(--color-text-secondary)' }}>XOF</span></span> : null}
                 </>
           }
         </p>
-        <div className={`mt-3 rounded-xl py-2 text-center text-xs font-bold transition ${
-          dispo
-            ? 'border border-[#374151] bg-white text-[#111827] group-hover:bg-[#f5f8fa]'
-            : 'bg-slate-100 text-slate-500'
-        }`}>
+        <div
+          className="mt-3 rounded-xl py-2 text-center text-xs font-bold transition"
+          style={
+            dispo
+              ? { border: `1px solid var(--color-border-secondary)`, background: 'var(--color-background-primary)', color: 'var(--color-text-primary)' }
+              : { background: 'var(--color-background-secondary)', color: 'var(--color-text-secondary)' }
+          }
+        >
           {dispo ? 'Voir & créer une vente →' : 'Consulter →'}
         </div>
       </div>
@@ -243,7 +247,7 @@ export default function VoituresPage() {
         <div className="surface-panel p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative flex-1">
-              <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: 'var(--color-text-secondary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
@@ -255,7 +259,11 @@ export default function VoituresPage() {
               />
               {search && (
                 <button onClick={() => setSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">✕</button>
+                  className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                  style={{ color: 'var(--color-text-secondary)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-text-primary)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
+                >✕</button>
               )}
             </div>
             <select className="field-control sm:w-44" value={energie}
@@ -274,7 +282,7 @@ export default function VoituresPage() {
             </select>
             {hasFilters && (
               <button onClick={() => { setSearch(''); setEnergie(''); setStatut(''); setPage(1); }}
-                className="shrink-0 text-sm font-bold text-[#111827] hover:underline">
+                className="shrink-0 text-sm font-bold hover:underline" style={{ color: 'var(--color-text-primary)' }}>
                 Effacer
               </button>
             )}
@@ -283,17 +291,17 @@ export default function VoituresPage() {
 
         {/* Grille */}
         {error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">{error}</div>
+          <div className="rounded-2xl border px-5 py-4 text-sm" style={{ borderColor: 'var(--color-danger-bg)', background: 'var(--color-danger-bg)', color: 'var(--color-danger-text)' }}>{error}</div>
         ) : loading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {Array.from({ length: 8 }).map((_, i) => <CardSkeleton key={i} />)}
           </div>
         ) : items.length === 0 ? (
           <div className="surface-panel py-20 text-center">
-            <p className="font-semibold text-slate-500">Aucun véhicule trouvé.</p>
+            <p className="font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Aucun véhicule trouvé.</p>
             {hasFilters && (
               <button onClick={() => { setSearch(''); setEnergie(''); setStatut(''); }}
-                className="mt-3 text-sm font-bold text-[#111827] hover:underline">
+                className="mt-3 text-sm font-bold hover:underline" style={{ color: 'var(--color-text-primary)' }}>
                 Effacer les filtres
               </button>
             )}
@@ -308,12 +316,20 @@ export default function VoituresPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-3">
             <button onClick={() => setPage((p) => p - 1)} disabled={page === 1}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-[#111827] transition hover:bg-slate-50 disabled:opacity-40">
+              className="rounded-xl border px-4 py-2 text-sm font-bold transition disabled:opacity-40"
+              style={{ borderColor: 'var(--color-border-tertiary)', color: 'var(--color-text-primary)' }}
+              onMouseEnter={(e) => { if (page !== 1) e.currentTarget.style.background = 'var(--color-background-hover)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            >
               ← Précédent
             </button>
-            <span className="text-sm text-slate-500">Page {page} / {totalPages}</span>
+            <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Page {page} / {totalPages}</span>
             <button onClick={() => setPage((p) => p + 1)} disabled={page === totalPages}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-[#111827] transition hover:bg-slate-50 disabled:opacity-40">
+              className="rounded-xl border px-4 py-2 text-sm font-bold transition disabled:opacity-40"
+              style={{ borderColor: 'var(--color-border-tertiary)', color: 'var(--color-text-primary)' }}
+              onMouseEnter={(e) => { if (page !== totalPages) e.currentTarget.style.background = 'var(--color-background-hover)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            >
               Suivant →
             </button>
           </div>

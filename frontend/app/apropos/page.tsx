@@ -2,10 +2,11 @@
 
 import PublicLayout from '@/components/PublicLayout';
 import { useReveal } from '@/lib/useReveal';
+import Image from 'next/image';
 import Link from 'next/link';
 
+// Dégradé fixe pour les bandeaux photo (hero/CTA) : fond sombre volontaire quel que soit le thème.
 const NAVY = '#185FA5';
-const LIGHT = '#E6F1FB';
 
 const VALEURS = [
   {
@@ -26,7 +27,7 @@ const VALEURS = [
   {
     icon: 'M13 10V3L4 14h7v7l9-11h-7z',
     titre: 'Innovation',
-    texte: 'Plateforme digitale complète pour gérer locations, ventes et documents en ligne — disponible 24h/24.',
+    texte: 'Plateforme digitale complète pour gérer locations, ventes et documents en ligne disponible 24h/24.',
   },
 ];
 
@@ -73,13 +74,13 @@ export default function AproposPage() {
       </section>
 
       {/* ── CHIFFRES CLÉS ── */}
-      <section className="bg-white py-14 border-b border-[#dbeafe]">
+      <section className="bg-[var(--color-background-primary)] py-14 border-b border-[var(--color-border-tertiary)]">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
             {CHIFFRES.map(({ valeur, label }, i) => (
               <div key={label} className={`reveal-scale text-center ${['d-100','d-200','d-300','d-400'][i]}`}>
-                <div className="text-4xl font-black" style={{ color: NAVY }}>{valeur}</div>
-                <div className="mt-1 text-sm text-[#6b7280]">{label}</div>
+                <div className="text-4xl font-black" style={{ color: 'var(--color-accent)' }}>{valeur}</div>
+                <div className="mt-1 text-sm text-[var(--color-text-secondary)]">{label}</div>
               </div>
             ))}
           </div>
@@ -87,29 +88,29 @@ export default function AproposPage() {
       </section>
 
       {/* ── HISTOIRE ── */}
-      <section className="py-16 bg-[#f9fbff]">
+      <section className="py-16 bg-[var(--color-background-secondary)]">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-12 lg:grid-cols-2 items-center">
             <div className="reveal-left">
-              <h2 className="text-3xl font-black text-[#111827]">Nés à Dakar, construits pour le Sénégal</h2>
-              <p className="mt-4 text-sm leading-7 text-[#4b5563]">
+              <h2 className="text-3xl font-black text-[var(--color-text-primary)]">Nés à Dakar, construits pour le Sénégal</h2>
+              <p className="mt-4 text-sm leading-7 text-[var(--color-text-secondary)]">
                 AutoTerr est né en 2026 de la conviction que la gestion d'un parc automobile méritait une solution moderne, locale et fiable. Fondée à Dakar par une équipe passionnée, notre entreprise s'est rapidement imposée comme un acteur de référence dans la location et la vente de véhicules au Sénégal.
               </p>
-              <p className="mt-3 text-sm leading-7 text-[#4b5563]">
+              <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
                 Aujourd'hui, notre plateforme digitale permet à des centaines de clients de louer, acheter et gérer leurs véhicules en toute simplicité depuis leur smartphone ou ordinateur, à tout moment.
               </p>
-              <p className="mt-3 text-sm leading-7 text-[#4b5563]">
+              <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
                 Nous couvrons Dakar et ses environs, avec des projets d'expansion vers Thiès.
               </p>
               <div className="mt-6 flex gap-4">
                 <Link href="/catalogue"
                   className="inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold text-white transition hover:opacity-90"
-                  style={{ background: NAVY }}>
+                  style={{ background: 'var(--color-accent)' }}>
                   Voir le catalogue
                 </Link>
                 <Link href="/#contact"
-                  className="inline-flex items-center gap-2 rounded-full border border-[#dbeafe] px-6 py-2.5 text-sm font-bold transition hover:border-[#185FA5]/40"
-                  style={{ color: NAVY }}>
+                  className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-tertiary)] px-6 py-2.5 text-sm font-bold transition hover:border-[var(--color-accent-ring)]"
+                  style={{ color: 'var(--color-accent)' }}>
                   Nous contacter
                 </Link>
               </div>
@@ -133,8 +134,8 @@ export default function AproposPage() {
                 <div className="mt-6 grid grid-cols-2 gap-3 text-left">
                   {['Location courte durée', 'Location longue durée', 'Vente de véhicules', 'Entretien & SAV',
                     'Assurance & conformité', 'Espace client en ligne'].map((s) => (
-                    <div key={s} className="flex items-center gap-2 text-xs text-[#374151]">
-                      <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke={NAVY} viewBox="0 0 24 24">
+                    <div key={s} className="flex items-center gap-2 text-xs text-[var(--color-text-primary)]">
+                      <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="var(--color-accent)" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                       {s}
@@ -147,22 +148,46 @@ export default function AproposPage() {
         </div>
       </section>
 
-      {/* ── VALEURS ── */}
-      <section className="py-16 bg-white">
+      {/* ── EXPÉRIENCE ── */}
+      <section className="py-16 bg-[var(--color-background-primary)]">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="reveal mb-10 text-center">
-            <h2 className="text-3xl font-black text-[#111827]">Nos valeurs</h2>
+            <h2 className="text-3xl font-black text-[var(--color-text-primary)]">L&apos;expérience AutoTerr</h2>
+            <p className="mt-3 text-sm text-[var(--color-text-secondary)] max-w-md mx-auto">
+              Un accompagnement personnalisé, à chaque étape, du choix du véhicule à la remise des clés.
+            </p>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div className="reveal-scale relative aspect-[16/10] overflow-hidden rounded-2xl">
+              <Image src="/client-sourire-conduite.jpg" alt="Cliente souriante au volant de son véhicule AutoTerr" fill className="object-cover" />
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.55) 0%, transparent 45%)' }} />
+              <p className="absolute bottom-4 left-4 right-4 text-sm font-bold text-white">Des véhicules prêts à prendre la route</p>
+            </div>
+            <div className="reveal-scale d-200 relative aspect-[16/10] overflow-hidden rounded-2xl">
+              <Image src="/remise-cles-mains.jpg" alt="Remise des clés à un client AutoTerr" fill className="object-cover" />
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.55) 0%, transparent 45%)' }} />
+              <p className="absolute bottom-4 left-4 right-4 text-sm font-bold text-white">Une remise des clés simple et rassurante</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── VALEURS ── */}
+      <section className="py-16 bg-[var(--color-background-primary)]">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="reveal mb-10 text-center">
+            <h2 className="text-3xl font-black text-[var(--color-text-primary)]">Nos valeurs</h2>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {VALEURS.map(({ icon, titre, texte }, i) => (
-              <div key={titre} className={`reveal-scale ${['d-100','d-200','d-300','d-400'][i]} rounded-2xl border border-[#dbeafe] p-6 transition hover:shadow-md hover:border-[#185FA5]/30`}>
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: LIGHT }}>
-                  <svg className="h-5 w-5" fill="none" stroke={NAVY} viewBox="0 0 24 24">
+              <div key={titre} className={`reveal-scale ${['d-100','d-200','d-300','d-400'][i]} rounded-2xl border border-[var(--color-border-tertiary)] p-6 transition hover:shadow-md hover:border-[var(--color-accent-ring)]`}>
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: 'var(--color-accent-light)' }}>
+                  <svg className="h-5 w-5" fill="none" stroke="var(--color-accent)" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={icon} />
                   </svg>
                 </div>
-                <h3 className="mb-2 text-sm font-black text-[#111827]">{titre}</h3>
-                <p className="text-xs leading-6 text-[#6b7280]">{texte}</p>
+                <h3 className="mb-2 text-sm font-black text-[var(--color-text-primary)]">{titre}</h3>
+                <p className="text-xs leading-6 text-[var(--color-text-secondary)]">{texte}</p>
               </div>
             ))}
           </div>
@@ -170,20 +195,20 @@ export default function AproposPage() {
       </section>
 
       {/* ── ÉQUIPE ── */}
-      <section className="py-16 bg-[#f9fbff] border-t border-[#dbeafe]">
+      <section className="py-16 bg-[var(--color-background-secondary)] border-t border-[var(--color-border-tertiary)]">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="reveal mb-10 text-center">
-            <h2 className="text-3xl font-black text-[#111827]">Notre équipe</h2>
+            <h2 className="text-3xl font-black text-[var(--color-text-primary)]">Notre équipe</h2>
           </div>
           <div className="grid gap-6 grid-cols-2 sm:grid-cols-4">
             {EQUIPE.map(({ nom, poste, initiales, couleur }, i) => (
-              <div key={nom} className={`reveal-scale ${['d-100','d-200','d-300','d-400'][i]} flex flex-col items-center text-center rounded-2xl border border-[#dbeafe] bg-white p-6 transition hover:shadow-md`}>
+              <div key={nom} className={`reveal-scale ${['d-100','d-200','d-300','d-400'][i]} flex flex-col items-center text-center rounded-2xl border border-[var(--color-border-tertiary)] bg-[var(--color-background-primary)] p-6 transition hover:shadow-md`}>
                 <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full text-xl font-black text-white"
                   style={{ background: couleur }}>
                   {initiales}
                 </div>
-                <p className="text-sm font-bold text-[#111827]">{nom}</p>
-                <p className="mt-0.5 text-xs text-[#6b7280]">{poste}</p>
+                <p className="text-sm font-bold text-[var(--color-text-primary)]">{nom}</p>
+                <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">{poste}</p>
               </div>
             ))}
           </div>
@@ -202,8 +227,8 @@ export default function AproposPage() {
               Créer mon compte
             </Link>
             <Link href="/catalogue"
-              className="rounded-full bg-white px-8 py-3 text-sm font-black transition hover:opacity-90"
-              style={{ color: NAVY }}>
+              className="rounded-full bg-[var(--color-background-primary)] px-8 py-3 text-sm font-black transition hover:opacity-90"
+              style={{ color: 'var(--color-accent)' }}>
               Parcourir le catalogue
             </Link>
           </div>

@@ -12,12 +12,12 @@ function money(value?: number) {
 
 function StatRow({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-3 border-b border-[#dfe3eb] last:border-0">
+    <div className="flex items-start justify-between gap-4 py-3 border-b last:border-0" style={{ borderColor: 'var(--color-border-secondary)' }}>
       <div>
-        <p className="text-sm text-[#111827]">{label}</p>
-        {sub && <p className="text-xs text-[#6b7280]">{sub}</p>}
+        <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{label}</p>
+        {sub && <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{sub}</p>}
       </div>
-      <p className="text-sm font-bold text-[#111827] tabular-nums">{value}</p>
+      <p className="text-sm font-bold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>{value}</p>
     </div>
   );
 }
@@ -85,13 +85,13 @@ export default function ReportingPage() {
         {loading && (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-24 animate-pulse rounded border border-[#dfe3eb] bg-[#f5f8fa]" />
+              <div key={i} className="h-24 animate-pulse rounded border" style={{ borderColor: 'var(--color-border-secondary)', background: 'var(--color-background-secondary)' }} />
             ))}
           </div>
         )}
 
         {error && (
-          <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+          <div className="rounded border px-4 py-3 text-sm" style={{ borderColor: 'var(--color-danger-bg)', background: 'var(--color-danger-bg)', color: 'var(--color-danger-text)' }}>{error}</div>
         )}
 
         {!loading && !error && payload && (
@@ -105,8 +105,8 @@ export default function ReportingPage() {
                 { label: 'CA Locations',          value: `${money(totalLocAmount)} XOF` },
               ].map(({ label, value }) => (
                 <div key={label} className="surface-panel p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">{label}</p>
-                  <p className="mt-2 text-xl font-black text-[#111827]">{value}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
+                  <p className="mt-2 text-xl font-black" style={{ color: 'var(--color-text-primary)' }}>{value}</p>
                 </div>
               ))}
             </div>
@@ -153,9 +153,9 @@ export default function ReportingPage() {
             <div className="grid gap-5 lg:grid-cols-2">
 
               <section className="surface-panel">
-                <div className="border-b border-[#dfe3eb] px-5 py-4">
+                <div className="border-b px-5 py-4" style={{ borderColor: 'var(--color-border-secondary)' }}>
                   <h2 className="section-title">Ventes mensuelles {payload.year}</h2>
-                  <p className="mt-0.5 text-xs text-[#6b7280]">Nombre de ventes et montant par mois.</p>
+                  <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-secondary)' }}>Nombre de ventes et montant par mois.</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
@@ -172,24 +172,24 @@ export default function ReportingPage() {
                         const pct = totalAmount > 0 ? Math.round((Number(item.amount) / totalAmount) * 100) : 0;
                         return (
                           <tr key={item.label} className="table-row">
-                            <td className="table-cell pl-5 font-medium text-[#111827]">{item.label}</td>
+                            <td className="table-cell pl-5 font-medium" style={{ color: 'var(--color-text-primary)' }}>{item.label}</td>
                             <td className="table-cell">{item.count}</td>
                             <td className="table-cell tabular-nums">{money(item.amount)} XOF</td>
                             <td className="table-cell">
                               <div className="flex items-center gap-2">
-                                <div className="h-1.5 w-20 overflow-hidden rounded-full bg-[#dfe3eb]">
-                                  <div className="h-full rounded-full bg-[#374151]" style={{ width: `${pct}%` }} />
+                                <div className="h-1.5 w-20 overflow-hidden rounded-full" style={{ background: 'var(--color-border-secondary)' }}>
+                                  <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'var(--color-text-secondary)' }} />
                                 </div>
-                                <span className="text-xs text-[#6b7280]">{pct}%</span>
+                                <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{pct}%</span>
                               </div>
                             </td>
                           </tr>
                         );
                       })}
-                      <tr className="border-t border-[#dfe3eb] bg-[#f5f8fa]">
-                        <td className="table-cell pl-5 font-bold text-[#111827]">Total</td>
-                        <td className="table-cell font-bold text-[#111827]">{totalSales}</td>
-                        <td className="table-cell font-bold text-[#111827] tabular-nums">{money(totalAmount)} XOF</td>
+                      <tr className="border-t" style={{ borderColor: 'var(--color-border-secondary)', background: 'var(--color-background-secondary)' }}>
+                        <td className="table-cell pl-5 font-bold" style={{ color: 'var(--color-text-primary)' }}>Total</td>
+                        <td className="table-cell font-bold" style={{ color: 'var(--color-text-primary)' }}>{totalSales}</td>
+                        <td className="table-cell font-bold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>{money(totalAmount)} XOF</td>
                         <td className="table-cell" />
                       </tr>
                     </tbody>
@@ -198,9 +198,9 @@ export default function ReportingPage() {
               </section>
 
               <section className="surface-panel">
-                <div className="border-b border-[#dfe3eb] px-5 py-4">
+                <div className="border-b px-5 py-4" style={{ borderColor: 'var(--color-border-secondary)' }}>
                   <h2 className="section-title">Locations mensuelles {payload.year}</h2>
-                  <p className="mt-0.5 text-xs text-[#6b7280]">Nombre de locations facturées et montant TTC par mois.</p>
+                  <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-secondary)' }}>Nombre de locations facturées et montant TTC par mois.</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
@@ -217,24 +217,24 @@ export default function ReportingPage() {
                         const pct = totalLocAmount > 0 ? Math.round((Number(item.amount) / totalLocAmount) * 100) : 0;
                         return (
                           <tr key={item.label} className="table-row">
-                            <td className="table-cell pl-5 font-medium text-[#111827]">{item.label}</td>
+                            <td className="table-cell pl-5 font-medium" style={{ color: 'var(--color-text-primary)' }}>{item.label}</td>
                             <td className="table-cell">{item.count}</td>
                             <td className="table-cell tabular-nums">{money(item.amount)} XOF</td>
                             <td className="table-cell">
                               <div className="flex items-center gap-2">
-                                <div className="h-1.5 w-20 overflow-hidden rounded-full bg-[#dfe3eb]">
-                                  <div className="h-full rounded-full bg-[#7c3aed]" style={{ width: `${pct}%` }} />
+                                <div className="h-1.5 w-20 overflow-hidden rounded-full" style={{ background: 'var(--color-border-secondary)' }}>
+                                  <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'var(--color-text-secondary)' }} />
                                 </div>
-                                <span className="text-xs text-[#6b7280]">{pct}%</span>
+                                <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{pct}%</span>
                               </div>
                             </td>
                           </tr>
                         );
                       })}
-                      <tr className="border-t border-[#dfe3eb] bg-[#f5f8fa]">
-                        <td className="table-cell pl-5 font-bold text-[#111827]">Total</td>
-                        <td className="table-cell font-bold text-[#111827]">{totalLocations}</td>
-                        <td className="table-cell font-bold text-[#111827] tabular-nums">{money(totalLocAmount)} XOF</td>
+                      <tr className="border-t" style={{ borderColor: 'var(--color-border-secondary)', background: 'var(--color-background-secondary)' }}>
+                        <td className="table-cell pl-5 font-bold" style={{ color: 'var(--color-text-primary)' }}>Total</td>
+                        <td className="table-cell font-bold" style={{ color: 'var(--color-text-primary)' }}>{totalLocations}</td>
+                        <td className="table-cell font-bold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>{money(totalLocAmount)} XOF</td>
                         <td className="table-cell" />
                       </tr>
                     </tbody>

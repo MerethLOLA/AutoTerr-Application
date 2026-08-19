@@ -6,11 +6,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
-const NAVY = '#185FA5';
 const LOCALES: { code: Locale; flag: string }[] = [
-  { code: 'fr', flag: '🇫🇷' },
-  { code: 'en', flag: '🇬🇧' },
-  { code: 'es', flag: '🇪🇸' },
+  { code: 'fr', flag: '/drapeau-fr.jpg' },
+  { code: 'en', flag: '/drapeau-en.jpg' },
+  { code: 'es', flag: '/drapeau-es.jpg' },
 ];
 
 /* ── Icons SVG inline ─────────────────────────────────────────────────────── */
@@ -115,12 +114,14 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href.split('#')[0]) && href !== '/';
 
-  const accent = isDark ? '#4A9FE0' : NAVY;
-  const bg     = isDark ? '#071626' : '#ffffff';
-  const bgSub  = isDark ? '#0C1F33' : '#f5f8fa';
-  const border = isDark ? '#1A3450' : '#dbeafe';
-  const txtPri = isDark ? '#DEE9F5' : '#111827';
-  const txtSec = isDark ? '#7BA4C8' : '#6b7280';
+  // Résolus via les variables CSS de globals.css : le thème est déjà appliqué
+  // au <html> avant le premier rendu, ces valeurs s'adaptent automatiquement.
+  const accent = 'var(--color-accent)';
+  const bg     = 'var(--color-background-primary)';
+  const bgSub  = 'var(--color-background-secondary)';
+  const border = 'var(--color-border-tertiary)';
+  const txtPri = 'var(--color-text-primary)';
+  const txtSec = 'var(--color-text-secondary)';
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: bg, color: txtPri, transition: 'background .2s, color .2s' }}>
@@ -129,7 +130,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
       {/* ── Navbar ────────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 border-b transition-all duration-300 backdrop-blur-md"
-        style={{ borderColor: scrolled ? border : 'transparent', background: scrolled ? (isDark ? 'rgba(7,22,38,0.98)' : 'rgba(255,255,255,0.98)') : (isDark ? 'rgba(7,22,38,0.95)' : 'rgba(255,255,255,0.95)'), boxShadow: scrolled ? '0 1px 8px rgba(0,0,0,0.08)' : 'none' }}>
+        style={{ borderColor: scrolled ? border : 'transparent', background: bg, boxShadow: scrolled ? '0 1px 8px rgba(0,0,0,0.08)' : 'none' }}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between gap-3 sm:gap-6">
 
@@ -150,9 +151,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 const active = isActive(l.href);
                 return (
                   <Link key={l.href} href={l.href}
-                    className="relative flex items-center gap-1.5 px-4 py-2 text-sm font-semibold transition-colors rounded-lg mx-0.5"
+                    className="relative px-4 py-2 text-sm font-semibold transition-colors rounded-lg mx-0.5"
                     style={{ color: active ? accent : txtSec }}>
-                    <span style={{ color: active ? accent : (isDark ? '#4A9FE040' : '#9ca3af') }}>{l.icon}</span>
                     {t(l.labelKey)}
                     {active && <span className="absolute bottom-0 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full" style={{ backgroundColor: accent }} />}
                   </Link>
@@ -171,7 +171,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               </button>
               <button onClick={cycleLocale} title={t('public.langSwitch')}
                 style={{ display:'flex', alignItems:'center', gap:4, height:32, borderRadius:16, border:`1px solid ${border}`, padding:'0 10px', fontSize:11, fontWeight:700, color: accent, background:'transparent', cursor:'pointer', transition:'background .15s' }}>
-                <span>{LOCALES.find(l => l.code === locale)?.flag}</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={LOCALES.find(l => l.code === locale)?.flag} alt="" style={{ height: 14, width: 20, borderRadius: 2, objectFit: 'cover' }} />
                 <span>{locale.toUpperCase()}</span>
               </button>
             </div>
@@ -179,7 +180,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             {/* CTA desktop */}
             <div className="hidden items-center gap-2 lg:flex shrink-0">
               <Link href="/login/client"
-                className="flex items-center gap-1.5 rounded-full border border-[#dbeafe] px-4 py-2 text-sm font-bold text-[#185FA5] transition hover:border-[#185FA5]/30">
+                className="flex items-center gap-1.5 rounded-full border border-[var(--color-border-tertiary)] px-4 py-2 text-sm font-bold text-[var(--color-accent)] transition hover:border-[var(--color-accent-ring)]">
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
@@ -187,7 +188,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               </Link>
               <Link href="/inscription"
                 className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:opacity-90 hover:shadow-md"
-                style={{ backgroundColor: NAVY }}>
+                style={{ backgroundColor: 'var(--color-secondary)' }}>
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                 </svg>
@@ -197,17 +198,17 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
             {/* Hamburger */}
             <button onClick={() => setMenuOpen((v) => !v)} aria-label={t('public.menu')}
-              className="flex flex-col justify-center gap-1.5 rounded-lg p-2 transition hover:bg-[#eff6ff] lg:hidden">
-              <span className={`block h-0.5 w-6 rounded-full bg-[#185FA5] transition-all ${menuOpen ? 'translate-y-2 rotate-45' : ''}`} />
-              <span className={`block h-0.5 w-6 rounded-full bg-[#185FA5] transition-all ${menuOpen ? 'opacity-0' : ''}`} />
-              <span className={`block h-0.5 w-6 rounded-full bg-[#185FA5] transition-all ${menuOpen ? '-translate-y-2 -rotate-45' : ''}`} />
+              className="flex flex-col justify-center gap-1.5 rounded-lg p-2 transition hover:bg-[var(--color-accent-light)] lg:hidden">
+              <span className={`block h-0.5 w-6 rounded-full bg-[var(--color-accent)] transition-all ${menuOpen ? 'translate-y-2 rotate-45' : ''}`} />
+              <span className={`block h-0.5 w-6 rounded-full bg-[var(--color-accent)] transition-all ${menuOpen ? 'opacity-0' : ''}`} />
+              <span className={`block h-0.5 w-6 rounded-full bg-[var(--color-accent)] transition-all ${menuOpen ? '-translate-y-2 -rotate-45' : ''}`} />
             </button>
           </div>
         </div>
 
         {/* Mobile menu */}
         <div className={`overflow-hidden transition-all duration-300 lg:hidden ${menuOpen ? 'max-h-[560px] opacity-100' : 'max-h-0 opacity-0'}`}>
-          <div className="border-t border-[#dbeafe] bg-white/95 px-4 pb-5 shadow-sm">
+          <div className="border-t border-[var(--color-border-tertiary)] bg-[var(--color-background-primary)] px-4 pb-5 shadow-sm">
             <nav className="flex flex-col gap-1 pt-3">
               {NAV_LINKS.map((l) => {
                 const active = isActive(l.href);
@@ -215,18 +216,18 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                   <Link key={l.href} href={l.href} onClick={() => setMenuOpen(false)}
                     className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
                       active
-                        ? 'text-[#185FA5] font-bold'
-                        : 'text-[#6b7280] hover:text-[#185FA5]'
+                        ? 'text-[var(--color-accent)] font-bold'
+                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]'
                     }`}>
-                    <span className={active ? 'text-[#1d6fb8]' : 'text-[#9ca3af]'}>{l.icon}</span>
+                    <span className={active ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)]'}>{l.icon}</span>
                     {t(l.labelKey)}
                   </Link>
                 );
               })}
             </nav>
-            <div className="mt-4 flex flex-col gap-2.5 border-t border-[#dbeafe] pt-4">
+            <div className="mt-4 flex flex-col gap-2.5 border-t border-[var(--color-border-tertiary)] pt-4">
               <Link href="/login/client" onClick={() => setMenuOpen(false)}
-                className="flex items-center justify-center gap-2 rounded-full border border-[#dbeafe] px-4 py-3 text-sm font-bold text-[#185FA5] transition hover:border-[#185FA5]/30">
+                className="flex items-center justify-center gap-2 rounded-full border border-[var(--color-border-tertiary)] px-4 py-3 text-sm font-bold text-[var(--color-accent)] transition hover:border-[var(--color-accent-ring)]">
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
@@ -234,7 +235,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               </Link>
               <Link href="/inscription" onClick={() => setMenuOpen(false)}
                 className="flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-bold text-white transition hover:opacity-90"
-                style={{ backgroundColor: NAVY }}>
+                style={{ backgroundColor: 'var(--color-secondary)' }}>
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                 </svg>
@@ -243,15 +244,16 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               <div className="flex items-center justify-end pt-1">
                 <div className="flex gap-1.5">
                   <button onClick={toggleTheme}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-[#dbeafe] text-[#185FA5]">
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-border-tertiary)] text-[var(--color-accent)]">
                     {isDark
                       ? <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                       : <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
                     }
                   </button>
                   <button onClick={cycleLocale}
-                    className="flex h-8 items-center gap-1 rounded-full border border-[#dbeafe] px-2.5 text-xs font-bold text-[#185FA5]">
-                    <span>{LOCALES.find(l => l.code === locale)?.flag}</span>
+                    className="flex h-8 items-center gap-1 rounded-full border border-[var(--color-border-tertiary)] px-2.5 text-xs font-bold text-[var(--color-accent)]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={LOCALES.find(l => l.code === locale)?.flag} alt="" className="h-3.5 w-5 rounded-[2px] object-cover" />
                     <span>{locale.toUpperCase()}</span>
                   </button>
                 </div>
@@ -265,22 +267,60 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <main className="flex-1">{children}</main>
 
       {/* ── Footer ────────────────────────────────────────────────────────────── */}
-      <footer style={{ background: bgSub, borderTop: `0.5px solid ${border}`, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ position: 'relative', width: '110px', height: '40px', overflow: 'hidden', flexShrink: 0 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/LOgo2.png" alt="AutoTerr" style={{ position: 'absolute', width: '110px', height: 'auto', top: '50%', transform: 'translateY(-57%)' }} />
-        </div>
-        <div style={{ display: 'flex', gap: 16, fontSize: 12, color: txtSec, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Link href="/" style={{ color: txtSec, textDecoration: 'none' }}>{t('public.nav.home')}</Link>
-          <Link href="/catalogue/vente" style={{ color: txtSec, textDecoration: 'none' }}>{t('public.nav.sale')}</Link>
-          <Link href="/catalogue/location" style={{ color: txtSec, textDecoration: 'none' }}>{t('public.nav.rental')}</Link>
-          <Link href="/apropos" style={{ color: txtSec, textDecoration: 'none' }}>{t('public.nav.about')}</Link>
-          <span style={{ cursor: 'pointer', color: txtSec }}>{t('public.footer.terms')}</span>
-          <span style={{ cursor: 'pointer', color: txtSec }}>{t('public.footer.privacy')}</span>
-          <span style={{ cursor: 'pointer', color: txtSec }}>{t('public.footer.help')}</span>
-        </div>
-        <div style={{ fontSize: 12, color: txtSec }}>
-          © {new Date().getFullYear()} {t('public.footer.copyright')}
+      {/* Fond volontairement sombre quel que soit le thème du site (scope `.dark`) — même logique que le hero/CTA. */}
+      <footer className="dark" style={{ background: 'var(--color-background-secondary)', color: 'var(--color-text-secondary)' }}>
+        <div className="mx-auto max-w-7xl px-6 py-14 sm:px-8 lg:px-12">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+
+            {/* Marque */}
+            <div>
+              <div className="mb-4 inline-flex rounded-lg bg-white p-2.5">
+                <div style={{ position: 'relative', width: '110px', height: '38px' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/LOgo2.png" alt="AutoTerr" style={{ position: 'absolute', width: '110px', height: 'auto', top: '50%', transform: 'translateY(-57%)' }} />
+                </div>
+              </div>
+              <p className="text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>
+                Location et vente de véhicules de qualité à Dakar. Votre partenaire de confiance pour la mobilité au Sénégal.
+              </p>
+            </div>
+
+            {/* Navigation */}
+            <div>
+              <h3 className="mb-4 text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--color-text-primary)' }}>Navigation</h3>
+              <ul className="space-y-2.5 text-sm">
+                <li><Link href="/" className="transition hover:opacity-80" style={{ color: 'var(--color-text-secondary)' }}>{t('public.nav.home')}</Link></li>
+                <li><Link href="/catalogue/vente" className="transition hover:opacity-80" style={{ color: 'var(--color-text-secondary)' }}>{t('public.nav.sale')}</Link></li>
+                <li><Link href="/catalogue/location" className="transition hover:opacity-80" style={{ color: 'var(--color-text-secondary)' }}>{t('public.nav.rental')}</Link></li>
+                <li><Link href="/apropos" className="transition hover:opacity-80" style={{ color: 'var(--color-text-secondary)' }}>{t('public.nav.about')}</Link></li>
+                <li><Link href="/#contact" className="transition hover:opacity-80" style={{ color: 'var(--color-text-secondary)' }}>{t('public.nav.contact')}</Link></li>
+              </ul>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <h3 className="mb-4 text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--color-text-primary)' }}>Contact</h3>
+              <ul className="space-y-3 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                <li>Route de la Corniche Ouest<br />Dakar, Sénégal</li>
+                <li>+221 77 758 82 95<br /><span className="text-xs">Lun – Sam : 8h – 18h</span></li>
+                <li>contact@autoterr.sn<br /><span className="text-xs">Réponse sous 24h</span></li>
+              </ul>
+            </div>
+
+            {/* Légal */}
+            <div>
+              <h3 className="mb-4 text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--color-text-primary)' }}>Informations</h3>
+              <ul className="space-y-2.5 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                <li className="cursor-pointer transition hover:opacity-80">{t('public.footer.terms')}</li>
+                <li className="cursor-pointer transition hover:opacity-80">{t('public.footer.privacy')}</li>
+                <li className="cursor-pointer transition hover:opacity-80">{t('public.footer.help')}</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-12 border-t pt-6 text-center text-xs" style={{ borderColor: 'var(--color-border-tertiary)', color: 'var(--color-text-secondary)' }}>
+            © {new Date().getFullYear()} {t('public.footer.copyright')}
+          </div>
         </div>
       </footer>
     </div>
