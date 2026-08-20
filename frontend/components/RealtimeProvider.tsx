@@ -6,7 +6,7 @@ import { getEcho, destroyEcho } from '@/lib/echo';
 export interface RealtimeNotif {
   id:      string;
   type:    string;
-  niveau:  'info' | 'warning' | 'danger';
+  niveau:  'info' | 'warning' | 'danger' | 'success';
   titre:   string;
   message: string;
   url?:    string | null;
@@ -16,9 +16,10 @@ export interface RealtimeNotif {
 interface RealtimeCtx {
   toasts:      RealtimeNotif[];
   dismissToast: (id: string) => void;
+  addToast:    (data: Omit<RealtimeNotif, 'id' | 'ts' | 'type'> & { type?: string }) => void;
 }
 
-const Ctx = createContext<RealtimeCtx>({ toasts: [], dismissToast: () => {} });
+const Ctx = createContext<RealtimeCtx>({ toasts: [], dismissToast: () => {}, addToast: () => {} });
 
 export function useRealtime() {
   return useContext(Ctx);
@@ -28,9 +29,14 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<RealtimeNotif[]>([]);
   const channelRef = useRef<any>(null);
 
-  const addToast = useCallback((data: Omit<RealtimeNotif, 'id'>) => {
+  const addToast = useCallback((data: Omit<RealtimeNotif, 'id' | 'ts' | 'type'> & { type?: string; ts?: string }) => {
     const id = crypto.randomUUID();
-    setToasts((prev) => [...prev.slice(-4), { ...data, id }]);
+    setToasts((prev) => [...prev.slice(-4), {
+      type: data.type ?? 'local',
+      ts: data.ts ?? new Date().toISOString(),
+      ...data,
+      id,
+    }]);
 
     // Émettre un événement DOM pour que le badge se mette à jour
     window.dispatchEvent(new CustomEvent('autoterr:new-notification'));
@@ -72,7 +78,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   }, [addToast]);
 
   return (
-    <Ctx.Provider value={{ toasts, dismissToast }}>
+    <Ctx.Provider value={{ toasts, dismissToast, addToast }}>
       {children}
     </Ctx.Provider>
   );

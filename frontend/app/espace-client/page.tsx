@@ -2,10 +2,11 @@
 
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
+import { useRealtime } from '@/components/RealtimeProvider';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
-interface Profile { id: number; name: string; email: string; role: string; client_id?: number; }
+interface Profile { id: number; name: string; username?: string; email: string; role: string; client_id?: number; profile_photo_url?: string | null; }
 
 interface LocationItem {
   id: number;
@@ -168,6 +169,33 @@ export default function EspaceClientPage() {
   const [feedback, setFeedback]     = useState<{ msg: string; ok: boolean } | null>(null);
   const [activeTab, setActiveTab]   = useState<'locations' | 'factures' | 'documents' | 'demandes'>('locations');
   const [form, setForm] = useState({ id_voiture: '', date_debut: '', date_fin: '', observations: '' });
+  const { addToast } = useRealtime();
+
+  // ── Édition du profil ─────────────────────────────────────────────────────
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [savingProfile, setSavingProfile]   = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: '', username: '', email: '' });
+
+  useEffect(() => {
+    if (!profile) return;
+    setProfileForm({ name: profile.name ?? '', username: profile.username ?? '', email: profile.email ?? '' });
+  }, [profile]);
+
+  async function saveProfile(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSavingProfile(true);
+    try {
+      const res = await apiClient.put<{ data: { user: Profile } }>('/user/profile', profileForm);
+      const updated = (res as any)?.data?.user ?? (res as any)?.user;
+      setProfile((p) => p && updated ? { ...p, ...updated } : p);
+      setEditingProfile(false);
+      addToast({ niveau: 'success', titre: 'Profil mis à jour', message: 'Vos informations ont bien été enregistrées.' });
+    } catch (err: any) {
+      addToast({ niveau: 'danger', titre: 'Échec de la mise à jour', message: err?.message || 'Impossible de mettre à jour le profil.' });
+    } finally {
+      setSavingProfile(false);
+    }
+  }
 
   async function load() {
     const [portal, voit] = await Promise.all([
@@ -243,14 +271,27 @@ export default function EspaceClientPage() {
         {/* ── Hero client ─────────────────────────────────────────────────── */}
         <div className="rounded-xl border border-[#dfe3eb] bg-white p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#185FA5] text-lg font-black text-white">
-              {profile ? initials(profile.name) : '?'}
-            </div>
+            {profile?.profile_photo_url ? (
+              <Image src={profile.profile_photo_url} alt={profile.name} width={56} height={56} className="h-14 w-14 shrink-0 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#185FA5] text-lg font-black text-white">
+                {profile ? initials(profile.name) : '?'}
+              </div>
+            )}
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">Espace client</p>
               <h1 className="page-title">{profile?.name ?? '—'}</h1>
               <p className="text-sm text-[#6b7280]">{profile?.email ?? ''}</p>
             </div>
+            {profile && !editingProfile && (
+              <button
+                type="button"
+                onClick={() => setEditingProfile(true)}
+                className="ml-2 shrink-0 rounded-full border border-[#dfe3eb] px-3 py-1.5 text-xs font-bold text-[#185FA5] transition hover:border-[#185FA5]/40"
+              >
+                Modifier
+              </button>
+            )}
           </div>
           <div className="flex gap-4">
             <div className="text-center">
@@ -269,6 +310,51 @@ export default function EspaceClientPage() {
             </div>
           </div>
         </div>
+
+        {/* ── Édition du profil ────────────────────────────────────────────── */}
+        {editingProfile && profile && (
+          <form onSubmit={saveProfile} className="surface-panel p-5 space-y-4">
+            <h2 className="section-title">Modifier mon profil</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[#111827]">Nom complet *</label>
+                <input
+                  className="field-control"
+                  required
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[#111827]">Nom d&apos;utilisateur *</label>
+                <input
+                  className="field-control"
+                  required
+                  value={profileForm.username}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, username: e.target.value }))}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mb-1 block text-xs font-semibold text-[#111827]">Adresse e-mail *</label>
+                <input
+                  className="field-control"
+                  type="email"
+                  required
+                  value={profileForm.email}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, email: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" disabled={savingProfile} className="btn-primary disabled:opacity-50">
+                {savingProfile ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+              <button type="button" onClick={() => setEditingProfile(false)} className="btn-secondary">
+                Annuler
+              </button>
+            </div>
+          </form>
+        )}
 
         {/* ── Feedback ─────────────────────────────────────────────────────── */}
         {feedback && (

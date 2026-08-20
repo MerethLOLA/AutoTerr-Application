@@ -86,9 +86,11 @@ class CustomerPortalController extends Controller
             'profile' => [
                 'id' => $request->user()->id,
                 'name' => $request->user()->name,
+                'username' => $request->user()->username,
                 'email' => $request->user()->email,
                 'role' => $request->user()->role,
                 'client_id' => $client?->id,
+                'profile_photo_url' => $request->user()->profilePhotoUrl(),
             ],
             'locations' => $locations,
             'facturations' => $facturations,

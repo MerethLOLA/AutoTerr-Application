@@ -7,6 +7,7 @@ import type { UserProfile } from '@/lib/types';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation, setLocale } from '@/lib/i18n';
 import { useSession } from 'next-auth/react';
+import { useRealtime } from '@/components/RealtimeProvider';
 
 interface PasswordForm {
   current_password: string;
@@ -23,6 +24,7 @@ export default function SettingsPage() {
   const [user, setUser] = useState<UserProfile | null>(_initUser);
   const [loading, setLoading] = useState(_initUser === null);
   const { t } = useTranslation();
+  const { addToast } = useRealtime();
   const [activeSection, setActiveSection] = useState<SettingsSection>('generalite');
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -123,8 +125,11 @@ export default function SettingsPage() {
       }
       await updateSession({ profile_photo_url: url });
       flash('Photo de profil mise à jour.');
+      addToast({ niveau: 'success', titre: 'Photo mise à jour', message: 'Votre nouvelle photo de profil est bien enregistrée.' });
     } catch (err: any) {
-      flash(err?.message || 'Impossible de mettre à jour la photo.', true);
+      const message = err?.message || 'Impossible de mettre à jour la photo.';
+      flash(message, true);
+      addToast({ niveau: 'danger', titre: 'Échec de l\'upload', message });
     } finally {
       setUploadingPhoto(false);
     }

@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useRole } from '@/lib/useRole';
+import { useRealtime } from '@/components/RealtimeProvider';
 
 const STORAGE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/api$/, '');
 function imgUrl(p?: string | null) {
@@ -27,6 +28,7 @@ const STATUT: Record<string, { label: string; cls: string }> = {
 
 export default function VoitureDetailPage() {
   const { canWrite } = useRole();
+  const { addToast } = useRealtime();
   const { id } = useParams();
   const router = useRouter();
   const _initV = id ? apiClient.getCached<any>(`/voitures/${id}`) : null;
@@ -42,10 +44,12 @@ export default function VoitureDetailPage() {
     if (!voiture) return;
     setDeleting(true);
     try {
+      const label = `${voiture.marque} ${voiture.modele}`;
       await apiClient.delete(`/voitures/${voiture.id}`);
+      addToast({ niveau: 'success', titre: 'Véhicule supprimé', message: `${label} a bien été retiré du parc.` });
       router.push('/voitures');
     } catch (err: any) {
-      alert(err?.message || 'Impossible de supprimer ce véhicule.');
+      addToast({ niveau: 'danger', titre: 'Suppression impossible', message: err?.message || 'Impossible de supprimer ce véhicule.' });
       setDeleting(false);
       setConfirmOpen(false);
     }
