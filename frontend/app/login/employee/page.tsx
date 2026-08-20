@@ -256,7 +256,7 @@ export default function LoginEmployee() {
       </div>
 
       <p style={{ marginTop: 20, fontSize: 11, color: '#9ca3af' }}>
-        © {new Date().getFullYear()} AutoTerr — Accès réservé au personnel autorisé
+        © {new Date().getFullYear()} AutoTerr · Accès réservé au personnel autorisé
       </p>
     </div>
   );

@@ -45,13 +45,16 @@ class AuthController extends Controller
             'password_confirmation' => ['required', 'string'],
         ]);
 
+        $hashedPassword = Hash::make($data['password']);
+
         $user = User::query()->create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'username' => $data['username'],
-            'password' => Hash::make($data['password']),
-            'role'     => 'client',
-            'statut'   => 'actif',
+            'name'          => $data['name'],
+            'email'         => $data['email'],
+            'username'      => $data['username'],
+            'password'      => $hashedPassword,
+            'password_hash' => $hashedPassword,
+            'role'          => 'client',
+            'statut'        => 'actif',
         ]);
 
         $token = $user->createToken('frontend')->plainTextToken;

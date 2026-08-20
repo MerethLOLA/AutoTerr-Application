@@ -91,6 +91,7 @@ export default function LocationDetailPage() {
   const [loading, setLoading] = useState(_initLoc === null);
   const [error, setError] = useState<string | null>(null);
   const [statut, setStatut] = useState('');
+  const [dateRetour, setDateRetour] = useState('');
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -120,6 +121,7 @@ export default function LocationDetailPage() {
         const l = res.data;
         setLocation(l);
         setStatut(l.statut);
+        setDateRetour(l.date_retour_effective ? l.date_retour_effective.slice(0, 10) : todayISO());
         setFacture((l as any).facturation ?? null);
       })
       .catch(() => setError('Impossible de charger la location'))
@@ -129,8 +131,10 @@ export default function LocationDetailPage() {
   async function updateStatut() {
     setSaving(true);
     try {
-      await apiClient.put(`/locations/${id}`, { statut });
-      setLocation((l) => l ? { ...l, statut } : l);
+      const payload: Record<string, string> =
+        statut === 'terminee' ? { statut, date_retour_effective: dateRetour } : { statut };
+      await apiClient.put(`/locations/${id}`, payload);
+      setLocation((l) => l ? { ...l, statut, ...(statut === 'terminee' ? { date_retour_effective: dateRetour } : {}) } : l);
       setFeedback('Statut mis à jour.');
       setTimeout(() => setFeedback(null), 3000);
     } catch (err: any) {
@@ -146,7 +150,13 @@ export default function LocationDetailPage() {
     setEtatError(null);
     try {
       const res = await apiClient.post<{ data: EtatDesLieux }>(`/locations/${id}/etats-lieux`, etatForm);
-      setLocation((l) => l ? { ...l, etatsDesLieux: [...(l.etatsDesLieux ?? []), res.data] } : l);
+      const isRetour = etatForm.type_etat === 'retour';
+      setLocation((l) => l ? {
+        ...l,
+        etatsDesLieux: [...(l.etatsDesLieux ?? []), res.data],
+        ...(isRetour ? { date_retour_effective: etatForm.date_etat } : {}),
+      } : l);
+      if (isRetour) setDateRetour(etatForm.date_etat);
       setEtatForm({ type_etat: 'depart', date_etat: todayISO(), description: '' });
       setShowEtatForm(false);
       setFeedback('État des lieux enregistré.');
@@ -609,6 +619,20 @@ export default function LocationDetailPage() {
                     ))}
                   </select>
                 </div>
+                {statut === 'terminee' && (
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-[#111827]">Retour effectif</label>
+                    <input
+                      type="date"
+                      className="field-control"
+                      value={dateRetour}
+                      onChange={(e) => setDateRetour(e.target.value)}
+                    />
+                    <p className="mt-1 text-[11px] text-[#6b7280]">
+                      Pré-rempli depuis le dernier état des lieux de retour, si un a été enregistré. Modifiable.
+                    </p>
+                  </div>
+                )}
                 <button
                   type="button"
                   className="btn-primary w-full"

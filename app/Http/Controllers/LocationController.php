@@ -380,6 +380,13 @@ class LocationController extends Controller
         $etat = EtatLieuLocation::query()->create($data);
         $this->logAction('create', 'etat_lieu', $etat, $data, $request);
 
+        // L'état des lieux de retour porte la date réelle de restitution du
+        // véhicule : on la reporte sur la location pour que la clôture (mise à
+        // jour du statut) ne se contente plus de l'horodatage du clic serveur.
+        if ($data['type_etat'] === 'retour') {
+            $location->update(['date_retour_effective' => $data['date_etat']]);
+        }
+
         return $this->apiItem($etat, 201, ['message' => 'État des lieux enregistré']);
     }
 
