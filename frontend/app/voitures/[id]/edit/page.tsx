@@ -1,7 +1,9 @@
 ﻿'use client';
 
+import ConfirmDialog from '@/components/ConfirmDialog';
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
+import { useRealtime } from '@/components/RealtimeProvider';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -65,6 +67,8 @@ export default function EditVoiturePage() {
   // Photos existantes
   const [existingImages, setExistingImages]   = useState<ExistingImage[]>([]);
   const [deletingImg, setDeletingImg]         = useState<number | null>(null);
+  const [imageToDelete, setImageToDelete]     = useState<ExistingImage | null>(null);
+  const { addToast } = useRealtime();
 
   // Nouvelles photos en attente
   const [pendingFiles, setPendingFiles]       = useState<File[]>([]);
@@ -154,14 +158,16 @@ export default function EditVoiturePage() {
     setPendingPreviews((prev) => prev.filter((_, idx) => idx !== i));
   }
 
-  async function deleteExistingImage(img: ExistingImage) {
-    if (!window.confirm('Supprimer cette photo définitivement ?')) return;
-    setDeletingImg(img.id);
+  async function confirmDeleteImage() {
+    if (!imageToDelete) return;
+    setDeletingImg(imageToDelete.id);
     try {
-      await apiClient.delete(`/voitures/${id}/images/${img.id}`);
-      setExistingImages((prev) => prev.filter((i) => i.id !== img.id));
+      await apiClient.delete(`/voitures/${id}/images/${imageToDelete.id}`);
+      setExistingImages((prev) => prev.filter((i) => i.id !== imageToDelete.id));
+      addToast({ niveau: 'success', titre: 'Photo supprimée', message: 'La photo a bien été retirée du véhicule.' });
+      setImageToDelete(null);
     } catch {
-      alert('Impossible de supprimer la photo.');
+      addToast({ niveau: 'danger', titre: 'Échec', message: 'Impossible de supprimer la photo.' });
     } finally {
       setDeletingImg(null);
     }
@@ -423,7 +429,7 @@ export default function EditVoiturePage() {
                       <button
                         type="button"
                         disabled={deletingImg === img.id}
-                        onClick={() => deleteExistingImage(img)}
+                        onClick={() => setImageToDelete(img)}
                         className="absolute right-1 top-1 hidden h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white transition hover:bg-red-700 group-hover:flex disabled:opacity-60"
                         title="Supprimer cette photo"
                       >
@@ -504,6 +510,17 @@ export default function EditVoiturePage() {
 
         </form>
       </div>
+
+      <ConfirmDialog
+        isOpen={imageToDelete !== null}
+        onClose={() => setImageToDelete(null)}
+        onConfirm={confirmDeleteImage}
+        title="Supprimer cette photo"
+        message="Supprimer cette photo définitivement ? Cette action est irréversible."
+        confirmLabel="Supprimer"
+        loading={deletingImg === imageToDelete?.id}
+        type="danger"
+      />
     </DashboardLayout>
   );
 }

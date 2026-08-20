@@ -1,7 +1,9 @@
 ﻿'use client';
 
+import ConfirmDialog from '@/components/ConfirmDialog';
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
+import { useRealtime } from '@/components/RealtimeProvider';
 import { useEffect, useRef, useState } from 'react';
 
 interface Paiement {
@@ -65,6 +67,8 @@ export default function PaymentsPage() {
   const [factures, setFactures]   = useState<Facture[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Paiement | null>(null);
+  const { addToast } = useRealtime();
   const emptyForm = { id_facture: '', date: new Date().toISOString().slice(0, 10), mode_paiement: 'especes', montant: '', reference_paiement: '', banque: '' };
   const [form, setForm] = useState(emptyForm);
   const formRef = useRef<HTMLDivElement>(null);
@@ -144,14 +148,16 @@ export default function PaymentsPage() {
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!window.confirm('Confirmer la suppression de ce paiement ? Le reste à payer de la facture sera recalculé.')) return;
-    setDeletingId(id);
+  async function confirmDeletePaiement() {
+    if (!deleteTarget) return;
+    setDeletingId(deleteTarget.id);
     try {
-      await apiClient.delete(`/paiements/${id}`);
+      await apiClient.delete(`/paiements/${deleteTarget.id}`);
       setReloadKey((k) => k + 1);
+      addToast({ niveau: 'success', titre: 'Paiement supprimé', message: 'Le reste à payer de la facture a été recalculé.' });
+      setDeleteTarget(null);
     } catch (err: any) {
-      setDownloadError(err?.message || 'Suppression impossible');
+      addToast({ niveau: 'danger', titre: 'Échec de la suppression', message: err?.message || 'Suppression impossible.' });
     } finally {
       setDeletingId(null);
     }
@@ -476,7 +482,7 @@ export default function PaymentsPage() {
                             <button
                               type="button"
                               disabled={deletingId === p.id}
-                              onClick={() => handleDelete(p.id)}
+                              onClick={() => setDeleteTarget(p)}
                               className="inline-flex items-center gap-1 rounded border border-red-200 bg-white px-2 py-1 text-xs font-semibold text-red-600 transition hover:border-red-500 hover:bg-red-500 hover:text-white disabled:opacity-40"
                             >
                               {deletingId === p.id ? '…' : 'Supprimer'}
@@ -525,6 +531,17 @@ export default function PaymentsPage() {
         </section>
 
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDeletePaiement}
+        title="Supprimer ce paiement"
+        message={`Confirmer la suppression du paiement de ${deleteTarget ? money(deleteTarget.montant) : ''} XOF${deleteTarget?.reference_paiement ? ` (${deleteTarget.reference_paiement})` : ''} ? Le reste à payer de la facture sera recalculé.`}
+        confirmLabel="Supprimer"
+        loading={deletingId === deleteTarget?.id}
+        type="danger"
+      />
     </DashboardLayout>
   );
 }

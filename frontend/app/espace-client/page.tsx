@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import ConfirmDialog from '@/components/ConfirmDialog';
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
 import { useRealtime } from '@/components/RealtimeProvider';
@@ -166,7 +167,7 @@ export default function EspaceClientPage() {
   const [loading, setLoading]       = useState(_initPortal === null);
   const [saving, setSaving]         = useState(false);
   const [cancelling, setCancelling] = useState<number | null>(null);
-  const [feedback, setFeedback]     = useState<{ msg: string; ok: boolean } | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<number | null>(null);
   const [activeTab, setActiveTab]   = useState<'locations' | 'factures' | 'documents' | 'demandes'>('locations');
   const [form, setForm] = useState({ id_voiture: '', date_debut: '', date_fin: '', observations: '' });
   const { addToast } = useRealtime();
@@ -216,11 +217,6 @@ export default function EspaceClientPage() {
     return () => { mounted = false; };
   }, []);
 
-  function showFeedback(msg: string, ok = true) {
-    setFeedback({ msg, ok });
-    setTimeout(() => setFeedback(null), 4000);
-  }
-
   async function submitReservation(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
@@ -232,24 +228,25 @@ export default function EspaceClientPage() {
         observations: form.observations || undefined,
       });
       setForm({ id_voiture: '', date_debut: '', date_fin: '', observations: '' });
-      showFeedback('Réservation envoyée avec succès. Notre équipe vous contactera.');
+      addToast({ niveau: 'success', titre: 'Réservation envoyée', message: 'Notre équipe vous contactera prochainement.' });
       await load();
     } catch (err: any) {
-      showFeedback(err?.message || 'Erreur lors de la réservation.', false);
+      addToast({ niveau: 'danger', titre: 'Échec de la réservation', message: err?.message || 'Erreur lors de la réservation.' });
     } finally {
       setSaving(false);
     }
   }
 
-  async function cancelReservation(id: number) {
-    if (!window.confirm('Confirmer l\'annulation de cette réservation ?')) return;
-    setCancelling(id);
+  async function confirmCancelReservation() {
+    if (!cancelTarget) return;
+    setCancelling(cancelTarget);
     try {
-      await apiClient.put(`/locations/${id}`, { statut: 'annulee' });
-      showFeedback('Réservation annulée.');
+      await apiClient.put(`/locations/${cancelTarget}`, { statut: 'annulee' });
+      addToast({ niveau: 'success', titre: 'Réservation annulée', message: 'Votre réservation a bien été annulée.' });
       await load();
+      setCancelTarget(null);
     } catch {
-      showFeedback('Impossible d\'annuler cette réservation.', false);
+      addToast({ niveau: 'danger', titre: 'Échec', message: "Impossible d'annuler cette réservation." });
     } finally {
       setCancelling(null);
     }
@@ -354,15 +351,6 @@ export default function EspaceClientPage() {
               </button>
             </div>
           </form>
-        )}
-
-        {/* ── Feedback ─────────────────────────────────────────────────────── */}
-        {feedback && (
-          <div className={`rounded border px-4 py-3 text-sm ${feedback.ok
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-            : 'border-red-200 bg-red-50 text-red-700'}`}>
-            {feedback.msg}
-          </div>
         )}
 
         {loading ? (
@@ -521,7 +509,7 @@ export default function EspaceClientPage() {
                             <LocationTimeline loc={l} />
                             {l.statut === 'planifiee' && (
                               <button
-                                onClick={() => cancelReservation(l.id)}
+                                onClick={() => setCancelTarget(l.id)}
                                 disabled={cancelling === l.id}
                                 className="ml-auto flex items-center gap-1.5 rounded border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-40"
                               >
@@ -716,6 +704,17 @@ export default function EspaceClientPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={cancelTarget !== null}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={confirmCancelReservation}
+        title="Annuler cette réservation"
+        message="Confirmer l'annulation de cette réservation ?"
+        confirmLabel="Confirmer l'annulation"
+        loading={cancelling === cancelTarget}
+        type="warning"
+      />
     </DashboardLayout>
   );
 }

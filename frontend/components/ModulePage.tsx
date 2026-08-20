@@ -1,8 +1,10 @@
 ﻿'use client';
 
+import ConfirmDialog from '@/components/ConfirmDialog';
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
 import { ModuleColumn, ModuleDefinition, ModuleFormField } from '@/lib/modules';
+import { useRealtime } from '@/components/RealtimeProvider';
 import { useRole } from '@/lib/useRole';
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
@@ -177,6 +179,9 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
   const [quickCreateValues, setQuickCreateValues] = useState<Record<string, string>>({});
   const [quickCreateSaving, setQuickCreateSaving] = useState(false);
   const [quickCreateError, setQuickCreateError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { addToast } = useRealtime();
 
   const visibleFormFields = mod.formFields?.filter((f) => {
     if (f.hidden) return false;
@@ -388,15 +393,18 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
   }
 
   // ── Suppression avec confirmation ─────────────────────────────────────────
-  async function handleDelete(id: number | string) {
-    if (!mod.endpoint) return;
-    if (!window.confirm('Confirmer la suppression de cet élément ?')) return;
-    setError(null);
+  async function confirmDelete() {
+    if (!mod.endpoint || !deleteTarget) return;
+    setDeleting(true);
     try {
-      await apiClient.delete(`${mod.endpoint}/${id}`);
+      await apiClient.delete(`${mod.endpoint}/${deleteTarget.id}`);
       await loadData();
+      addToast({ niveau: 'success', titre: 'Élément supprimé', message: 'La suppression a bien été effectuée.' });
+      setDeleteTarget(null);
     } catch (err: any) {
-      setError(err?.message || 'Suppression impossible');
+      addToast({ niveau: 'danger', titre: 'Échec de la suppression', message: err?.message || 'Suppression impossible.' });
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -801,7 +809,7 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
                                   <button
                                     type="button"
                                     className="text-xs font-semibold text-[var(--color-danger-text)] hover:opacity-75 transition-colors"
-                                    onClick={() => handleDelete(item.id)}
+                                    onClick={() => setDeleteTarget(item)}
                                   >
                                     Supprimer
                                   </button>
@@ -864,6 +872,21 @@ export default function ModulePage({ module: mod }: ModulePageProps) {
           </div>
         </section>
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Supprimer cet élément"
+        message={(() => {
+          const labelCol = columns.find((c) => c.type !== 'image' && c.key !== 'image_principale' && !c.key.includes('chemin'));
+          const label = labelCol ? formatValue(getValue(deleteTarget, labelCol.key)) : null;
+          return `Confirmer la suppression définitive de cet élément${label && label !== '-' ? ` (${label})` : ''} ? Cette action est irréversible.`;
+        })()}
+        confirmLabel="Supprimer"
+        loading={deleting}
+        type="danger"
+      />
     </DashboardLayout>
   );
 }

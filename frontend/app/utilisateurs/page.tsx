@@ -1,7 +1,9 @@
 'use client';
 
+import ConfirmDialog from '@/components/ConfirmDialog';
 import DashboardLayout from '@/components/DashboardLayout';
 import { apiClient } from '@/lib/api';
+import { useRealtime } from '@/components/RealtimeProvider';
 import { useEffect, useState } from 'react';
 import { ROLE_OPTIONS, getRoleBadgeClass, getRoleLabel } from '@/lib/roleLabels';
 
@@ -28,6 +30,8 @@ export default function UtilisateursPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [deleting, setDeleting]     = useState<number | null>(null);
   const [togglingStatus, setTogglingStatus] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const { addToast } = useRealtime();
 
   async function load() {
     setLoading(true);
@@ -102,21 +106,28 @@ export default function UtilisateursPage() {
     try {
       await apiClient.put(`/admin/users/${u.id}`, { statut: nextStatut });
       await load();
+      addToast({
+        niveau: 'success',
+        titre: nextStatut === 'actif' ? 'Compte activé' : 'Compte désactivé',
+        message: `${u.name} est maintenant ${nextStatut === 'actif' ? 'actif' : 'inactif'}.`,
+      });
     } catch (err: any) {
-      alert(err?.message || 'Erreur lors du changement de statut');
+      addToast({ niveau: 'danger', titre: 'Échec', message: err?.message || 'Erreur lors du changement de statut' });
     } finally {
       setTogglingStatus(null);
     }
   }
 
-  async function handleDelete(u: User) {
-    if (!confirm(`Supprimer le compte de ${u.name} (${u.username}) ?`)) return;
-    setDeleting(u.id);
+  async function confirmDeleteUser() {
+    if (!deleteTarget) return;
+    setDeleting(deleteTarget.id);
     try {
-      await apiClient.delete(`/admin/users/${u.id}`);
+      await apiClient.delete(`/admin/users/${deleteTarget.id}`);
       await load();
+      addToast({ niveau: 'success', titre: 'Compte supprimé', message: `Le compte de ${deleteTarget.name} a été supprimé.` });
+      setDeleteTarget(null);
     } catch (err: any) {
-      alert(err?.message || 'Erreur suppression');
+      addToast({ niveau: 'danger', titre: 'Échec de la suppression', message: err?.message || 'Erreur suppression' });
     } finally {
       setDeleting(null);
     }
@@ -203,7 +214,7 @@ export default function UtilisateursPage() {
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={() => openEdit(u)} className="text-xs text-[#1d6fb8] hover:underline">Modifier</button>
                         <button
-                          onClick={() => handleDelete(u)}
+                          onClick={() => setDeleteTarget(u)}
                           disabled={deleting === u.id}
                           className="text-xs text-red-500 hover:underline disabled:opacity-40"
                         >
@@ -325,6 +336,17 @@ export default function UtilisateursPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDeleteUser}
+        title="Supprimer ce compte"
+        message={`Supprimer le compte de ${deleteTarget?.name ?? ''} (${deleteTarget?.username ?? ''}) ? Cette action est irréversible.`}
+        confirmLabel="Supprimer"
+        loading={deleting === deleteTarget?.id}
+        type="danger"
+      />
     </DashboardLayout>
   );
 }
