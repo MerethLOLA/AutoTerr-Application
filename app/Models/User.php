@@ -32,6 +32,7 @@ class User extends Authenticatable
         'id_employe',
         'two_factor_enabled',
         'two_factor_secret',
+        'two_factor_confirmed_at',
     ];
 
     protected $hidden = [
@@ -47,6 +48,7 @@ class User extends Authenticatable
         'password_hash' => 'hashed',
         'two_factor_enabled' => 'boolean',
         'two_factor_secret' => 'encrypted',
+        'two_factor_confirmed_at' => 'datetime',
     ];
 
     public function employe(): BelongsTo

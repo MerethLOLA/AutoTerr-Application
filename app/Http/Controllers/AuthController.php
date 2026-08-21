@@ -99,11 +99,12 @@ class AuthController extends Controller
         }
 
         if ($user->two_factor_enabled) {
-            // Première connexion depuis l'activation forcée de la 2FA (ou après une
-            // réinitialisation) : aucun secret TOTP n'est encore associé au compte.
-            // On en génère un et on demande à l'utilisateur de scanner le QR code
-            // avant de pouvoir terminer la connexion.
-            if (! $user->two_factor_secret) {
+            // Tant que la 2FA n'a pas été confirmée par un premier code valide, on
+            // (re)génère un secret à chaque tentative de connexion : ça évite de
+            // bloquer définitivement un utilisateur qui a fermé/rafraîchi la page
+            // avant d'avoir scanné le QR (le secret précédent, jamais confirmé,
+            // n'a aucune valeur à conserver).
+            if (! $user->two_factor_confirmed_at) {
                 $google2fa = new Google2FA();
                 $secret = $google2fa->generateSecretKey();
                 $user->update(['two_factor_secret' => $secret]);
@@ -151,6 +152,10 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Code invalide',
             ], 401);
+        }
+
+        if (! $user->two_factor_confirmed_at) {
+            $user->update(['two_factor_confirmed_at' => now()]);
         }
 
         return $this->apiItem($this->issueSession($user), 200, [
