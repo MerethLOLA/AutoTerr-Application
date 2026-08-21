@@ -5,8 +5,7 @@ namespace App\Notifications;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-// Volontairement pas ShouldQueue : cohérent avec TwoFactorCodeNotification,
-// aucun worker de file n'est déployé en prod.
+// Volontairement pas ShouldQueue : aucun worker de file n'est déployé en prod.
 class ResetPasswordNotification extends Notification
 {
     public function __construct(public readonly string $resetUrl) {}

@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { signIn, useSession } from 'next-auth/react';
+import QRCode from 'qrcode';
 
 export default function LoginClient() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function LoginClient() {
   const [error, setError] = useState<string | null>(null);
   const [twoFactorUserId, setTwoFactorUserId] = useState<string | null>(null);
   const [code, setCode] = useState('');
+  const [setupInfo, setSetupInfo] = useState<{ secretKey: string; qrDataUrl: string } | null>(null);
 
   const isDisabled = useMemo(
     () => loading || !email.trim() || !password.trim(),
@@ -39,6 +41,13 @@ export default function LoginClient() {
         password,
         redirect: false,
       });
+      if (result?.error?.startsWith('TWO_FACTOR_SETUP_REQUIRED:')) {
+        const [, userId, secretKey, encodedOtpauth] = result.error.split(':');
+        setTwoFactorUserId(userId);
+        const qrDataUrl = await QRCode.toDataURL(decodeURIComponent(encodedOtpauth), { width: 200, margin: 1 });
+        setSetupInfo({ secretKey, qrDataUrl });
+        return;
+      }
       if (result?.error?.startsWith('TWO_FACTOR_REQUIRED:')) {
         setTwoFactorUserId(result.error.split(':')[1]);
         return;
@@ -125,9 +134,11 @@ export default function LoginClient() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h1 className="auth-title">{twoFactorUserId ? 'Vérification' : 'Connexion'}</h1>
+          <h1 className="auth-title">{setupInfo ? 'Configurer la double authentification' : twoFactorUserId ? 'Vérification' : 'Connexion'}</h1>
           <p className="auth-subtitle">
-            {twoFactorUserId ? 'Entrez le code reçu par e-mail' : 'Accédez à votre espace AutoTerr'}
+            {setupInfo
+              ? 'Scannez ce QR code avec Google Authenticator, Authy ou une app équivalente'
+              : twoFactorUserId ? 'Entrez le code affiché par votre application d\'authentification' : 'Accédez à votre espace AutoTerr'}
           </p>
         </div>
 
@@ -135,6 +146,19 @@ export default function LoginClient() {
 
         {twoFactorUserId ? (
           <form onSubmit={handleVerifyCode}>
+            {setupInfo && (
+              <div style={{ textAlign: 'center', marginBottom: 18 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={setupInfo.qrDataUrl} alt="QR code de configuration" width={180} height={180}
+                  style={{ margin: '0 auto', borderRadius: 12, border: '1px solid #dfe3eb' }} />
+                <p style={{ fontSize: 11, color: '#6b7280', marginTop: 10 }}>
+                  Impossible de scanner ? Entrez cette clé manuellement :
+                </p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#111827', letterSpacing: 1, wordBreak: 'break-all', marginTop: 2 }}>
+                  {setupInfo.secretKey}
+                </p>
+              </div>
+            )}
             <div style={{ marginBottom: 14 }}>
               <label style={{ display: 'block', fontSize: 12, color: '#6b7280', fontWeight: 500, marginBottom: 6 }}>
                 Code de vérification
@@ -155,11 +179,11 @@ export default function LoginClient() {
               />
             </div>
             <button type="submit" disabled={loading || code.trim().length < 6} className="auth-button" style={{ marginTop: 4, marginBottom: 12 }}>
-              {loading ? 'Vérification…' : 'Vérifier'}
+              {loading ? 'Vérification…' : setupInfo ? 'Confirmer et se connecter' : 'Vérifier'}
             </button>
             <button
               type="button"
-              onClick={() => { setTwoFactorUserId(null); setCode(''); setError(null); }}
+              onClick={() => { setTwoFactorUserId(null); setSetupInfo(null); setCode(''); setError(null); }}
               style={{ width: '100%', background: 'none', border: 'none', color: '#6b7280', fontSize: 12, cursor: 'pointer', padding: '4px 0' }}
             >
               ← Retour à la connexion
@@ -223,7 +247,7 @@ export default function LoginClient() {
           </div>
 
           <div style={{ textAlign: 'right', marginBottom: 16, marginTop: 6 }}>
-            <span style={{ fontSize: 11, color: '#185FA5', cursor: 'pointer' }}>Mot de passe oublié ?</span>
+            <Link href="/login/client/forgot-password" style={{ fontSize: 11, color: '#185FA5', textDecoration: 'none' }}>Mot de passe oublié ?</Link>
           </div>
 
           <button type="submit" disabled={isDisabled} className="auth-button" style={{ marginBottom: 16 }}>

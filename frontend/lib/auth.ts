@@ -46,6 +46,11 @@ async function laravelLogin(credentials: Record<string, string>) {
     if (!res.ok) return null;
     const json = await res.json();
     const data = json.data ?? json;
+    if (data.two_factor_setup_required) {
+      // Première activation de la 2FA (TOTP) : le secret est transmis une seule
+      // fois ici pour que le client génère le QR code — jamais renvoyé ensuite.
+      throw new Error(`TWO_FACTOR_SETUP_REQUIRED:${data.user_id}:${data.secret_key}:${encodeURIComponent(data.otpauth_url)}`);
+    }
     if (data.two_factor_required) {
       throw new Error(`TWO_FACTOR_REQUIRED:${data.user_id}`);
     }
@@ -53,7 +58,11 @@ async function laravelLogin(credentials: Record<string, string>) {
     if (!token || !user) return null;
     return { token, ...user, id: String(user.id) };
   } catch (err) {
-    if (err instanceof Error && (err.message.startsWith('TWO_FACTOR_REQUIRED:') || err.message === 'TOO_MANY_ATTEMPTS')) throw err;
+    if (err instanceof Error && (
+      err.message.startsWith('TWO_FACTOR_REQUIRED:')
+      || err.message.startsWith('TWO_FACTOR_SETUP_REQUIRED:')
+      || err.message === 'TOO_MANY_ATTEMPTS'
+    )) throw err;
     return null;
   }
 }

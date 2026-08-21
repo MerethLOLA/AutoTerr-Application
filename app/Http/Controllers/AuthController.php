@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Notifications\ResetPasswordNotification;
-use App\Notifications\TwoFactorCodeNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use PragmaRX\Google2FA\Google2FA;
 
 class AuthController extends Controller
 {
@@ -99,23 +99,22 @@ class AuthController extends Controller
         }
 
         if ($user->two_factor_enabled) {
-            $code = (string) random_int(100000, 999999);
-            $user->update([
-                'two_factor_code' => Hash::make($code),
-                'two_factor_expires_at' => now()->addMinutes(10),
-            ]);
+            // Première connexion depuis l'activation forcée de la 2FA (ou après une
+            // réinitialisation) : aucun secret TOTP n'est encore associé au compte.
+            // On en génère un et on demande à l'utilisateur de scanner le QR code
+            // avant de pouvoir terminer la connexion.
+            if (! $user->two_factor_secret) {
+                $google2fa = new Google2FA();
+                $secret = $google2fa->generateSecretKey();
+                $user->update(['two_factor_secret' => $secret]);
 
-            try {
-                $user->notify(new TwoFactorCodeNotification($code));
-            } catch (\Throwable $e) {
-                // L'envoi (SMTP synchrone, pas de worker de file en prod) peut échouer
-                // ou timeout selon l'hébergeur. On ne bloque pas la connexion pour
-                // autant : mieux vaut laisser passer que verrouiller tout le monde
-                // hors de l'application tant que la livraison mail n'est pas fiabilisee.
-                report($e);
-
-                return $this->apiItem($this->issueSession($user), 200, [
-                    'message' => 'Connexion reussie (code de verification indisponible)',
+                return $this->apiItem([
+                    'two_factor_setup_required' => true,
+                    'user_id' => $user->id,
+                    'secret_key' => $secret,
+                    'otpauth_url' => $google2fa->getQRCodeUrl('AutoTerr', $user->email, $secret),
+                ], 200, [
+                    'message' => 'Configuration de la double authentification requise',
                 ]);
             }
 
@@ -123,7 +122,7 @@ class AuthController extends Controller
                 'two_factor_required' => true,
                 'user_id' => $user->id,
             ], 200, [
-                'message' => 'Code de verification envoye par e-mail',
+                'message' => 'Code de verification requis',
             ]);
         }
 
@@ -141,22 +140,18 @@ class AuthController extends Controller
 
         $user = User::query()->find($data['user_id']);
 
-        if (! $user
-            || ! $user->two_factor_enabled
-            || ! $user->two_factor_code
-            || ! $user->two_factor_expires_at
-            || $user->two_factor_expires_at->isPast()
-            || ! Hash::check($data['code'], $user->two_factor_code)
-        ) {
+        if (! $user || ! $user->two_factor_enabled || ! $user->two_factor_secret) {
             return response()->json([
                 'message' => 'Code invalide ou expire',
             ], 401);
         }
 
-        $user->update([
-            'two_factor_code' => null,
-            'two_factor_expires_at' => null,
-        ]);
+        $google2fa = new Google2FA();
+        if (! $google2fa->verifyKey($user->two_factor_secret, $data['code'])) {
+            return response()->json([
+                'message' => 'Code invalide',
+            ], 401);
+        }
 
         return $this->apiItem($this->issueSession($user), 200, [
             'message' => 'Connexion reussie',
@@ -169,18 +164,16 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        // Réservé aux comptes employés (le client a son propre parcours) : on
-        // cherche le compte mais on répond toujours le même message générique,
-        // que le compte existe ou non, pour ne pas permettre l'énumération d'emails.
-        $user = User::query()
-            ->where('email', $data['email'])
-            ->where('role', '!=', 'client')
-            ->first();
+        // On répond toujours le même message générique, que le compte existe ou
+        // non, pour ne pas permettre l'énumération d'emails. Le lien renvoie vers
+        // le parcours employé ou client selon le rôle réel du compte trouvé.
+        $user = User::query()->where('email', $data['email'])->first();
 
         if ($user) {
+            $loginPath = $user->role === 'client' ? 'login/client' : 'login/employee';
             $token = Password::broker()->createToken($user);
             $resetUrl = rtrim(env('FRONTEND_URL', 'http://localhost:3000'), '/')
-                .'/login/employee/reset-password?token='.$token.'&email='.urlencode($user->email);
+                ."/{$loginPath}/reset-password?token=".$token.'&email='.urlencode($user->email);
 
             try {
                 $user->notify(new ResetPasswordNotification($resetUrl));
@@ -190,7 +183,7 @@ class AuthController extends Controller
         }
 
         return $this->apiItem([], 200, [
-            'message' => 'Si un compte employé existe avec cette adresse, un e-mail de réinitialisation vient d\'être envoyé.',
+            'message' => 'Si un compte existe avec cette adresse, un e-mail de réinitialisation vient d\'être envoyé.',
         ]);
     }
 
